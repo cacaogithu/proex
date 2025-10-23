@@ -1,0 +1,263 @@
+Submission ae7d010c-9d2b-4fda-87d1-dd420c9ab5ba: extracting
+PHASE 1: Extracting text from PDFs...
+INFO:     10.82.10.90:0 - "POST /api/submissions HTTP/1.1" 200 OK
+
+============================================================
+Starting processing for submission: ca5b87d4-c4b5-431b-a977-e7be96c5deea
+============================================================
+
+Submission ca5b87d4-c4b5-431b-a977-e7be96c5deea: extracting
+PHASE 1: Extracting text from PDFs...
+INFO:     10.82.10.90:0 - "GET /api/submissions/ca5b87d4-c4b5-431b-a977-e7be96c5deea HTTP/1.1" 200 OK
+Cannot set gray non-stroke color because /'P1' is an invalid float value
+Cannot set gray non-stroke color because /'P2' is an invalid float value
+Cannot set gray non-stroke color because /'P3' is an invalid float value
+Cannot set gray non-stroke color because /'P4' is an invalid float value
+Cannot set gray non-stroke color because /'P5' is an invalid float value
+Cannot set gray non-stroke color because /'P6' is an invalid float value
+Cannot set gray non-stroke color because /'P7' is an invalid float value
+Cannot set gray non-stroke color because /'P8' is an invalid float value
+Cannot set gray non-stroke color because /'P9' is an invalid float value
+Cannot set gray non-stroke color because /'P10' is an invalid float value
+Cannot set gray non-stroke color because /'P11' is an invalid float value
+Cannot set gray non-stroke color because /'P12' is an invalid float value
+Cannot set gray non-stroke color because /'P13' is an invalid float value
+Cannot set gray non-stroke color because /'P14' is an invalid float value
+Cannot set gray non-stroke color because /'P15' is an invalid float value
+Cannot set gray non-stroke color because /'P16' is an invalid float value
+Cannot set gray non-stroke color because /'P17' is an invalid float value
+Cannot set gray non-stroke color because /'P18' is an invalid float value
+Cannot set gray non-stroke color because /'P19' is an invalid float value
+Cannot set gray non-stroke color because /'P20' is an invalid float value
+Cannot set gray non-stroke color because /'P21' is an invalid float value
+Cannot set gray non-stroke color because /'P22' is an invalid float value
+Cannot set gray non-stroke color because /'P23' is an invalid float value
+Cannot set gray non-stroke color because /'P24' is an invalid float value
+Cannot set gray non-stroke color because /'P25' is an invalid float value
+Cannot set gray non-stroke color because /'P26' is an invalid float value
+Cannot set gray non-stroke color because /'P27' is an invalid float value
+Cannot set gray non-stroke color because /'P28' is an invalid float value
+Cannot set gray non-stroke color because /'P29' is an invalid float value
+Cannot set gray non-stroke color because /'P30' is an invalid float value
+Cannot set gray non-stroke color because /'P31' is an invalid float value
+Cannot set gray non-stroke color because /'P32' is an invalid float value
+Cannot set gray non-stroke color because /'P33' is an invalid float value
+Cannot set gray non-stroke color because /'P34' is an invalid float value
+Cannot set gray non-stroke color because /'P35' is an invalid float value
+Cannot set gray non-stroke color because /'P36' is an invalid float value
+Cannot set gray non-stroke color because /'P37' is an invalid float value
+Cannot set gray non-stroke color because /'P38' is an invalid float value
+Cannot set gray non-stroke color because /'P39' is an invalid float value
+✓ Extracted 5 testimonials
+Submission ae7d010c-9d2b-4fda-87d1-dd420c9ab5ba: organizing
+
+PHASE 2: Cleaning and organizing data...
+Error in clean_and_organize: Error code: 404 - {'error': {'message': 'No endpoints found for google/gemini-flash-1.5.', 'code': 404}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+✗ ERROR: Error code: 404 - {'error': {'message': 'No endpoints found for google/gemini-flash-1.5.', 'code': 404}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+Submission ae7d010c-9d2b-4fda-87d1-dd420c9ab5ba: error
+Cannot set gray non-stroke color because /'P1' is an invalid float value
+Cannot set gray non-stroke color because /'P2' is an invalid float value
+Cannot set gray non-stroke color because /'P3' is an invalid float value
+Cannot set gray non-stroke color because /'P4' is an invalid float value
+Cannot set gray non-stroke color because /'P5' is an invalid float value
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/applications.py", line 1133, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/routing.py", line 110, in app
+    await response(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/responses.py", line 168, in __call__
+    await self.background()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/background.py", line 42, in __call__
+    await task()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/background.py", line 29, in __call__
+    await run_in_threadpool(self.func, *self.args, **self.kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2485, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 976, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/backend/app/core/processor.py", line 39, in process_submission
+    organized_data = self.llm.clean_and_organize(extracted_texts)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/backend/app/core/llm_processor.py", line 92, in clean_and_organize
+    response = self.client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_utils/_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 1156, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1259, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1047, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.NotFoundError: Error code: 404 - {'error': {'message': 'No endpoints found for google/gemini-flash-1.5.', 'code': 404}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+Cannot set gray non-stroke color because /'P6' is an invalid float value
+Cannot set gray non-stroke color because /'P7' is an invalid float value
+Cannot set gray non-stroke color because /'P8' is an invalid float value
+Cannot set gray non-stroke color because /'P9' is an invalid float value
+Cannot set gray non-stroke color because /'P10' is an invalid float value
+Cannot set gray non-stroke color because /'P11' is an invalid float value
+Cannot set gray non-stroke color because /'P12' is an invalid float value
+Cannot set gray non-stroke color because /'P13' is an invalid float value
+Cannot set gray non-stroke color because /'P14' is an invalid float value
+Cannot set gray non-stroke color because /'P15' is an invalid float value
+Cannot set gray non-stroke color because /'P16' is an invalid float value
+Cannot set gray non-stroke color because /'P17' is an invalid float value
+Cannot set gray non-stroke color because /'P18' is an invalid float value
+Cannot set gray non-stroke color because /'P19' is an invalid float value
+Cannot set gray non-stroke color because /'P20' is an invalid float value
+Cannot set gray non-stroke color because /'P21' is an invalid float value
+Cannot set gray non-stroke color because /'P22' is an invalid float value
+Cannot set gray non-stroke color because /'P23' is an invalid float value
+Cannot set gray non-stroke color because /'P24' is an invalid float value
+Cannot set gray non-stroke color because /'P25' is an invalid float value
+Cannot set gray non-stroke color because /'P26' is an invalid float value
+Cannot set gray non-stroke color because /'P27' is an invalid float value
+Cannot set gray non-stroke color because /'P28' is an invalid float value
+Cannot set gray non-stroke color because /'P29' is an invalid float value
+Cannot set gray non-stroke color because /'P30' is an invalid float value
+Cannot set gray non-stroke color because /'P31' is an invalid float value
+Cannot set gray non-stroke color because /'P32' is an invalid float value
+Cannot set gray non-stroke color because /'P33' is an invalid float value
+Cannot set gray non-stroke color because /'P34' is an invalid float value
+Cannot set gray non-stroke color because /'P35' is an invalid float value
+Cannot set gray non-stroke color because /'P36' is an invalid float value
+Cannot set gray non-stroke color because /'P37' is an invalid float value
+Cannot set gray non-stroke color because /'P38' is an invalid float value
+Cannot set gray non-stroke color because /'P39' is an invalid float value
+✓ Extracted 5 testimonials
+Submission ca5b87d4-c4b5-431b-a977-e7be96c5deea: organizing
+
+PHASE 2: Cleaning and organizing data...
+Error in clean_and_organize: Error code: 404 - {'error': {'message': 'No endpoints found for google/gemini-flash-1.5.', 'code': 404}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+✗ ERROR: Error code: 404 - {'error': {'message': 'No endpoints found for google/gemini-flash-1.5.', 'code': 404}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+Submission ca5b87d4-c4b5-431b-a977-e7be96c5deea: error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/applications.py", line 1133, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/routing.py", line 110, in app
+    await response(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/responses.py", line 168, in __call__
+    await self.background()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/background.py", line 42, in __call__
+    await task()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/background.py", line 29, in __call__
+    await run_in_threadpool(self.func, *self.args, **self.kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2485, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 976, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/backend/app/core/processor.py", line 39, in process_submission
+    organized_data = self.llm.clean_and_organize(extracted_texts)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/backend/app/core/llm_processor.py", line 92, in clean_and_organize
+    response = self.client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_utils/_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 1156, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1259, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1047, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.NotFoundError: Error code: 404 - {'error': {'message': 'No endpoints found for google/gemini-flash-1.5.', 'code': 404}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
