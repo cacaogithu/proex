@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import os
 from datetime import datetime
 import uuid
 from typing import Optional, Dict, List
@@ -8,6 +9,7 @@ from typing import Optional, Dict, List
 class Database:
     def __init__(self, db_path="backend/proex.db"):
         self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self.init_db()
     
     def init_db(self):
