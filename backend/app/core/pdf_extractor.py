@@ -1,5 +1,5 @@
 import pdfplumber
-from typing import Dict, List, Optional
+from typing import Dict, Any
 import os
 
 
@@ -17,7 +17,7 @@ class PDFExtractor:
             print(f"Error extracting PDF {pdf_path}: {str(e)}")
             return ""
     
-    def extract_all_files(self, submission_id: str) -> Dict[str, any]:
+    def extract_all_files(self, submission_id: str) -> Dict[str, Any]:
         base_path = f"backend/storage/uploads/{submission_id}"
         
         extracted = {}

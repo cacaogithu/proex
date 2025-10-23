@@ -5,7 +5,7 @@ export default function StatusPage() {
   const [submissionId, setSubmissionId] = useState('')
   const [loading, setLoading] = useState(false)
   const [submission, setSubmission] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string>('')
 
   const checkStatus = async () => {
     if (!submissionId.trim()) {
@@ -14,7 +14,7 @@ export default function StatusPage() {
     }
 
     setLoading(true)
-    setError(null)
+    setError('')
     setSubmission(null)
 
     try {

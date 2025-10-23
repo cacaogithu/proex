@@ -11,7 +11,7 @@ export default function SubmitPage() {
   const [testimonials, setTestimonials] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string>('')
 
   const handleTestimonialChange = (index: number, file: File | null) => {
     const newTestimonials = [...testimonials]
@@ -26,7 +26,7 @@ export default function SubmitPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    setError(null)
+    setError('')
     setResult(null)
 
     try {

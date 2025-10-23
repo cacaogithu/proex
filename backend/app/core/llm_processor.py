@@ -80,7 +80,9 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
             )
             
             content = response.choices[0].message.content
-            return json.loads(content)
+            if content:
+                return json.loads(content)
+            raise ValueError("Empty response from LLM")
         except Exception as e:
             print(f"Error in clean_and_organize: {str(e)}")
             raise

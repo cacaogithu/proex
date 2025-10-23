@@ -17,7 +17,7 @@ class SubmissionProcessor:
         self.pdf_generator = PDFGenerator()
         self.db = Database()
     
-    def update_status(self, submission_id: str, status: str, error: str = None):
+    def update_status(self, submission_id: str, status: str, error: str | None = None):
         self.db.update_submission_status(submission_id, status, error)
         print(f"Submission {submission_id}: {status}")
     
