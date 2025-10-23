@@ -17,9 +17,9 @@ class LLMProcessor:
         )
         
         self.models = {
-            "fast": "google/gemini-flash-1.5-8b",
-            "quality": "google/gemini-2.0-flash-exp:free",
-            "premium": "anthropic/claude-3.5-sonnet"
+            "fast": "google/gemini-2.5-flash",
+            "quality": "google/gemini-2.5-pro-preview-05-06",
+            "premium": "anthropic/claude-sonnet-3.7"
         }
     
     def clean_and_organize(self, extracted_texts: Dict) -> Dict:

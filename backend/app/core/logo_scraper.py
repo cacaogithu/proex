@@ -11,6 +11,8 @@ class LogoScraper:
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
+        # Cache logos during a single run to avoid re-fetching
+        self._logo_cache = {}
     
     def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
         """
@@ -21,6 +23,12 @@ class LogoScraper:
         
         Returns: Path to downloaded logo or None
         """
+        # Check cache first
+        cache_key = company_website or company_name
+        if cache_key in self._logo_cache:
+            print(f"✓ Logo found in cache for: {company_name}")
+            return self._logo_cache[cache_key]
+        
         print(f"🔍 Searching logo for: {company_name}")
         
         logo_path = None
@@ -29,39 +37,51 @@ class LogoScraper:
         if company_website:
             logo_path = self._try_clearbit(company_website)
             if logo_path:
+                self._logo_cache[cache_key] = logo_path
                 return logo_path
         
         # Method 2: Try scraping company website directly
         if company_website:
             logo_path = self._scrape_website_logo(company_website)
             if logo_path:
+                self._logo_cache[cache_key] = logo_path
                 return logo_path
         
         # Method 3: Try Google Images search as fallback
         logo_path = self._google_logo_search(company_name)
         if logo_path:
+            self._logo_cache[cache_key] = logo_path
             return logo_path
         
         print(f"⚠️ Could not find logo for {company_name}")
+        self._logo_cache[cache_key] = None
         return None
     
     def _try_clearbit(self, website: str) -> Optional[str]:
         """Use Clearbit Logo API - free tier, no auth required"""
-        try:
-            # Extract domain from website
-            domain = urlparse(website).netloc or website
-            domain = domain.replace('www.', '')
-            
-            clearbit_url = f"https://logo.clearbit.com/{domain}"
-            
-            response = requests.get(clearbit_url, headers=self.headers, timeout=5)
-            if response.status_code == 200:
-                # Save logo
-                logo_path = self._save_logo(domain, response.content)
-                print(f"✓ Logo found via Clearbit: {domain}")
-                return logo_path
-        except Exception as e:
-            print(f"Clearbit failed: {str(e)}")
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                # Extract domain from website
+                domain = urlparse(website).netloc or website
+                domain = domain.replace('www.', '')
+                
+                clearbit_url = f"https://logo.clearbit.com/{domain}"
+                
+                response = requests.get(clearbit_url, headers=self.headers, timeout=3)
+                if response.status_code == 200:
+                    # Save logo
+                    logo_path = self._save_logo(domain, response.content)
+                    print(f"✓ Logo found via Clearbit: {domain}")
+                    return logo_path
+            except requests.Timeout:
+                if attempt < max_retries - 1:
+                    print(f"Clearbit timeout, retrying ({attempt + 1}/{max_retries})...")
+                    time.sleep(0.5)
+                    continue
+            except Exception as e:
+                print(f"Clearbit failed: {str(e)}")
+                break
         
         return None
     
@@ -72,7 +92,7 @@ class LogoScraper:
             if not website.startswith('http'):
                 website = f"https://{website}"
             
-            response = requests.get(website, headers=self.headers, timeout=10)
+            response = requests.get(website, headers=self.headers, timeout=5)
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # Look for common logo patterns
@@ -87,7 +107,7 @@ class LogoScraper:
             for selector in logo_selectors:
                 logo = soup.select_one(selector)
                 if logo and logo.get('src'):
-                    logo_url = urljoin(website, logo['src'])
+                    logo_url = urljoin(website, str(logo['src']))
                     
                     # Download logo
                     logo_response = requests.get(logo_url, headers=self.headers, timeout=5)
