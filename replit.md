@@ -85,10 +85,23 @@ proex-platform/
 - Cria objeto com: petitioner, strategy, onet, testimonies
 - Valida e organiza informações
 
-### Fase 3: Heterogeneity Architect
-- Gera N design structures (uma por testemunho)
-- Cada design tem: tone, narrative framework, paragraph structure, etc.
-- Garante heterogeneidade entre as cartas
+### Fase 3: Heterogeneity Architect (REESCRITO COMPLETAMENTE - Out 2025)
+- **6 Templates Arquetípicos Radicalmente Distintos** (baseados nas cartas V1 reais):
+  * **Template A** - Technical Deep-Dive: Engenheiro técnico sênior com muitas siglas (PLC, SCADA, NR10, ISO)
+  * **Template B** - Case Study Acadêmico: Gestor MBA com Six Sigma DMAIC e seções explícitas
+  * **Template C** - Narrative Storytelling: Gestor operacional contando jornada problema→solução
+  * **Template D** - Business Partnership: Diretor comercial focado em ROI e parceria estratégica
+  * **Template E** - Support Letter: Executivo americano com quadros de resultados e mercado USA
+  * **Template F** - Technical Testimony: Líder de projeto com documentação anexa e trabalho em equipe
+
+- **Validação Programática RIGOROSA** (4 camadas determinísticas):
+  1. ✅ Count matching: número exato de structures
+  2. ✅ Template validity: apenas {A,B,C,D,E,F} aceitos
+  3. ✅ Uniqueness para ≤6 cartas: cada template usado EXATAMENTE uma vez (zero repetição)
+  4. ✅ Distribuição uniforme para >6 cartas: todos os 6 templates usados com counts ⌊N/6⌋ ou ⌈N/6⌉
+  
+- **Retry automático**: Regenera até 3x se validação falhar
+- **Garantia matemática**: Cada carta é radicalmente diferente das outras em estrutura, tom e estilo
 
 ### Fase 4: Geração de Blocos
 - Para cada testemunho, gera 5 blocos:
