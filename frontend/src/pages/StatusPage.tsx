@@ -126,15 +126,60 @@ export default function StatusPage() {
           )}
 
           {submission.status === 'completed' && (
-            <button
-              onClick={downloadResults}
-              className="w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 font-semibold flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download das Cartas (ZIP)
-            </button>
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Cartas Geradas:</h4>
+                <div className="space-y-2">
+                  {submission.files?.map((file: string, index: number) => (
+                    <a
+                      key={index}
+                      href={`/api/files/${submission.id}/${file}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                        </svg>
+                        <span className="text-sm font-medium text-gray-900">{file}</span>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )) || Array.from({ length: submission.number_of_testimonials }).map((_, i) => (
+                    <a
+                      key={i}
+                      href={`/api/files/${submission.id}/letter_${i + 1}.pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                        </svg>
+                        <span className="text-sm font-medium text-gray-900">Carta {i + 1}</span>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              </div>
+              
+              <button
+                onClick={downloadResults}
+                className="w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 font-semibold flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Todas as Cartas (ZIP)
+              </button>
+            </div>
           )}
 
           {['extracting', 'organizing', 'designing', 'generating'].includes(submission.status) && (

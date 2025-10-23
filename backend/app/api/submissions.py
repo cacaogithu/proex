@@ -74,6 +74,30 @@ async def list_submissions(email: Optional[str] = None):
     return submissions
 
 
+@router.get("/files/{submission_id}/{filename}")
+async def get_file(submission_id: str, filename: str):
+    submission = db.get_submission(submission_id)
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    file_path = f"backend/storage/outputs/{submission_id}/{filename}"
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    
+    if not filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Tipo de arquivo inválido")
+    
+    return FileResponse(
+        file_path,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"inline; filename={filename}"
+        }
+    )
+
+
 @router.get("/submissions/{submission_id}/download")
 async def download_results(submission_id: str):
     submission = db.get_submission(submission_id)
