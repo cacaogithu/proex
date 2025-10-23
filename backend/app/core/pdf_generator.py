@@ -2,6 +2,7 @@ from weasyprint import HTML
 import markdown as md
 from typing import Dict
 import os
+import time
 
 
 class PDFGenerator:
@@ -48,17 +49,26 @@ Causalidade direta: "Realizou X, gerando Y resultado"
 # TODO EM PORTUGUÊS
 """
         
-        try:
-            response = llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
-            )
-            
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"Error assembling letter: {str(e)}")
-            return combined_blocks
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = llm.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7
+                )
+                
+                return response.choices[0].message.content
+            except Exception as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 3
+                    print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                    time.sleep(wait_time)
+                    continue
+                if attempt == max_retries - 1:
+                    print(f"Error assembling letter: {str(e)}")
+        
+        return combined_blocks
     
     def markdown_to_pdf(self, markdown_text: str, output_path: str, design: Dict):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)

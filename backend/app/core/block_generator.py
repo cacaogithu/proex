@@ -1,10 +1,30 @@
 from typing import Dict
 import json
+import time
 
 
 class BlockGenerator:
     def __init__(self, llm_processor):
         self.llm = llm_processor
+    
+    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3) -> str:
+        for attempt in range(max_retries):
+            try:
+                response = self.llm.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 3
+                    print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                    time.sleep(wait_time)
+                    continue
+                if attempt == max_retries - 1:
+                    raise e
+        return ""
     
     def generate_block3(self, testimony: Dict, design: Dict, context: Dict) -> str:
         prompt = f"""# ROLE
@@ -41,13 +61,7 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            response = self.llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            
-            content = response.choices[0].message.content
+            content = self._call_llm_with_retry(prompt, temperature=0.9)
             try:
                 data = json.loads(content)
                 return data.get('markdown_draft', content)
@@ -80,12 +94,7 @@ Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 """
         
         try:
-            response = self.llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            return response.choices[0].message.content
+            return self._call_llm_with_retry(prompt, temperature=0.9)
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
@@ -112,12 +121,7 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            response = self.llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            return response.choices[0].message.content
+            return self._call_llm_with_retry(prompt, temperature=0.9)
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
@@ -144,12 +148,7 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            response = self.llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            return response.choices[0].message.content
+            return self._call_llm_with_retry(prompt, temperature=0.9)
         except Exception as e:
             print(f"Error generating block 6: {str(e)}")
             return "Error generating block 6"
@@ -176,12 +175,7 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            response = self.llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            return response.choices[0].message.content
+            return self._call_llm_with_retry(prompt, temperature=0.9)
         except Exception as e:
             print(f"Error generating block 7: {str(e)}")
             return "Error generating block 7"

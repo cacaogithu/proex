@@ -1,5 +1,6 @@
 from typing import Dict, List
 import json
+import time
 
 
 class HeterogeneityArchitect:
@@ -70,15 +71,24 @@ Retorne APENAS JSON válido (sem markdown):
 }}
 """
         
-        try:
-            response = self.llm.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
-            
-            content = response.choices[0].message.content
-            return json.loads(content)
-        except Exception as e:
-            print(f"Error in generate_design_structures: {str(e)}")
-            raise
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.llm.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+                
+                content = response.choices[0].message.content
+                return json.loads(content)
+            except Exception as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 3
+                    print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                    time.sleep(wait_time)
+                    continue
+                if attempt == max_retries - 1:
+                    print(f"Error in generate_design_structures: {str(e)}")
+                    raise
+        return {}

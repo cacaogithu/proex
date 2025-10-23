@@ -107,7 +107,10 @@ export default function SubmitPage() {
             min="1"
             max="10"
             value={numberOfTestimonials}
-            onChange={(e) => setNumberOfTestimonials(parseInt(e.target.value))}
+            onChange={(e) => {
+              const val = parseInt(e.target.value)
+              if (!isNaN(val)) setNumberOfTestimonials(val)
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>

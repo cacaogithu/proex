@@ -1,6 +1,7 @@
 from openai import OpenAI
 import json
 import os
+import time
 from typing import Dict, List
 
 
@@ -74,19 +75,28 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
 - Retorne JSON puro sem markdown
 """
         
-        try:
-            # The newest OpenAI model is "gpt-5" which was released August 7, 2025.
-            # Do not change this unless explicitly requested by the user
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
-            
-            content = response.choices[0].message.content
-            if content:
-                return json.loads(content)
-            raise ValueError("Empty response from LLM")
-        except Exception as e:
-            print(f"Error in clean_and_organize: {str(e)}")
-            raise
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # The newest OpenAI model is "gpt-5" which was released August 7, 2025.
+                # Do not change this unless explicitly requested by the user
+                response = self.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+                
+                content = response.choices[0].message.content
+                if content:
+                    return json.loads(content)
+                raise ValueError("Empty response from LLM")
+            except Exception as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 3
+                    print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                    time.sleep(wait_time)
+                    continue
+                if attempt == max_retries - 1:
+                    print(f"Error in clean_and_organize: {str(e)}")
+                    raise
+        return {}
