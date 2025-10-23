@@ -3,7 +3,7 @@ import axios from 'axios'
 
 export default function SubmitPage() {
   const [email, setEmail] = useState('')
-  const [numberOfTestimonials, setNumberOfTestimonials] = useState(3)
+  const [numberOfTestimonials, setNumberOfTestimonials] = useState('') // Changed from 0 to '' to handle initial empty string
   const [quadro, setQuadro] = useState<File | null>(null)
   const [cv, setCv] = useState<File | null>(null)
   const [estrategia, setEstrategia] = useState<File | null>(null)
@@ -30,20 +30,20 @@ export default function SubmitPage() {
     setResult(null)
 
     try {
-      const formData = new FormData()
-      formData.append('email', email)
-      formData.append('numberOfTestimonials', numberOfTestimonials.toString())
-      
-      if (quadro) formData.append('quadro', quadro)
-      if (cv) formData.append('cv', cv)
-      if (estrategia) formData.append('estrategia', estrategia)
-      if (onenote) formData.append('onenote', onenote)
-      
+      const formDataToSend = new FormData() // Renamed to avoid confusion with state variable
+      formDataToSend.append('email', email)
+      formDataToSend.append('numberOfTestimonials', String(numberOfTestimonials || 0)); // Corrected to handle empty string and convert to string
+
+      if (quadro) formDataToSend.append('quadro', quadro)
+      if (cv) formDataToSend.append('cv', cv)
+      if (estrategia) formDataToSend.append('estrategia', estrategia)
+      if (onenote) formDataToSend.append('onenote', onenote)
+
       testimonials.forEach((file) => {
-        formData.append('testimonials', file)
+        formDataToSend.append('testimonials', file)
       })
 
-      const response = await axios.post('/api/submissions', formData, {
+      const response = await axios.post('/api/submissions', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -68,7 +68,7 @@ export default function SubmitPage() {
           <h3 className="text-green-800 font-semibold mb-2">✓ Submissão Recebida!</h3>
           <p className="text-green-700">ID: {result.submission_id}</p>
           <p className="text-green-700">{result.message}</p>
-          <a 
+          <a
             href={`/status?id=${result.submission_id}`}
             className="inline-block mt-3 text-blue-600 hover:text-blue-800 underline"
           >
@@ -108,8 +108,8 @@ export default function SubmitPage() {
             max="10"
             value={numberOfTestimonials}
             onChange={(e) => {
-              const val = parseInt(e.target.value)
-              if (!isNaN(val)) setNumberOfTestimonials(val)
+              const val = e.target.value
+              setNumberOfTestimonials(val) // Directly set the value as string
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
@@ -117,7 +117,7 @@ export default function SubmitPage() {
 
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">Documentos Obrigatórios</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -150,7 +150,7 @@ export default function SubmitPage() {
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">Testemunhos (CVs/LinkedIn) *</h3>
           <div className="space-y-3">
-            {Array.from({ length: numberOfTestimonials }).map((_, index) => (
+            {Array.from({ length: parseInt(numberOfTestimonials) || 0 }).map((_, index) => ( // Ensure length is a number
               <div key={index}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Testemunho {index + 1}
@@ -169,7 +169,7 @@ export default function SubmitPage() {
 
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">Documentos Opcionais</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
