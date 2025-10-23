@@ -1,0 +1,1220 @@
+Prompt para Replit: ProEx Platform - 100% Standalone (Sem n8n, Sem Supabase)
+
+Contexto
+
+Você vai criar uma plataforma web completamente standalone para a ProEx Venture que processa cartas de recomendação para vistos EB-2 NIW. Todo o processamento (extração de PDFs, LLM, geração de cartas) será feito em código, sem dependências externas de workflow ou banco de dados pago.
+
+Arquivos de Referência
+
+Estou anexando dois workflows n8n para você entender a lógica de processamento:
+
+1.
+ProEx-2.json - Workflow original (103 nodes)
+
+2.
+ProEx-Complete-Final.json - Workflow otimizado (24 nodes)
+
+IMPORTANTE: Você vai replicar toda essa lógica em código Python/TypeScript, não usar n8n. Os JSONs são apenas referência para entender o fluxo.
+
+Stack Tecnológica (100% Gratuita)
+
+Frontend
+
+•
+React + TypeScript + Vite
+
+•
+Tailwind CSS + Shadcn/ui
+
+•
+React Router para navegação
+
+•
+React Hook Form + Zod para formulários
+
+•
+Axios para API calls
+
+Backend
+
+•
+Python (FastAPI ou Flask)
+
+•
+SQLite para banco de dados (arquivo local)
+
+•
+PyPDF2 ou pdfplumber para extração de PDFs
+
+•
+OpenAI API (Gemini via OpenAI-compatible endpoint)
+
+•
+ReportLab ou WeasyPrint para gerar PDFs finais
+
+Storage
+
+•
+Sistema de arquivos local do Replit
+
+•
+Estrutura de pastas organizada
+
+Auth
+
+•
+JWT simples (sem serviço externo)
+
+•
+Senhas com bcrypt
+
+Estrutura do Projeto
+
+Plain Text
+
+
+proex-platform/
+├── frontend/                    # React app
+│   ├── src/
+│   │   ├── components/         # UI components
+│   │   ├── pages/              # Page components
+│   │   ├── hooks/              # Custom hooks
+│   │   ├── lib/                # Utilities
+│   │   ├── types/              # TypeScript types
+│   │   └── App.tsx
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── backend/                     # Python API
+│   ├── app/
+│   │   ├── api/                # API routes
+│   │   │   ├── auth.py
+│   │   │   ├── submissions.py
+│   │   │   └── processing.py
+│   │   ├── core/               # Core logic
+│   │   │   ├── pdf_extractor.py
+│   │   │   ├── llm_processor.py
+│   │   │   ├── pdf_generator.py
+│   │   │   └── heterogeneity.py
+│   │   ├── models/             # Data models
+│   │   │   ├── user.py
+│   │   │   └── submission.py
+│   │   ├── db/                 # Database
+│   │   │   ├── database.py
+│   │   │   └── crud.py
+│   │   └── main.py
+│   ├── storage/                # File storage
+│   │   ├── uploads/            # PDFs enviados
+│   │   └── outputs/            # PDFs gerados
+│   ├── requirements.txt
+│   └── .env
+│
+├── shared/                      # Tipos compartilhados
+│   └── types.ts
+│
+└── README.md
+
+
+Fluxo de Processamento (Replicando n8n em Código)
+
+Fase 1: Recebimento e Extração
+
+Python
+
+
+# backend/app/core/pdf_extractor.py
+import pdfplumber
+from typing import Dict, List
+
+class PDFExtractor:
+    """Extrai texto de PDFs (replica os nodes Extract do n8n)"""
+    
+    def extract_text(self, pdf_path: str) -> str:
+        """Extrai todo o texto de um PDF"""
+        with pdfplumber.open(pdf_path) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text() + "\n"
+        return text
+    
+    def extract_all_files(self, submission_id: str) -> Dict[str, any]:
+        """
+        Extrai texto de todos os PDFs de uma submission
+        Replica: Extract Quadro, Extract CV, Extract Estrategia, etc.
+        """
+        base_path = f"storage/uploads/{submission_id}"
+        
+        return {
+            "quadro": self.extract_text(f"{base_path}/quadro.pdf"),
+            "cv": self.extract_text(f"{base_path}/cv.pdf"),
+            "estrategia": self.extract_text(f"{base_path}/estrategia.pdf") if exists else None,
+            "onenote": self.extract_text(f"{base_path}/onenote.pdf") if exists else None,
+            "testimonials": [
+                self.extract_text(f"{base_path}/testimonial_{i}.pdf")
+                for i in range(num_testimonials)
+            ]
+        }
+
+
+Fase 2: Clean and Organize (LLM)
+
+Python
+
+
+# backend/app/core/llm_processor.py
+from openai import OpenAI
+import json
+import os
+
+class LLMProcessor:
+    """Processa dados com LLM (replica os nodes LLM Chain do n8n)"""
+    
+    def __init__(self):
+        # Usa Gemini via OpenAI-compatible API
+        self.client = OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_BASE_URL")  # Já configurado no ambiente
+        )
+    
+    def clean_and_organize(self, extracted_texts: Dict) -> Dict:
+        """
+        Replica o node "Clean and Organize" do workflow
+        Estrutura os dados extraídos em JSON
+        """
+        prompt = f"""# Role
+Você é um editor de documentos excepcional para ProEx Venture. 
+Pegue os inputs fragmentados e produza outputs estruturados em JSON.
+
+# Inputs
+Quadro: {extracted_texts['quadro']}
+CV: {extracted_texts['cv']}
+Estrategia: {extracted_texts['estrategia']}
+OneNote: {extracted_texts['onenote']}
+Testimonials: {extracted_texts['testimonials']}
+
+# Output
+Retorne APENAS JSON válido (sem markdown, sem code fences):
+{{
+  "petitioner": {{"name": "...", "education": "...", "experience": "..."}},
+  "strategy": {{"services_offered": "...", "target_clients": "..."}},
+  "onet": {{"representative_tasks": "...", "tools_and_technologies": "...", "work_activities_and_skills": "..."}},
+  "testimonies": [
+    {{"testimony_id": "1", "recommender_name": "...", "recommender_company": "...", 
+      "recommender_role": "...", "collaboration_period": "...", "applicant_role": "...", 
+      "testimony_text": "...", "key_achievements": "..."}}
+  ]
+}}
+
+# Regras
+- Extraia TODOS os testemunhos (quantidade variável)
+- Se OneNote faltando, use null
+- Não invente fatos
+- Output em português
+"""
+        
+        response = self.client.chat.completions.create(
+            model="gemini-2.5-flash",  # Ou gpt-4.1-mini
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        
+        return json.loads(response.choices[0].message.content)
+
+
+Fase 3: Heterogeneity Architect
+
+Python
+
+
+# backend/app/core/heterogeneity.py
+class HeterogeneityArchitect:
+    """Gera designs distintos para cada testemunho (replica node Heterogeneity Architect)"""
+    
+    def __init__(self, llm_processor: LLMProcessor):
+        self.llm = llm_processor
+    
+    def generate_design_structures(self, organized_data: Dict) -> List[Dict]:
+        """
+        Gera N design structures (uma para cada testemunho)
+        Replica o node "Heterogeneity Architect" do workflow
+        """
+        testimonies = organized_data['testimonies']
+        
+        prompt = f"""# ROLE
+Você é `Heterogeneity_Architect`. Analise todos os dados contextuais e produza 
+**{len(testimonies)} blueprints de design radicalmente distintos** (um para cada testemunho).
+
+# INPUTS
+OneNet: {organized_data['onet']}
+Strategy: {organized_data['strategy']}
+Petitioner: {organized_data['petitioner']}
+
+Testimonies:
+{self._format_testimonies(testimonies)}
+
+# TAREFA
+Crie **{len(testimonies)} personas de autor distintas** com estilos de escrita diferentes.
+
+Para cada testemunho, gere um objeto com estes campos:
+{{
+  "template_id": "T1" | "T2" | "T3" | ...,
+  "assigned_recommender": "[Nome completo]",
+  "tone_instructions": "[Descrição detalhada do estilo de escrita]",
+  "narrative_framework": "[Como estruturar o argumento]",
+  "paragraph_structure": "[Como formatar parágrafos]",
+  "sentence_style": "[Como construir frases]",
+  "emphasis_style": "[Como enfatizar informações-chave]",
+  "visual_elements": "[Quais elementos visuais usar]",
+  "readability_target": "[Nível de complexidade]",
+  "word_count_target": "1800-2500 palavras",
+  "unique_trait": "[Um recurso distintivo]"
+}}
+
+# OUTPUT
+Retorne APENAS JSON válido:
+{{
+  "petitioner_name": "[Nome]",
+  "testimony_count": {len(testimonies)},
+  "design_structures": [
+    {{"template_id": "T1", "assigned_recommender": "[Nome]", ...}},
+    ...
+  ]
+}}
+"""
+        
+        response = self.llm.client.chat.completions.create(
+            model="gemini-2.5-pro",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        
+        return json.loads(response.choices[0].message.content)
+
+
+Fase 4: Geração de Blocos
+
+Python
+
+
+# backend/app/core/block_generator.py
+class BlockGenerator:
+    """Gera os 5 blocos de cada carta (replica BLOCO3-7 do n8n)"""
+    
+    def __init__(self, llm_processor: LLMProcessor):
+        self.llm = llm_processor
+    
+    def generate_block3(
+        self, 
+        testimony: Dict, 
+        design: Dict, 
+        context: Dict
+    ) -> str:
+        """
+        Gera BLOCO3: Validação Empírica de Resultados
+        Replica o node "BLOCO3" do workflow
+        """
+        prompt = f"""# ROLE
+Você é `Block3_PROMPT`
+
+**PERSONA DE ESCRITA**:
+{design['tone_instructions']}
+
+**ESTRUTURA NARRATIVA**:
+{design['narrative_framework']}
+
+# INPUTS
+OneNet: {context['onet']}
+Strategy: {context['strategy']}
+Petitioner: {context['petitioner']}
+Testemunho atual: {testimony}
+
+# OUTPUT
+{{"block": 3, "markdown_draft": "<rascunho markdown>"}}
+
+# ESTRUTURA — BLOCO 3: VALIDAÇÃO EMPÍRICA DE RESULTADOS
+400–600 palavras. Primeira pessoa. Evidências quantitativas e qualitativas.
+- Pelo menos 3 métricas quantitativas
+- 1-2 observações qualitativas
+- Lista com 4-6 resultados empíricos
+
+# REGRAS
+- Voz: primeira pessoa (recomendador falando)
+- Foco: resultados apenas
+- Estilo: profissional, preciso, executivo
+- Output: Markdown apenas, sem HTML
+- TODO EM PORTUGUÊS
+- Remova termos: "imigração", "EB2-NIW", "peticionário"
+"""
+        
+        response = self.llm.client.chat.completions.create(
+            model="gemini-2.5-pro",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=2
+        )
+        
+        return json.loads(response.choices[0].message.content)['markdown_draft']
+    
+    def generate_all_blocks(
+        self, 
+        testimony: Dict, 
+        design: Dict, 
+        context: Dict
+    ) -> Dict[str, str]:
+        """Gera todos os 5 blocos para um testemunho"""
+        return {
+            "block3": self.generate_block3(testimony, design, context),
+            "block4": self.generate_block4(testimony, design, context),
+            "block5": self.generate_block5(testimony, design, context),
+            "block6": self.generate_block6(testimony, design, context),
+            "block7": self.generate_block7(testimony, design, context)
+        }
+
+
+Fase 5: Assembly e Geração de PDF
+
+Python
+
+
+# backend/app/core/pdf_generator.py
+from weasyprint import HTML
+import markdown
+
+class PDFGenerator:
+    """Gera PDFs finais das cartas"""
+    
+    def assemble_letter(
+        self, 
+        blocks: Dict[str, str], 
+        design: Dict,
+        llm: LLMProcessor
+    ) -> str:
+        """
+        Combina os 5 blocos em uma carta completa
+        Replica o node "Assemble" do workflow
+        """
+        prompt = f"""# ROLE
+Você é um revisor de classe mundial. Receba 5 blocos de uma carta de testemunho 
+e produza o texto completo.
+
+**PERSONA**: {design['tone_instructions']}
+
+# INPUTS
+{blocks['block3']}
+
+{blocks['block4']}
+
+{blocks['block5']}
+
+{blocks['block6']}
+
+{blocks['block7']}
+
+# INSTRUÇÕES
+1. Leia todos os blocos
+2. Verifique transições e fluxo
+3. Remova palavras "inferência lógica", "inferência técnica", "nexo causal" se usadas mal
+4. Não referencie "application", "EB2-NIW"
+5. Seja autêntico
+6. Output: APENAS texto Markdown puro (sem JSON, sem YAML, sem triple backticks)
+
+# HETEROGENEIDADE
+Garanta que o testemunho tenha voz e estrutura exclusivas. Evite repetições.
+Causalidade direta: "Ikaro realizou X, gerando Y resultado"
+
+# TODO EM PORTUGUÊS
+"""
+        
+        response = llm.client.chat.completions.create(
+            model="gemini-2.5-pro",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=1.5
+        )
+        
+        return response.choices[0].message.content
+    
+    def markdown_to_pdf(
+        self, 
+        markdown_text: str, 
+        output_path: str,
+        design: Dict
+    ):
+        """Converte Markdown para PDF com estilo"""
+        # Converte Markdown para HTML
+        html_content = markdown.markdown(markdown_text)
+        
+        # Adiciona CSS baseado no design
+        css = self._generate_css(design)
+        
+        full_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>{css}</style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>
+        """
+        
+        # Gera PDF
+        HTML(string=full_html).write_pdf(output_path)
+    
+    def _generate_css(self, design: Dict) -> str:
+        """Gera CSS customizado baseado no design structure"""
+        return """
+        body {
+            font-family: 'Georgia', serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #333;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 1in;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+        }
+        p {
+            margin-bottom: 1em;
+            text-align: justify;
+        }
+        ul, ol {
+            margin-left: 1.5em;
+        }
+        strong {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        """
+
+
+Orquestrador Principal
+
+Python
+
+
+# backend/app/core/processor.py
+class SubmissionProcessor:
+    """Orquestra todo o processamento (replica o workflow completo)"""
+    
+    def __init__(self):
+        self.pdf_extractor = PDFExtractor()
+        self.llm = LLMProcessor()
+        self.heterogeneity = HeterogeneityArchitect(self.llm)
+        self.block_generator = BlockGenerator(self.llm)
+        self.pdf_generator = PDFGenerator()
+    
+    async def process_submission(self, submission_id: str):
+        """
+        Processa uma submission completa
+        Replica o workflow inteiro do n8n em código
+        """
+        try:
+            # 1. Atualiza status
+            await self.update_status(submission_id, "extracting")
+            
+            # 2. Extrai texto dos PDFs (Fase 1 do workflow)
+            extracted_texts = self.pdf_extractor.extract_all_files(submission_id)
+            
+            # 3. Clean and Organize (Fase 2 do workflow)
+            await self.update_status(submission_id, "organizing")
+            organized_data = self.llm.clean_and_organize(extracted_texts)
+            
+            # 4. Heterogeneity Architect (Fase 3 do workflow)
+            await self.update_status(submission_id, "designing")
+            design_structures = self.heterogeneity.generate_design_structures(
+                organized_data
+            )
+            
+            # 5. Loop sobre testemunhos (Fase 4 do workflow)
+            await self.update_status(submission_id, "generating")
+            letters = []
+            
+            for i, testimony in enumerate(organized_data['testimonies']):
+                design = design_structures['design_structures'][i]
+                
+                # Gera os 5 blocos
+                blocks = self.block_generator.generate_all_blocks(
+                    testimony, 
+                    design, 
+                    organized_data
+                )
+                
+                # Combina em carta completa
+                letter_markdown = self.pdf_generator.assemble_letter(
+                    blocks, 
+                    design, 
+                    self.llm
+                )
+                
+                # Gera PDF
+                output_path = f"storage/outputs/{submission_id}/letter_{i+1}.pdf"
+                self.pdf_generator.markdown_to_pdf(
+                    letter_markdown, 
+                    output_path, 
+                    design
+                )
+                
+                letters.append({
+                    "testimony_id": testimony['testimony_id'],
+                    "recommender": testimony['recommender_name'],
+                    "pdf_path": output_path
+                })
+            
+            # 6. Finaliza
+            await self.update_status(submission_id, "completed")
+            await self.save_results(submission_id, letters)
+            await self.send_completion_email(submission_id)
+            
+            return {"success": True, "letters": letters}
+            
+        except Exception as e:
+            await self.update_status(submission_id, "error", str(e))
+            raise
+
+
+API Routes (Backend)
+
+Python
+
+
+# backend/app/api/submissions.py
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks
+from typing import List
+import shutil
+import os
+
+router = APIRouter()
+
+@router.post("/submissions")
+async def create_submission(
+    email: str,
+    numberOfTestimonials: int,
+    quadro: UploadFile = File(...),
+    cv: UploadFile = File(...),
+    estrategia: UploadFile = File(None),
+    onenote: UploadFile = File(None),
+    testimonials: List[UploadFile] = File(...),
+    background_tasks: BackgroundTasks
+):
+    """
+    Cria nova submission e inicia processamento em background
+    """
+    # 1. Cria registro no banco
+    submission = db.create_submission(email, numberOfTestimonials)
+    submission_id = submission['id']
+    
+    # 2. Salva arquivos
+    upload_dir = f"storage/uploads/{submission_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Salva PDFs
+    with open(f"{upload_dir}/quadro.pdf", "wb") as f:
+        shutil.copyfileobj(quadro.file, f)
+    
+    with open(f"{upload_dir}/cv.pdf", "wb") as f:
+        shutil.copyfileobj(cv.file, f)
+    
+    if estrategia:
+        with open(f"{upload_dir}/estrategia.pdf", "wb") as f:
+            shutil.copyfileobj(estrategia.file, f)
+    
+    if onenote:
+        with open(f"{upload_dir}/onenote.pdf", "wb") as f:
+            shutil.copyfileobj(onenote.file, f)
+    
+    for i, testimonial in enumerate(testimonials):
+        with open(f"{upload_dir}/testimonial_{i}.pdf", "wb") as f:
+            shutil.copyfileobj(testimonial.file, f)
+    
+    # 3. Inicia processamento em background
+    processor = SubmissionProcessor()
+    background_tasks.add_task(
+        processor.process_submission, 
+        submission_id
+    )
+    
+    return {
+        "submission_id": submission_id,
+        "status": "received",
+        "message": "Processamento iniciado"
+    }
+
+@router.get("/submissions/{submission_id}")
+async def get_submission(submission_id: str):
+    """Busca status e dados da submission"""
+    submission = db.get_submission(submission_id)
+    return submission
+
+@router.get("/submissions/{submission_id}/download")
+async def download_results(submission_id: str):
+    """Download dos PDFs gerados (ZIP)"""
+    import zipfile
+    from io import BytesIO
+    
+    submission = db.get_submission(submission_id)
+    
+    if submission['status'] != 'completed':
+        return {"error": "Processamento ainda não completo"}
+    
+    # Cria ZIP em memória
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        output_dir = f"storage/outputs/{submission_id}"
+        for filename in os.listdir(output_dir):
+            if filename.endswith('.pdf'):
+                zip_file.write(
+                    f"{output_dir}/{filename}", 
+                    arcname=filename
+                )
+    
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=cartas_{submission_id}.zip"
+        }
+    )
+
+
+Database (SQLite)
+
+Python
+
+
+# backend/app/db/database.py
+import sqlite3
+import json
+from datetime import datetime
+import uuid
+
+class Database:
+    def __init__(self, db_path="proex.db"):
+        self.db_path = db_path
+        self.init_db()
+    
+    def init_db(self):
+        """Cria tabelas se não existirem"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Tabela de usuários
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        
+        # Tabela de submissions
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS submissions (
+                id TEXT PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                status TEXT DEFAULT 'received',
+                number_of_testimonials INTEGER,
+                raw_data TEXT,
+                processed_data TEXT,
+                error_message TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        
+        conn.commit()
+        conn.close()
+    
+    def create_submission(self, email: str, num_testimonials: int) -> dict:
+        """Cria nova submission"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        submission_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        cursor.execute("""
+            INSERT INTO submissions 
+            (id, user_email, number_of_testimonials, status, created_at, updated_at)
+            VALUES (?, ?, ?, 'received', ?, ?)
+        """, (submission_id, email, num_testimonials, now, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "id": submission_id,
+            "email": email,
+            "status": "received",
+            "created_at": now
+        }
+    
+    def update_status(
+        self, 
+        submission_id: str, 
+        status: str, 
+        error_message: str = None
+    ):
+        """Atualiza status da submission"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        now = datetime.utcnow().isoformat()
+        
+        cursor.execute("""
+            UPDATE submissions 
+            SET status = ?, error_message = ?, updated_at = ?
+            WHERE id = ?
+        """, (status, error_message, now, submission_id))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_submission(self, submission_id: str) -> dict:
+        """Busca submission por ID"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM submissions WHERE id = ?
+        """, (submission_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return dict(row)
+        return None
+
+
+Frontend (React)
+
+Formulário Multi-Step
+
+TypeScript
+
+
+// frontend/src/pages/NewSubmission.tsx
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FileUploadZone } from '@/components/FileUploadZone';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import axios from 'axios';
+
+export function NewSubmission() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    email: '',
+    numberOfTestimonials: 1,
+    quadro: null,
+    cv: null,
+    estrategia: null,
+    onenote: null,
+    testimonials: []
+  });
+  const navigate = useNavigate();
+  
+  const handleSubmit = async () => {
+    const formDataToSend = new FormData();
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('numberOfTestimonials', formData.numberOfTestimonials);
+    formDataToSend.append('quadro', formData.quadro);
+    formDataToSend.append('cv', formData.cv);
+    
+    if (formData.estrategia) {
+      formDataToSend.append('estrategia', formData.estrategia);
+    }
+    
+    if (formData.onenote) {
+      formDataToSend.append('onenote', formData.onenote);
+    }
+    
+    formData.testimonials.forEach((file, i) => {
+      formDataToSend.append('testimonials', file);
+    });
+    
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/submissions',
+        formDataToSend,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      navigate(`/submissions/${response.data.submission_id}`);
+    } catch (error) {
+      console.error('Erro ao enviar:', error);
+    }
+  };
+  
+  return (
+    <div className="max-w-2xl mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">Nova Submissão</h1>
+      
+      {/* Progress bar */}
+      <div className="mb-8">
+        <div className="flex justify-between mb-2">
+          {[1, 2, 3, 4, 5].map(s => (
+            <div 
+              key={s}
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                s <= step ? 'bg-blue-600 text-white' : 'bg-gray-200'
+              }`}
+            >
+              {s}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Steps */}
+      {step === 1 && (
+        <div>
+          <h2 className="text-xl mb-4">Informações Básicas</h2>
+          <Input 
+            type="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            className="mb-4"
+          />
+          <Input 
+            type="number"
+            min="1"
+            max="10"
+            placeholder="Número de Testemunhos"
+            value={formData.numberOfTestimonials}
+            onChange={(e) => setFormData({...formData, numberOfTestimonials: parseInt(e.target.value)})}
+          />
+        </div>
+      )}
+      
+      {step === 2 && (
+        <div>
+          <h2 className="text-xl mb-4">Arquivos Obrigatórios</h2>
+          <FileUploadZone 
+            label="Quadro Preenchido (PDF)"
+            onUpload={(files) => setFormData({...formData, quadro: files[0]})}
+          />
+          <FileUploadZone 
+            label="CV do Peticionário (PDF)"
+            onUpload={(files) => setFormData({...formData, cv: files[0]})}
+          />
+        </div>
+      )}
+      
+      {step === 3 && (
+        <div>
+          <h2 className="text-xl mb-4">Arquivos Opcionais</h2>
+          <FileUploadZone 
+            label="Estratégia Base (PDF)"
+            onUpload={(files) => setFormData({...formData, estrategia: files[0]})}
+          />
+          <FileUploadZone 
+            label="OneNote PDF (PDF)"
+            onUpload={(files) => setFormData({...formData, onenote: files[0]})}
+          />
+        </div>
+      )}
+      
+      {step === 4 && (
+        <div>
+          <h2 className="text-xl mb-4">
+            Testemunhos ({formData.numberOfTestimonials} PDFs)
+          </h2>
+          <FileUploadZone 
+            label={`Upload ${formData.numberOfTestimonials} PDFs de testemunhos`}
+            maxFiles={formData.numberOfTestimonials}
+            onUpload={(files) => setFormData({...formData, testimonials: files})}
+          />
+        </div>
+      )}
+      
+      {step === 5 && (
+        <div>
+          <h2 className="text-xl mb-4">Revisão</h2>
+          <div className="bg-gray-50 p-4 rounded">
+            <p><strong>Email:</strong> {formData.email}</p>
+            <p><strong>Testemunhos:</strong> {formData.numberOfTestimonials}</p>
+            <p><strong>Arquivos:</strong></p>
+            <ul className="list-disc ml-6">
+              <li>Quadro: {formData.quadro?.name}</li>
+              <li>CV: {formData.cv?.name}</li>
+              {formData.estrategia && <li>Estratégia: {formData.estrategia.name}</li>}
+              {formData.onenote && <li>OneNote: {formData.onenote.name}</li>}
+              {formData.testimonials.map((f, i) => (
+                <li key={i}>Testemunho {i+1}: {f.name}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+      
+      {/* Navigation */}
+      <div className="flex justify-between mt-8">
+        <Button 
+          variant="outline"
+          onClick={() => setStep(s => s - 1)}
+          disabled={step === 1}
+        >
+          Voltar
+        </Button>
+        
+        {step < 5 ? (
+          <Button onClick={() => setStep(s => s + 1)}>
+            Próximo
+          </Button>
+        ) : (
+          <Button onClick={handleSubmit}>
+            Enviar para Processamento
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+Dashboard com Status
+
+TypeScript
+
+
+// frontend/src/pages/SubmissionDetail.tsx
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import { StatusTimeline } from '@/components/StatusTimeline';
+import { Button } from '@/components/ui/button';
+
+export function SubmissionDetail() {
+  const { id } = useParams();
+  const [submission, setSubmission] = useState(null);
+  
+  useEffect(() => {
+    // Polling a cada 5 segundos
+    const interval = setInterval(async () => {
+      const response = await axios.get(`http://localhost:8000/api/submissions/${id}`);
+      setSubmission(response.data);
+      
+      if (response.data.status === 'completed' || response.data.status === 'error') {
+        clearInterval(interval);
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [id]);
+  
+  if (!submission) return <div>Carregando...</div>;
+  
+  return (
+    <div className="max-w-4xl mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">
+        Submission #{submission.id.slice(0, 8)}
+      </h1>
+      
+      <StatusTimeline currentStatus={submission.status} />
+      
+      {submission.status === 'completed' && (
+        <div className="mt-8">
+          <Button asChild>
+            <a href={`http://localhost:8000/api/submissions/${id}/download`}>
+              📥 Download das Cartas (ZIP)
+            </a>
+          </Button>
+        </div>
+      )}
+      
+      {submission.status === 'error' && (
+        <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded">
+          <p className="text-red-800">
+            <strong>Erro:</strong> {submission.error_message}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+Configuração e Deploy
+
+requirements.txt
+
+Plain Text
+
+
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+pdfplumber==0.10.3
+openai==1.3.5
+weasyprint==60.1
+markdown==3.5.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+
+.env
+
+Plain Text
+
+
+OPENAI_API_KEY=your_key_here
+OPENAI_BASE_URL=https://api.openai.com/v1
+# Ou use o endpoint pré-configurado do Manus
+
+
+main.py
+
+Python
+
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api import submissions, auth
+import uvicorn
+
+app = FastAPI(title="ProEx Platform")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(submissions.router, prefix="/api", tags=["submissions"])
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+Instruções para o Replit Agent
+
+1.
+Crie a estrutura de pastas conforme especificado
+
+2.
+Backend primeiro:
+
+•
+Instale dependências do requirements.txt
+
+•
+Crie database.py e inicialize SQLite
+
+•
+Implemente pdf_extractor.py
+
+•
+Implemente llm_processor.py (use OpenAI client com Gemini)
+
+•
+Implemente heterogeneity.py
+
+•
+Implemente block_generator.py
+
+•
+Implemente pdf_generator.py
+
+•
+Crie processor.py que orquestra tudo
+
+•
+Crie rotas da API
+
+•
+Teste com Postman/curl
+
+
+
+3.
+Frontend depois:
+
+•
+Configure Vite + React + TypeScript
+
+•
+Instale Tailwind + Shadcn
+
+•
+Crie formulário multi-step
+
+•
+Crie dashboard com polling
+
+•
+Crie página de detalhes
+
+•
+Integre com backend
+
+
+
+4.
+Teste o fluxo completo:
+
+•
+Upload de 1 testemunho
+
+•
+Verificar processamento
+
+•
+Download do PDF gerado
+
+•
+Testar com 3, 5, 10 testemunhos
+
+
+
+5.
+Deploy no Replit:
+
+•
+Configure .replit para rodar backend e frontend
+
+•
+Exponha porta 8000 (backend) e 5173 (frontend)
+
+
+
+Resultado Final
+
+Uma plataforma 100% standalone que:
+
+•
+✅ Não depende de n8n
+
+•
+✅ Não depende de Supabase (ou qualquer serviço pago)
+
+•
+✅ Roda completamente no Replit
+
+•
+✅ Replica toda a lógica do workflow em código
+
+•
+✅ Suporta número variável de testemunhos
+
+•
+✅ Gera PDFs de alta qualidade
+
+•
+✅ Interface moderna e profissional
+
+Comece implementando o backend (processamento) primeiro, depois o frontend (UI).
+
