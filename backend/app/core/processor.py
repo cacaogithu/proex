@@ -87,7 +87,7 @@ class SubmissionProcessor:
                 print("    ✓ Letter assembled")
                 
                 # Generate DOCX instead of PDF
-                output_path = f"backend/storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.docx"
+                output_path = f"storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.docx"
                 print(f"    - Generating DOCX with logo...")
                 self.docx_generator.markdown_to_docx(letter_markdown, output_path, design, logo_path)
                 print(f"    ✓ DOCX generated")

@@ -7,9 +7,11 @@ from typing import Optional, Dict, List
 
 
 class Database:
-    def __init__(self, db_path="backend/proex.db"):
+    def __init__(self, db_path="proex.db"):
         self.db_path = db_path
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:  # Only create directory if path has a directory component
+            os.makedirs(db_dir, exist_ok=True)
         self.init_db()
     
     def init_db(self):

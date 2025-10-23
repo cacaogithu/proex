@@ -135,7 +135,7 @@ Download dos documentos DOCX gerados
 - ✅ **Estratégia de Modelos em Tiers** para otimizar custo/qualidade:
   - **Gemini 2.5 Flash** (`google/gemini-2.5-flash`) - Extração rápida de dados ($0.30/$2.50 por 1M tokens)
   - **Gemini 2.5 Pro** (`google/gemini-2.5-pro-preview-05-06`) - Geração de blocos de alta qualidade ($1.25/$10 por 1M tokens)
-  - **Claude 3.7 Sonnet** (`anthropic/claude-sonnet-3.7`) - Assembly premium de documentos ($3/$15 por 1M tokens)
+  - **Claude 3.7 Sonnet** (`anthropic/claude-3.7-sonnet`) - Assembly premium de documentos ($3/$15 por 1M tokens)
 - ✅ Retry logic com exponential backoff para lidar com rate limiting
 - ✅ Variável configurada: `OPENROUTER_API_KEY`
 
@@ -184,7 +184,7 @@ Download dos documentos DOCX gerados
   - Blocos 3-7 - Geração de conteúdo de alta qualidade
   - Melhor capacidade de raciocínio e escrita criativa
   
-- **Tier 3 - Premium** (`anthropic/claude-sonnet-3.7`):
+- **Tier 3 - Premium** (`anthropic/claude-3.7-sonnet`):
   - Assembly final dos documentos
   - Maior qualidade de escrita e coerência narrativa
   - Usado apenas na etapa final para maximizar qualidade

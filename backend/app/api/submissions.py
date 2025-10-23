@@ -26,7 +26,7 @@ async def create_submission(
     submission = db.create_submission(email, numberOfTestimonials)
     submission_id = submission['id']
     
-    upload_dir = f"backend/storage/uploads/{submission_id}"
+    upload_dir = f"storage/uploads/{submission_id}"
     os.makedirs(upload_dir, exist_ok=True)
     
     with open(f"{upload_dir}/quadro.pdf", "wb") as f:
@@ -62,6 +62,19 @@ async def get_submission(submission_id: str):
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Add list of generated files if completed
+    if submission['status'] == 'completed':
+        output_dir = f"storage/outputs/{submission_id}"
+        if os.path.exists(output_dir):
+            files = [
+                f for f in os.listdir(output_dir) 
+                if f.endswith('.docx') or f.endswith('.pdf')
+            ]
+            submission['files'] = sorted(files)
+        else:
+            submission['files'] = []
+    
     return submission
 
 
@@ -81,7 +94,7 @@ async def get_file(submission_id: str, filename: str):
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
     
-    file_path = f"backend/storage/outputs/{submission_id}/{filename}"
+    file_path = f"storage/outputs/{submission_id}/{filename}"
     
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
@@ -113,7 +126,7 @@ async def download_results(submission_id: str):
             detail=f"Processamento ainda não completo. Status: {submission['status']}"
         )
     
-    output_dir = f"backend/storage/outputs/{submission_id}"
+    output_dir = f"storage/outputs/{submission_id}"
     
     if not os.path.exists(output_dir):
         raise HTTPException(status_code=404, detail="Arquivos não encontrados")

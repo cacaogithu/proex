@@ -22,8 +22,8 @@ app.include_router(submissions_router, prefix="/api", tags=["submissions"])
 
 db = Database()
 
-os.makedirs("backend/storage/uploads", exist_ok=True)
-os.makedirs("backend/storage/outputs", exist_ok=True)
+os.makedirs("storage/uploads", exist_ok=True)
+os.makedirs("storage/outputs", exist_ok=True)
 
 
 @app.get("/")

@@ -18,7 +18,7 @@ class PDFExtractor:
             return ""
     
     def extract_all_files(self, submission_id: str) -> Dict[str, Any]:
-        base_path = f"backend/storage/uploads/{submission_id}"
+        base_path = f"storage/uploads/{submission_id}"
         
         extracted = {}
         
