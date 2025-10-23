@@ -39,6 +39,20 @@ class SubmissionProcessor:
             organized_data = self.llm.clean_and_organize(extracted_texts)
             print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
             
+            # PHASE 2.5: Scrape company logos
+            print("\nPHASE 2.5: Scraping company logos...")
+            for i, testimonial in enumerate(organized_data.get('testimonials', [])):
+                company_name = testimonial.get('recommender_company', '')
+                company_website = testimonial.get('recommender_company_website', '')
+                
+                if company_name:
+                    logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
+                    if logo_path:
+                        organized_data['testimonials'][i]['company_logo_path'] = logo_path
+                        print(f"  ✓ Logo found for {company_name}")
+                    else:
+                        print(f"  ⚠️ No logo found for {company_name}")
+            
             self.update_status(submission_id, "designing")
             print("\nPHASE 3: Generating design structures (Heterogeneity Architect)...")
             design_structures = self.heterogeneity.generate_design_structures(organized_data)

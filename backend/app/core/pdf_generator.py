@@ -77,6 +77,18 @@ Causalidade direta: "Realizou X, gerando Y resultado"
         
         css = self._generate_css(design)
         
+        # Add company logo header if available
+        logo_path = design.get('company_logo_path', '')
+        logo_html = ''
+        if logo_path and os.path.exists(logo_path):
+            # Convert to base64 for embedding
+            import base64
+            with open(logo_path, 'rb') as f:
+                logo_data = base64.b64encode(f.read()).decode()
+                ext = logo_path.split('.')[-1].lower()
+                mime_type = f'image/{ext}' if ext in ['png', 'jpg', 'jpeg', 'gif', 'svg'] else 'image/png'
+                logo_html = f'<div class="logo-header"><img src="data:{mime_type};base64,{logo_data}" alt="Company Logo" class="company-logo" /></div>'
+        
         full_html = f"""
         <!DOCTYPE html>
         <html>
@@ -85,6 +97,7 @@ Causalidade direta: "Realizou X, gerando Y resultado"
             <style>{css}</style>
         </head>
         <body>
+            {logo_html}
             {html_content}
         </body>
         </html>
@@ -112,6 +125,19 @@ Causalidade direta: "Realizou X, gerando Y resultado"
             line-height: 1.6;
             color: #333;
             text-align: justify;
+        }
+        
+        .logo-header {
+            text-align: right;
+            margin-bottom: 2em;
+            padding-bottom: 1em;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .company-logo {
+            max-width: 150px;
+            max-height: 60px;
+            object-fit: contain;
         }
         
         h1 {
