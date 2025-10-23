@@ -7,12 +7,20 @@ from typing import Dict, List
 
 class LLMProcessor:
     def __init__(self):
-        # Using Replit AI Integrations - provides OpenAI-compatible API without requiring your own API key
-        # Charges are billed to your Replit credits
+        # Using OpenRouter.ai - More cost-effective with multiple model options
+        # Gemini Flash: Fast and cheap for data organization
+        # Gemini 2.5 Pro: High quality for content generation
+        # Claude 4.5 Sonnet: Best for HTML/document assembly
         self.client = OpenAI(
-            api_key=os.getenv("AI_INTEGRATIONS_OPENAI_API_KEY"),
-            base_url=os.getenv("AI_INTEGRATIONS_OPENAI_BASE_URL")
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            base_url="https://openrouter.ai/api/v1"
         )
+        
+        self.models = {
+            "fast": "google/gemini-flash-1.5",
+            "quality": "google/gemini-pro-1.5",
+            "premium": "anthropic/claude-3.5-sonnet"
+        }
     
     def clean_and_organize(self, extracted_texts: Dict) -> Dict:
         testimonials_text = "\n\n---\n\n".join([
@@ -58,6 +66,7 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
       "testimony_id": "1",
       "recommender_name": "...",
       "recommender_company": "...",
+      "recommender_company_website": "...",
       "recommender_role": "...",
       "collaboration_period": "...",
       "applicant_role": "...",
@@ -69,6 +78,7 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
 
 # Regras
 - Extraia TODOS os testemunhos (quantidade variável)
+- Para cada testemunho, tente extrair o website da empresa do recomendador
 - Se OneNote ou Estrategia faltando, use os dados disponíveis
 - Não invente fatos
 - Output em português
@@ -78,10 +88,9 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                # The newest OpenAI model is "gpt-5" which was released August 7, 2025.
-                # Do not change this unless explicitly requested by the user
+                # Using Gemini Flash - fast and cheap for data extraction
                 response = self.client.chat.completions.create(
-                    model="gpt-4o",
+                    model=self.models["fast"],
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"}
                 )

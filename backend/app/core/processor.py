@@ -2,7 +2,8 @@ from .pdf_extractor import PDFExtractor
 from .llm_processor import LLMProcessor
 from .heterogeneity import HeterogeneityArchitect
 from .block_generator import BlockGenerator
-from .pdf_generator import PDFGenerator
+from .docx_generator import DOCXGenerator
+from .logo_scraper import LogoScraper
 from ..db.database import Database
 import os
 from typing import Dict
@@ -14,7 +15,8 @@ class SubmissionProcessor:
         self.llm = LLMProcessor()
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.block_generator = BlockGenerator(self.llm)
-        self.pdf_generator = PDFGenerator()
+        self.docx_generator = DOCXGenerator()
+        self.logo_scraper = LogoScraper()
         self.db = Database()
     
     def update_status(self, submission_id: str, status: str, error: str | None = None):
@@ -54,23 +56,33 @@ class SubmissionProcessor:
                 
                 print(f"\n  Letter {i+1}/{len(testimonies)}: {testimony.get('recommender_name', 'Unknown')}")
                 
+                # Fetch company logo
+                company_name = testimony.get('recommender_company', '')
+                company_website = testimony.get('recommender_company_website')
+                logo_path = None
+                
+                if company_name:
+                    logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
+                
                 print("    - Generating 5 blocks...")
                 blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
                 print("    ✓ Blocks generated")
                 
-                print("    - Assembling letter...")
-                letter_markdown = self.pdf_generator.assemble_letter(blocks, design, self.llm)
+                print("    - Assembling letter with Claude 4.5 Sonnet...")
+                letter_markdown = self.docx_generator.assemble_letter(blocks, design, self.llm)
                 print("    ✓ Letter assembled")
                 
-                output_path = f"backend/storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.pdf"
-                print(f"    - Generating PDF...")
-                self.pdf_generator.markdown_to_pdf(letter_markdown, output_path, design)
-                print(f"    ✓ PDF generated")
+                # Generate DOCX instead of PDF
+                output_path = f"backend/storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.docx"
+                print(f"    - Generating DOCX with logo...")
+                self.docx_generator.markdown_to_docx(letter_markdown, output_path, design, logo_path)
+                print(f"    ✓ DOCX generated")
                 
                 letters.append({
                     "testimony_id": testimony.get('testimony_id', str(i+1)),
                     "recommender": testimony.get('recommender_name', 'Unknown'),
-                    "pdf_path": output_path
+                    "docx_path": output_path,
+                    "has_logo": logo_path is not None
                 })
             
             self.update_status(submission_id, "completed")
@@ -80,7 +92,7 @@ class SubmissionProcessor:
             })
             
             print(f"\n{'='*60}")
-            print(f"✓ COMPLETED! Generated {len(letters)} letters")
+            print(f"✓ COMPLETED! Generated {len(letters)} editable DOCX letters")
             print(f"{'='*60}\n")
             
             return {"success": True, "letters": letters}

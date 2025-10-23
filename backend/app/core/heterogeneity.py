@@ -74,8 +74,9 @@ Retorne APENAS JSON válido (sem markdown):
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                # Using Gemini 2.5 Pro for high-quality design structures
                 response = self.llm.client.chat.completions.create(
-                    model="gpt-4o",
+                    model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"}
                 )

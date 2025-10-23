@@ -86,14 +86,16 @@ async def get_file(submission_id: str, filename: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
     
-    if not filename.endswith('.pdf'):
+    if not (filename.endswith('.pdf') or filename.endswith('.docx')):
         raise HTTPException(status_code=400, detail="Tipo de arquivo inválido")
+    
+    media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" if filename.endswith('.docx') else "application/pdf"
     
     return FileResponse(
         file_path,
-        media_type="application/pdf",
+        media_type=media_type,
         headers={
-            "Content-Disposition": f"inline; filename={filename}"
+            "Content-Disposition": f"attachment; filename={filename}"
         }
     )
 
@@ -119,7 +121,7 @@ async def download_results(submission_id: str):
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for filename in os.listdir(output_dir):
-            if filename.endswith('.pdf') or filename.endswith('.html'):
+            if filename.endswith('.pdf') or filename.endswith('.html') or filename.endswith('.docx'):
                 file_path = os.path.join(output_dir, filename)
                 zip_file.write(file_path, arcname=filename)
     

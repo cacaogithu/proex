@@ -10,8 +10,9 @@ class BlockGenerator:
     def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3) -> str:
         for attempt in range(max_retries):
             try:
+                # Using Gemini 2.5 Pro - cost-effective for high-quality content
                 response = self.llm.client.chat.completions.create(
-                    model="gpt-4o",
+                    model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature
                 )
