@@ -6,9 +6,11 @@ from typing import Dict, List
 
 class LLMProcessor:
     def __init__(self):
+        # Using Replit AI Integrations - provides OpenAI-compatible API without requiring your own API key
+        # Charges are billed to your Replit credits
         self.client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+            api_key=os.getenv("AI_INTEGRATIONS_OPENAI_API_KEY"),
+            base_url=os.getenv("AI_INTEGRATIONS_OPENAI_BASE_URL")
         )
     
     def clean_and_organize(self, extracted_texts: Dict) -> Dict:
@@ -73,8 +75,10 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
 """
         
         try:
+            # The newest OpenAI model is "gpt-5" which was released August 7, 2025.
+            # Do not change this unless explicitly requested by the user
             response = self.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
             )

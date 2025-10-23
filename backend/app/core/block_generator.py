@@ -42,7 +42,7 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
         
         try:
             response = self.llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.9
             )
@@ -81,7 +81,7 @@ Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
         
         try:
             response = self.llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.9
             )
@@ -113,7 +113,7 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
         
         try:
             response = self.llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.9
             )
@@ -145,7 +145,7 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
         
         try:
             response = self.llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.9
             )
@@ -177,7 +177,7 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
         
         try:
             response = self.llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.9
             )

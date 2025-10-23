@@ -50,7 +50,7 @@ Causalidade direta: "Realizou X, gerando Y resultado"
         
         try:
             response = llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7
             )

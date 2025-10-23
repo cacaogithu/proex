@@ -117,8 +117,11 @@ Download dos PDFs gerados
 
 ## Configuração
 
-### Secrets Necessários
-- `OPENAI_API_KEY` - Chave da API Gemini/OpenAI ✅ Configurado
+### Integração LLM
+- ✅ **Replit AI Integrations** - Fornece acesso OpenAI sem necessitar de sua própria API key
+- ✅ Usa créditos Replit automaticamente
+- ✅ Modelo: **gpt-4o** (OpenAI GPT-4 Optimized)
+- ✅ Variáveis configuradas: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
 
 ### Workflows Ativos
 1. **Backend API** - Porta 8000 (console)
@@ -154,9 +157,9 @@ Download dos PDFs gerados
 ## Notas Importantes
 
 ### Modelos LLM
-- Usando `gemini-2.0-flash-exp` para Clean & Organize (rápido)
-- Usando `gemini-2.0-flash-exp` para todos os blocos (balanceado)
-- Base URL configurada para Gemini: `https://generativelanguage.googleapis.com/v1beta/openai/`
+- Usando **gpt-4o** (OpenAI GPT-4 Optimized) via Replit AI Integrations
+- Processamento via OpenAI-compatible API gerenciado pelo Replit
+- Sem necessidade de chave API própria - usa créditos Replit
 
 ### Limitações
 - PDFs devem estar em formato legível (não escaneados sem OCR)

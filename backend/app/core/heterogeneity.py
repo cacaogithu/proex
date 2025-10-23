@@ -72,7 +72,7 @@ Retorne APENAS JSON válido (sem markdown):
         
         try:
             response = self.llm.client.chat.completions.create(
-                model="gemini-2.0-flash-exp",
+                model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
             )
