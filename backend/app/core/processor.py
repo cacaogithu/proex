@@ -270,18 +270,24 @@ class SubmissionProcessor:
                 
                 print(f"\n  Letter {letter_idx + 1}/{len(testimonials)}: {testimony.get('recommender_name', 'Unknown')}")
                 
-                # Generate blocks
-                blocks = self.block_generator.generate_all_blocks(
+                # Generate blocks (with ML enhancement)
+                context = {
+                    'petitioner': organized_data.get('petitioner', {}),
+                    'strategy': organized_data.get('strategy', {}),
+                    'onet': organized_data.get('onet', {})
+                }
+                blocks = self.block_generator.generate_all_blocks(testimony, design, context)
+                
+                # Assemble letter with Claude
+                print("    - Assembling letter with Claude 4.5 Sonnet...")
+                letter_html = self.llm.assemble_letter_with_claude(
+                    blocks=blocks,
+                    design=design,
                     testimony=testimony,
                     petitioner=organized_data.get('petitioner', {}),
-                    strategy=organized_data.get('strategy', {}),
-                    onet=organized_data.get('onet', {}),
-                    design_structure=design,
                     custom_instructions=custom_instructions
                 )
-                
-                # Assembly
-                letter_html = self.block_generator.assemble_letter(blocks)
+                print(f"✅ Letter assembled with Claude 4.5 Sonnet (Template {design.get('template_id', 'A')})")
                 
                 # Get logo if available
                 logo_path = testimony.get('company_logo_path')
