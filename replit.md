@@ -16,19 +16,28 @@ The backend is built with FastAPI (Python 3.11) and uses SQLite for local data s
 
 ### Feature Specifications
 - **PDF Processing**: Uploads multiple PDFs (Quadros, CVs, Strategy, OneNote) with text extraction.
-- **LLM-Powered Content Generation**: Utilizes a tiered LLM strategy (Gemini Flash for extraction, Gemini Pro for block generation, Claude Sonnet for final assembly) via OpenRouter for data organization and content creation across 5 distinct blocks per letter.
+- **LLM-Powered Content Generation**: Utilizes a tiered LLM strategy (Gemini Flash for extraction, Gemini Pro for block generation, Claude Sonnet for final assembly) via OpenRouter for data organization and content generation across 5 distinct blocks per letter.
 - **Heterogeneity Architect**: Programmatically ensures radical visual and structural diversity across generated letters through 6 archetypal templates with strict validation rules.
 - **Logo Scraping**: Automatically fetches company logos using Clearbit API with fallback to web scraping, including caching.
 - **Document Generation**: Produces visually unique PDFs and fully editable DOCX files.
 - **Feedback System**: ML-based 0-100 rating system per letter, template performance analytics, and selective regeneration capability with optional custom LLM instructions.
+- **Machine Learning System**: Combines supervised (feedback-driven) and unsupervised (clustering-driven) learning to continuously improve letter quality:
+  - **Supervised Learning**: Extracts insights from user ratings (0-100 scores) and comments to identify problems to avoid and qualities to maintain
+  - **Unsupervised Learning**: Automatically clusters letters into semantic groups (Technical, Academic, Leadership) using embeddings generated via LLM
+  - **Prompt Enhancement**: Dynamically improves LLM prompts based on historical feedback and detected patterns
+  - **Semantic Embeddings**: Generates 9-dimensional feature vectors for each letter (technical_depth, academic_rigor, leadership_focus, etc.)
+  - **Automatic Re-training**: Models retrain after each submission to learn from new data
+  - **Template Recommendation**: Suggests best-performing templates based on context and historical data
 - **Automated Delivery**: Uploads generated DOCX files to Google Drive and sends notification emails with direct links.
 - **Real-time Tracking**: Provides submission status updates.
 
 ### System Design Choices
 - **Microservices-oriented**: Separate backend (FastAPI), email service (Node.js), and frontend (React) workflows.
 - **Tiered LLM Strategy**: Optimizes cost and quality by using different LLMs for specific tasks.
+- **Hybrid ML Approach**: Combines supervised learning (human feedback) with unsupervised learning (automatic pattern discovery) for continuous improvement.
 - **Robust Error Handling**: Includes retry logic with exponential backoff for LLM calls and external integrations.
 - **Scalable Document Generation**: Designed to handle multiple letters while maintaining uniqueness and quality.
+- **Self-Improving System**: Each submission generates embeddings and feedback that train ML models, making future letters progressively better.
 
 ## External Dependencies
 

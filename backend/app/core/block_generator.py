@@ -1,11 +1,12 @@
-from typing import Dict
+from typing import Dict, Optional
 import json
 import time
 
 
 class BlockGenerator:
-    def __init__(self, llm_processor):
+    def __init__(self, llm_processor, prompt_enhancer=None):
         self.llm = llm_processor
+        self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
     
     def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3) -> str:
         for attempt in range(max_retries):
@@ -27,8 +28,8 @@ class BlockGenerator:
                     raise e
         return ""
     
-    def generate_block3(self, testimony: Dict, design: Dict, context: Dict) -> str:
-        prompt = f"""# ROLE
+    def generate_block3(self, testimony: Dict, design: Dict, context: Dict, letter_embedding: Optional[list] = None) -> str:
+        base_prompt = f"""# ROLE
 Você é `Block3_PROMPT`
 
 **PERSONA DE ESCRITA**:
@@ -60,6 +61,19 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
 - TODO EM PORTUGUÊS
 - Remova termos: "imigração", "EB2-NIW", "peticionário"
 """
+        
+        # ML-powered prompt enhancement
+        prompt = base_prompt
+        if self.prompt_enhancer:
+            try:
+                prompt = self.prompt_enhancer.enhance_block_prompt(
+                    base_prompt, 
+                    block_number=3,
+                    letter_context=testimony,
+                    letter_embedding=letter_embedding
+                )
+            except Exception as e:
+                print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9)

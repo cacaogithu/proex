@@ -15,10 +15,6 @@ class SubmissionProcessor:
     def __init__(self):
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
-        self.heterogeneity = HeterogeneityArchitect(self.llm)
-        self.block_generator = BlockGenerator(self.llm)
-        self.pdf_generator = HTMLPDFGenerator()
-        self.logo_scraper = LogoScraper()
         self.db = Database()
         self.prompt_enhancer = PromptEnhancer(self.db)
         
@@ -27,6 +23,12 @@ class SubmissionProcessor:
             self.prompt_enhancer.train_models(min_samples=5)
         except Exception as e:
             print(f"ℹ️  ML training skipped (likely first run): {e}")
+        
+        # Initialize other components AFTER ML training
+        self.heterogeneity = HeterogeneityArchitect(self.llm)
+        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
+        self.pdf_generator = HTMLPDFGenerator()
+        self.logo_scraper = LogoScraper()
     
     def update_status(self, submission_id: str, status: str, error: str | None = None):
         self.db.update_submission_status(submission_id, status, error)
