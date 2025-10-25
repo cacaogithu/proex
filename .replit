@@ -5,7 +5,7 @@ integrations = ["python_openai_ai_integrations:1.0.0", "google-mail:1.0.0", "goo
 
 [nix]
 channel = "stable-25_05"
-packages = ["cargo", "fontconfig", "freetype", "ghostscript", "glib", "harfbuzz", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pango", "rustc", "tcl", "tk", "zlib"]
+packages = ["cargo", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pango", "rustc", "tcl", "tk", "zlib"]
 
 [workflows]
 runButton = "Project"
