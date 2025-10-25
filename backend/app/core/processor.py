@@ -4,6 +4,7 @@ from .heterogeneity import HeterogeneityArchitect
 from .block_generator import BlockGenerator
 from .docx_generator import DOCXGenerator
 from .logo_scraper import LogoScraper
+from .email_sender import send_results_email, check_email_service_health
 from ..db.database import Database
 import os
 from typing import Dict
@@ -108,6 +109,26 @@ class SubmissionProcessor:
             print(f"\n{'='*60}")
             print(f"✓ COMPLETED! Generated {len(letters)} editable DOCX letters")
             print(f"{'='*60}\n")
+            
+            # PHASE 5: Send email with Google Drive links
+            submission = self.db.get_submission(submission_id)
+            recipient_email = submission.get('email') if submission else None
+            
+            if recipient_email and check_email_service_health():
+                print("\nPHASE 5: Sending results via email and Google Drive...")
+                docx_paths = [os.path.abspath(letter['docx_path']) for letter in letters]
+                email_result = send_results_email(submission_id, recipient_email, docx_paths)
+                
+                if email_result.get('success'):
+                    print(f"✅ Email sent to {recipient_email}")
+                    print(f"✅ {email_result.get('files_uploaded', 0)} files uploaded to Google Drive")
+                else:
+                    print(f"⚠️ Email sending failed: {email_result.get('error', 'Unknown error')}")
+            else:
+                if not recipient_email:
+                    print("⚠️ No email address provided, skipping email notification")
+                else:
+                    print("⚠️ Email service not available, skipping email notification")
             
             return {"success": True, "letters": letters}
             
