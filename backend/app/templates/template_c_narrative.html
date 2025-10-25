@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2.5cm;
+        }
+        
+        body {
+            font-family: 'Palatino Linotype', 'Garamond', 'Book Antiqua', serif;
+            color: #3e2723;
+            line-height: 1.9;
+            font-size: 11.5pt;
+            background: #fffef7;
+        }
+        
+        .header {
+            border-bottom: 1px solid #d4af37;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .logo-container {
+            float: right;
+            margin-left: 20px;
+        }
+        
+        .logo {
+            max-width: 100px;
+            max-height: 50px;
+            opacity: 0.9;
+        }
+        
+        .recommender-info {
+            font-size: 10.5pt;
+            color: #6d4c41;
+        }
+        
+        .recommender-name {
+            font-weight: 600;
+            font-size: 14pt;
+            color: #5d4037;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+        
+        .recommender-title {
+            color: #8d6e63;
+            margin-bottom: 3px;
+        }
+        
+        .date {
+            margin-top: 12px;
+            font-size: 10pt;
+            color: #a1887f;
+            font-style: italic;
+        }
+        
+        .salutation {
+            font-size: 12pt;
+            color: #5d4037;
+            margin: 25px 0 20px 0;
+            font-style: italic;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 18px;
+            color: #4e342e;
+            text-indent: 0;
+        }
+        
+        p:first-letter {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #d4af37;
+            float: left;
+            margin: 5px 5px 0 0;
+            line-height: 0.8;
+        }
+        
+        .journey {
+            background: linear-gradient(to right, #fff8e1 0%, #fffef7 100%);
+            border-left: 3px solid #d4af37;
+            border-right: 3px solid #d4af37;
+            padding: 20px 25px;
+            margin: 25px 0;
+            font-style: italic;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .journey p {
+            text-indent: 0;
+        }
+        
+        blockquote {
+            font-style: italic;
+            color: #6d4c41;
+            border-left: 4px solid #d4af37;
+            padding-left: 20px;
+            margin: 20px 0;
+            font-size: 10.5pt;
+        }
+        
+        .transformation {
+            background: #fff8e1;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 3px;
+            border-top: 2px solid #d4af37;
+            border-bottom: 2px solid #d4af37;
+        }
+        
+        .impact-highlight {
+            color: #8b4513;
+            font-weight: 600;
+            background: linear-gradient(to bottom, transparent 50%, #ffe082 50%);
+        }
+        
+        .signature {
+            margin-top: 50px;
+            font-size: 11pt;
+        }
+        
+        .closing {
+            font-style: italic;
+            margin-bottom: 50px;
+            color: #6d4c41;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #d4af37;
+            width: 280px;
+            margin-top: 15px;
+            padding-top: 10px;
+        }
+        
+        .signature-name {
+            font-weight: 600;
+            font-size: 12pt;
+            color: #5d4037;
+            font-style: italic;
+        }
+        
+        strong {
+            color: #6d4c41;
+            font-weight: 600;
+        }
+        
+        em {
+            color: #8d6e63;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_path %}
+        <div class="logo-container">
+            <img src="{{ logo_path }}" class="logo" alt="Company Logo">
+        </div>
+        {% endif %}
+        <div class="recommender-info">
+            <div class="recommender-name">{{ recommender_name }}</div>
+            <div class="recommender-title">{{ recommender_title }}</div>
+            <div>{{ recommender_company }}</div>
+            <div class="date">{{ date }}</div>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+    
+    <div class="salutation">To Whom It May Concern,</div>
+    
+    {{ content }}
+    
+    <div class="signature">
+        <div class="closing">With warmest regards,</div>
+        <div class="signature-line">
+            <div class="signature-name">{{ recommender_name }}</div>
+            <div>{{ recommender_title }}</div>
+            <div>{{ recommender_company }}</div>
+        </div>
+    </div>
+</body>
+</html>

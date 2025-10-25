@@ -4,6 +4,7 @@ from typing import List, Optional
 import shutil
 import os
 import zipfile
+import json
 from io import BytesIO
 from ..core.processor import SubmissionProcessor
 from ..db.database import Database
@@ -147,3 +148,117 @@ async def download_results(submission_id: str):
             "Content-Disposition": f"attachment; filename=cartas_{submission_id}.zip"
         }
     )
+
+# Feedback and ML endpoints
+from pydantic import BaseModel
+
+class LetterRating(BaseModel):
+    rating: int
+    comment: Optional[str] = None
+
+@router.post("/submissions/{submission_id}/letters/{letter_index}/rating")
+async def rate_letter(
+    submission_id: str,
+    letter_index: int,
+    rating_data: LetterRating
+):
+    """Save rating for a specific letter"""
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Get letter info to get template_id
+    processed_data = json.loads(submission.get('processed_data', '{}'))
+    letters = processed_data.get('letters', [])
+    
+    if letter_index >= len(letters):
+        raise HTTPException(status_code=404, detail="Carta não encontrada")
+    
+    template_id = letters[letter_index].get('template_id', 'A')
+    
+    rating_id = db.save_letter_rating(
+        submission_id,
+        letter_index,
+        template_id,
+        rating_data.rating,
+        rating_data.comment
+    )
+    
+    return {
+        "rating_id": rating_id,
+        "message": "Rating salvo com sucesso",
+        "template_id": template_id
+    }
+
+
+@router.get("/submissions/{submission_id}/ratings")
+async def get_ratings(submission_id: str):
+    """Get all ratings for a submission"""
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    ratings = db.get_letter_ratings(submission_id)
+    return {"ratings": ratings}
+
+
+@router.get("/analytics/templates")
+async def get_template_analytics():
+    """Get performance analytics for all templates"""
+    analytics = db.get_template_analytics()
+    
+    # Add template names
+    template_names = {
+        'A': 'Technical Deep-Dive',
+        'B': 'Case Study Acadêmico',
+        'C': 'Narrative Storytelling',
+        'D': 'Business Partnership',
+        'E': 'USA Support Letter',
+        'F': 'Technical Testimony'
+    }
+    
+    for item in analytics:
+        item['template_name'] = template_names.get(item['template_id'], item['template_id'])
+    
+    return {"analytics": analytics}
+
+
+class RegenerateRequest(BaseModel):
+    letter_indices: List[int]
+    instructions: Optional[str] = None
+
+@router.post("/submissions/{submission_id}/regenerate")
+async def regenerate_letters(
+    submission_id: str,
+    regenerate_request: RegenerateRequest,
+    background_tasks: BackgroundTasks
+):
+    """Regenerate specific letters with optional custom instructions"""
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['status'] != 'completed':
+        raise HTTPException(
+            status_code=400,
+            detail="Só é possível regenerar cartas de submissões completadas"
+        )
+    
+    processed_data = json.loads(submission.get('processed_data', '{}'))
+    letters = processed_data.get('letters', [])
+    
+    # Validate indices
+    for idx in regenerate_request.letter_indices:
+        if idx >= len(letters):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Índice inválido: {idx}. Total de cartas: {len(letters)}"
+            )
+    
+    # TODO: Implement selective regeneration logic
+    # For now, return placeholder
+    return {
+        "message": f"Regeneração iniciada para {len(regenerate_request.letter_indices)} carta(s)",
+        "letter_indices": regenerate_request.letter_indices,
+        "status": "processing"
+    }

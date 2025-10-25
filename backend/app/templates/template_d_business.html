@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 1.8cm 2cm;
+        }
+        
+        body {
+            font-family: 'Calibri', 'Arial', 'Helvetica', sans-serif;
+            color: #1b5e20;
+            line-height: 1.6;
+            font-size: 11pt;
+            background: #ffffff;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0277bd 0%, #00838f 100%);
+            color: white;
+            padding: 20px 25px;
+            margin: -1.8cm -2cm 25px -2cm;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+        
+        .logo-container {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        
+        .logo {
+            max-width: 130px;
+            max-height: 65px;
+            filter: brightness(0) invert(1);
+        }
+        
+        .recommender-info {
+            color: #e0f7fa;
+            font-size: 10pt;
+        }
+        
+        .recommender-name {
+            font-weight: bold;
+            font-size: 14pt;
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .date {
+            margin-top: 10px;
+            font-size: 9.5pt;
+            color: #b2ebf2;
+        }
+        
+        h1 {
+            font-size: 15pt;
+            font-weight: bold;
+            color: #01579b;
+            margin: 25px 0 20px 0;
+            border-bottom: 3px solid #0277bd;
+            padding-bottom: 8px;
+        }
+        
+        h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #00838f;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 14px;
+            color: #263238;
+        }
+        
+        .executive-summary {
+            background: #e0f2f1;
+            border-left: 5px solid #00897b;
+            padding: 18px 20px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        
+        .key-metrics {
+            background: #f1f8e9;
+            border: 2px solid #689f38;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        
+        .key-metrics h3 {
+            color: #558b2f;
+            font-size: 12pt;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        li {
+            padding: 8px 0 8px 25px;
+            position: relative;
+            color: #37474f;
+        }
+        
+        li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #43a047;
+            font-weight: bold;
+            font-size: 14pt;
+        }
+        
+        .roi-highlight {
+            background: #fff9c4;
+            border: 2px dashed #f9a825;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            color: #f57f17;
+            font-size: 12pt;
+        }
+        
+        .partnership-value {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+            gap: 15px;
+        }
+        
+        .value-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #1976d2;
+            padding: 15px;
+            flex: 1;
+            text-align: center;
+            border-radius: 5px;
+        }
+        
+        .value-box-title {
+            font-weight: bold;
+            color: #0d47a1;
+            font-size: 10pt;
+            margin-bottom: 8px;
+        }
+        
+        .value-box-content {
+            color: #1565c0;
+            font-size: 9.5pt;
+        }
+        
+        .signature {
+            margin-top: 40px;
+            font-size: 10.5pt;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #0277bd;
+            width: 320px;
+            margin-top: 45px;
+            padding-top: 10px;
+            font-weight: 600;
+            color: #01579b;
+        }
+        
+        strong {
+            color: #00695c;
+            font-weight: bold;
+        }
+        
+        .metric {
+            font-weight: bold;
+            color: #1b5e20;
+            background: #c8e6c9;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_path %}
+        <div class="logo-container">
+            <img src="{{ logo_path }}" class="logo" alt="Company Logo">
+        </div>
+        {% endif %}
+        <div class="recommender-name">{{ recommender_name }}</div>
+        <div class="recommender-info">
+            {{ recommender_title }}<br>
+            {{ recommender_company }}
+        </div>
+        <div class="date">{{ date }}</div>
+    </div>
+    
+    <h1>Strategic Partnership Recommendation</h1>
+    
+    <p><strong>To Whom It May Concern:</strong></p>
+    
+    {{ content }}
+    
+    <div class="signature">
+        <div class="signature-line">
+            {{ recommender_name }}<br>
+            {{ recommender_title }}<br>
+            {{ recommender_company }}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: Letter;
+            margin: 1in;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+            color: #1c1c1e;
+            line-height: 1.65;
+            font-size: 11pt;
+            background: #ffffff;
+        }
+        
+        .letterhead {
+            border-bottom: 4px solid #0a3161;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .letterhead-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .logo-container {
+            max-width: 150px;
+        }
+        
+        .logo {
+            max-width: 150px;
+            max-height: 75px;
+        }
+        
+        .company-info {
+            text-align: right;
+            font-size: 9pt;
+            color: #48484a;
+        }
+        
+        .recommender-info {
+            margin-top: 15px;
+            font-size: 10pt;
+            color: #3a3a3c;
+        }
+        
+        .recommender-name {
+            font-weight: bold;
+            font-size: 12pt;
+            color: #0a3161;
+            margin-bottom: 4px;
+        }
+        
+        .recommender-title {
+            color: #b52a2a;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .location {
+            font-style: italic;
+            color: #636366;
+        }
+        
+        .date {
+            margin: 20px 0;
+            font-size: 10pt;
+            color: #48484a;
+        }
+        
+        .subject {
+            font-weight: bold;
+            margin: 20px 0 25px 0;
+            font-size: 11pt;
+            color: #0a3161;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 16px;
+            color: #1c1c1e;
+        }
+        
+        .us-market-context {
+            background: #f2f2f7;
+            border: 2px solid #0a3161;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        
+        .us-market-context h3 {
+            color: #b52a2a;
+            font-size: 12pt;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        
+        .results-table {
+            width: 100%;
+            margin: 25px 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 2px solid #0a3161;
+        }
+        
+        .results-table th {
+            background: linear-gradient(to bottom, #0a3161 0%, #0a4080 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        
+        .results-table td {
+            border-top: 1px solid #c7c7cc;
+            padding: 10px 12px;
+            font-size: 10pt;
+            background: #fafafa;
+        }
+        
+        .results-table tr:nth-child(even) td {
+            background: #ffffff;
+        }
+        
+        .performance-box {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .perf-item {
+            background: linear-gradient(135deg, #f2f2f7 0%, #e5e5ea 100%);
+            border: 2px solid #b52a2a;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .perf-label {
+            font-size: 9pt;
+            color: #636366;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .perf-value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0a3161;
+        }
+        
+        .recommendation-statement {
+            background: #fff4e6;
+            border-left: 6px solid #b52a2a;
+            border-right: 6px solid #0a3161;
+            padding: 20px;
+            margin: 30px 0;
+            font-weight: 500;
+        }
+        
+        .signature {
+            margin-top: 50px;
+            font-size: 10.5pt;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #0a3161;
+            width: 350px;
+            margin-top: 50px;
+            padding-top: 12px;
+        }
+        
+        .signature-name {
+            font-weight: bold;
+            font-size: 11pt;
+            color: #0a3161;
+        }
+        
+        strong {
+            color: #0a3161;
+            font-weight: 600;
+        }
+        
+        .usa-emphasis {
+            color: #b52a2a;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="letterhead">
+        <div class="letterhead-top">
+            {% if logo_path %}
+            <div class="logo-container">
+                <img src="{{ logo_path }}" class="logo" alt="Company Logo">
+            </div>
+            {% endif %}
+            <div class="company-info">
+                {{ recommender_company }}
+            </div>
+        </div>
+        <div class="recommender-info">
+            <div class="recommender-name">{{ recommender_name }}</div>
+            <div class="recommender-title">{{ recommender_title }}</div>
+            <div class="location">{{ recommender_location }}</div>
+        </div>
+    </div>
+    
+    <div class="date">{{ date }}</div>
+    
+    <div class="subject"><strong>RE:</strong> Letter of Support for EB-2 NIW Petition</div>
+    
+    <p><strong>To Whom It May Concern:</strong></p>
+    
+    {{ content }}
+    
+    <div class="signature">
+        <div class="signature-line">
+            <div class="signature-name">{{ recommender_name }}</div>
+            <div>{{ recommender_title }}</div>
+            <div>{{ recommender_company }}</div>
+            <div style="margin-top: 5px; font-style: italic;">{{ recommender_location }}</div>
+        </div>
+    </div>
+</body>
+</html>

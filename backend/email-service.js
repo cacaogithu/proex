@@ -142,8 +142,13 @@ export async function uploadToGoogleDrive(filePath, fileName, submissionId, reci
       parents: [submissionFolderId]
     };
 
+    // Detect file type
+    const mimeType = filePath.endsWith('.pdf') 
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    
     const media = {
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      mimeType: mimeType,
       body: fs.createReadStream(filePath)
     };
 

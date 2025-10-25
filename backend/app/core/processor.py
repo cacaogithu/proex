@@ -2,7 +2,7 @@ from .pdf_extractor import PDFExtractor
 from .llm_processor import LLMProcessor
 from .heterogeneity import HeterogeneityArchitect
 from .block_generator import BlockGenerator
-from .docx_generator import DOCXGenerator
+from .html_pdf_generator import HTMLPDFGenerator
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from ..db.database import Database
@@ -16,7 +16,7 @@ class SubmissionProcessor:
         self.llm = LLMProcessor()
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.block_generator = BlockGenerator(self.llm)
-        self.docx_generator = DOCXGenerator()
+        self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.db = Database()
     
@@ -84,19 +84,33 @@ class SubmissionProcessor:
                 print("    ✓ Blocks generated")
                 
                 print("    - Assembling letter with Claude 4.5 Sonnet...")
-                letter_markdown = self.docx_generator.assemble_letter(blocks, design, self.llm)
+                letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
                 print("    ✓ Letter assembled")
                 
-                # Generate DOCX instead of PDF
-                output_path = f"storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.docx"
-                print(f"    - Generating DOCX with logo...")
-                self.docx_generator.markdown_to_docx(letter_markdown, output_path, design, logo_path)
-                print(f"    ✓ DOCX generated")
+                # Generate PDF with heterogeneous HTML templates
+                output_path = f"storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.pdf"
+                print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')})...")
+                
+                # Prepare recommender info for template
+                recommender_info = {
+                    'name': testimony.get('recommender_name', 'Professional Recommender'),
+                    'title': testimony.get('recommender_position', ''),
+                    'company': testimony.get('recommender_company', ''),
+                    'location': testimony.get('recommender_location', '')
+                }
+                
+                self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
+                print(f"    ✓ Styled PDF generated with Template {design.get('template_id', 'A')}")
+                
+                # Track template usage for ML/analytics
+                template_id = design.get('template_id', 'A')
+                self.db.increment_template_usage(template_id)
                 
                 letters.append({
                     "testimony_id": testimony.get('testimony_id', str(i+1)),
                     "recommender": testimony.get('recommender_name', 'Unknown'),
-                    "docx_path": output_path,
+                    "pdf_path": output_path,
+                    "template_id": template_id,
                     "has_logo": logo_path is not None
                 })
             
@@ -107,7 +121,7 @@ class SubmissionProcessor:
             })
             
             print(f"\n{'='*60}")
-            print(f"✓ COMPLETED! Generated {len(letters)} editable DOCX letters")
+            print(f"✓ COMPLETED! Generated {len(letters)} styled PDF letters")
             print(f"{'='*60}\n")
             
             # PHASE 5: Send email with Google Drive links
@@ -116,8 +130,8 @@ class SubmissionProcessor:
             
             if recipient_email and check_email_service_health():
                 print("\nPHASE 5: Sending results via email and Google Drive...")
-                docx_paths = [os.path.abspath(letter['docx_path']) for letter in letters]
-                email_result = send_results_email(submission_id, recipient_email, docx_paths)
+                pdf_paths = [os.path.abspath(letter['pdf_path']) for letter in letters]
+                email_result = send_results_email(submission_id, recipient_email, pdf_paths)
                 
                 if email_result.get('success'):
                     print(f"✅ Email sent to {recipient_email}")

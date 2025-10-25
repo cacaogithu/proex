@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: #2c1810;
+            line-height: 1.8;
+            font-size: 11pt;
+            background: #ffffff;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px double #8b0000;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .logo-container {
+            margin-bottom: 15px;
+        }
+        
+        .logo {
+            max-width: 140px;
+            max-height: 70px;
+        }
+        
+        .recommender-info {
+            font-size: 10pt;
+            color: #5d4037;
+            font-style: italic;
+        }
+        
+        .recommender-name {
+            font-weight: bold;
+            font-size: 13pt;
+            color: #8b0000;
+            margin-bottom: 5px;
+            font-style: normal;
+        }
+        
+        .date {
+            margin-top: 15px;
+            font-size: 10pt;
+            color: #6d4c41;
+        }
+        
+        h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #8b0000;
+            text-align: center;
+            margin: 30px 0 25px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        h2 {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #5d4037;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #bcaaa4;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        p {
+            text-align: justify;
+            text-indent: 30px;
+            margin-bottom: 15px;
+            color: #3e2723;
+        }
+        
+        .abstract {
+            background: #fafafa;
+            border: 1px solid #d7ccc8;
+            padding: 20px;
+            margin: 25px 0;
+            font-style: italic;
+        }
+        
+        .abstract p {
+            text-indent: 0;
+            font-size: 10pt;
+        }
+        
+        .methodology {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+        
+        .methodology li {
+            margin-bottom: 10px;
+            color: #4e342e;
+        }
+        
+        .results-table {
+            margin: 25px auto;
+            border: 2px solid #8b0000;
+            background: #fff;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+        
+        table th {
+            background: #8b0000;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #6d4c41;
+        }
+        
+        table td {
+            border: 1px solid #d7ccc8;
+            padding: 10px;
+            background: #fafafa;
+        }
+        
+        .conclusion {
+            background: #f5f5f5;
+            border-left: 4px solid #8b0000;
+            padding: 20px;
+            margin: 30px 0;
+            font-style: italic;
+        }
+        
+        .signature {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 11pt;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #8b0000;
+            width: 350px;
+            margin: 60px auto 10px auto;
+            padding-top: 10px;
+            font-weight: bold;
+        }
+        
+        strong {
+            color: #8b0000;
+            font-weight: bold;
+        }
+        
+        .framework {
+            font-variant: small-caps;
+            font-weight: bold;
+            color: #5d4037;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_path %}
+        <div class="logo-container">
+            <img src="{{ logo_path }}" class="logo" alt="Institution Logo">
+        </div>
+        {% endif %}
+        <div class="recommender-name">{{ recommender_name }}</div>
+        <div class="recommender-info">
+            {{ recommender_title }}<br>
+            {{ recommender_company }}
+        </div>
+        <div class="date">{{ date }}</div>
+    </div>
+    
+    <h1>Professional Recommendation</h1>
+    
+    <p style="text-indent: 0; text-align: center; font-style: italic;">To Whom It May Concern,</p>
+    
+    {{ content }}
+    
+    <div class="signature">
+        <div class="signature-line">
+            {{ recommender_name }}<br>
+            <span style="font-weight: normal;">{{ recommender_title }}</span><br>
+            <span style="font-weight: normal;">{{ recommender_company }}</span>
+        </div>
+    </div>
+</body>
+</html>

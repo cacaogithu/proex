@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: 'Verdana', 'Geneva', sans-serif;
+            color: #212121;
+            line-height: 1.7;
+            font-size: 10.5pt;
+            background: #fafafa;
+        }
+        
+        .document-header {
+            background: linear-gradient(to right, #424242 0%, #616161 100%);
+            color: white;
+            padding: 18px 25px;
+            margin: -2cm -2cm 25px -2cm;
+            border-bottom: 4px solid #ff6f00;
+        }
+        
+        .doc-reference {
+            font-size: 9pt;
+            color: #e0e0e0;
+            margin-bottom: 10px;
+        }
+        
+        .logo-container {
+            float: right;
+            margin-left: 20px;
+        }
+        
+        .logo {
+            max-width: 110px;
+            max-height: 55px;
+            filter: brightness(0) invert(1);
+        }
+        
+        .recommender-name {
+            font-weight: bold;
+            font-size: 13pt;
+            margin-bottom: 5px;
+        }
+        
+        .recommender-info {
+            font-size: 9.5pt;
+            color: #bdbdbd;
+        }
+        
+        .date {
+            margin-top: 10px;
+            font-size: 9pt;
+            color: #9e9e9e;
+        }
+        
+        .document-title {
+            background: #ff6f00;
+            color: white;
+            padding: 12px 20px;
+            margin: 0 -2cm 25px -2cm;
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        h2 {
+            font-size: 11.5pt;
+            font-weight: bold;
+            color: #424242;
+            margin-top: 22px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ff6f00;
+            padding-left: 12px;
+            background: #f5f5f5;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 14px;
+            color: #424242;
+        }
+        
+        .technical-note {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            border-left: 4px solid #ff6f00;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+        
+        .technical-note:before {
+            content: "📋 TECHNICAL NOTE: ";
+            font-weight: bold;
+            color: #e65100;
+        }
+        
+        .collaboration-details {
+            background: #e8f5e9;
+            border: 1px dashed #4caf50;
+            padding: 18px;
+            margin: 20px 0;
+        }
+        
+        .collaboration-details h3 {
+            color: #2e7d32;
+            font-size: 11pt;
+            margin-bottom: 10px;
+        }
+        
+        ol {
+            padding-left: 25px;
+        }
+        
+        ol li {
+            margin-bottom: 10px;
+            color: #616161;
+        }
+        
+        ul {
+            list-style-type: square;
+            padding-left: 25px;
+            color: #757575;
+        }
+        
+        ul li {
+            margin-bottom: 8px;
+        }
+        
+        .reference-box {
+            background: #f5f5f5;
+            border: 2px solid #9e9e9e;
+            padding: 12px 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+        }
+        
+        .reference-box:before {
+            content: "REF: ";
+            font-weight: bold;
+            color: #ff6f00;
+        }
+        
+        .team-contribution {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .contrib-box {
+            background: #f9f9f9;
+            border: 1px solid #bdbdbd;
+            padding: 15px;
+        }
+        
+        .contrib-title {
+            font-weight: bold;
+            color: #ff6f00;
+            margin-bottom: 8px;
+            font-size: 10pt;
+        }
+        
+        .contrib-desc {
+            font-size: 9.5pt;
+            color: #616161;
+        }
+        
+        .attachment-list {
+            background: #eeeeee;
+            border: 1px solid #9e9e9e;
+            padding: 15px;
+            margin: 25px 0;
+        }
+        
+        .attachment-list h3 {
+            color: #424242;
+            font-size: 10.5pt;
+            margin-bottom: 10px;
+        }
+        
+        .signature {
+            margin-top: 40px;
+            font-size: 10pt;
+        }
+        
+        .signature-block {
+            border: 2px solid #ff6f00;
+            background: #fafafa;
+            padding: 20px;
+            width: 350px;
+            margin-top: 40px;
+        }
+        
+        .signature-name {
+            font-weight: bold;
+            font-size: 11pt;
+            color: #424242;
+            margin-bottom: 5px;
+        }
+        
+        strong {
+            color: #212121;
+            font-weight: bold;
+        }
+        
+        .project-ref {
+            font-family: 'Courier New', monospace;
+            background: #ffecb3;
+            padding: 2px 5px;
+            color: #e65100;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-header">
+        <div class="doc-reference">DOCUMENT REF: {{ document_ref }}</div>
+        {% if logo_path %}
+        <div class="logo-container">
+            <img src="{{ logo_path }}" class="logo" alt="Organization Logo">
+        </div>
+        {% endif %}
+        <div class="recommender-name">{{ recommender_name }}</div>
+        <div class="recommender-info">
+            {{ recommender_title }}<br>
+            {{ recommender_company }}
+        </div>
+        <div class="date">{{ date }}</div>
+        <div style="clear: both;"></div>
+    </div>
+    
+    <div class="document-title">Technical Testimony & Professional Recommendation</div>
+    
+    <p><strong>TO WHOM IT MAY CONCERN:</strong></p>
+    
+    {{ content }}
+    
+    <div class="signature">
+        <div class="signature-block">
+            <div class="signature-name">{{ recommender_name }}</div>
+            <div>{{ recommender_title }}</div>
+            <div>{{ recommender_company }}</div>
+            <div style="margin-top: 10px; font-size: 9pt; color: #757575;">
+                Document Ref: {{ document_ref }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

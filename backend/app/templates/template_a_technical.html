@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            color: #1a237e;
+            line-height: 1.4;
+            font-size: 10pt;
+            background: #ffffff;
+        }
+        
+        .header {
+            border-bottom: 3px solid #1a237e;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .logo-container {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        
+        .logo {
+            max-width: 120px;
+            max-height: 60px;
+        }
+        
+        .recommender-info {
+            font-size: 9pt;
+            color: #37474f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .recommender-name {
+            font-weight: bold;
+            font-size: 11pt;
+            color: #1a237e;
+            margin-bottom: 2px;
+        }
+        
+        .recommender-title {
+            font-style: italic;
+            margin-bottom: 1px;
+        }
+        
+        .date {
+            margin-top: 10px;
+            font-size: 9pt;
+            color: #546e7a;
+        }
+        
+        h1 {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #0d47a1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 25px 0 20px 0;
+            border-left: 5px solid #1976d2;
+            padding-left: 10px;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 12px;
+            color: #263238;
+        }
+        
+        .technical-metrics {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .technical-metrics ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .technical-metrics li {
+            padding: 5px 0;
+            border-bottom: 1px dotted #90caf9;
+        }
+        
+        .technical-metrics li:before {
+            content: "▸ ";
+            color: #1976d2;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 9pt;
+        }
+        
+        table th {
+            background: #1a237e;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        table td {
+            border: 1px solid #b0bec5;
+            padding: 6px 8px;
+        }
+        
+        .signature {
+            margin-top: 40px;
+            font-size: 10pt;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #1a237e;
+            width: 300px;
+            margin-top: 50px;
+            padding-top: 5px;
+        }
+        
+        strong {
+            color: #0d47a1;
+            font-weight: bold;
+        }
+        
+        .acronym {
+            font-weight: bold;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_path %}
+        <div class="logo-container">
+            <img src="{{ logo_path }}" class="logo" alt="Company Logo">
+        </div>
+        {% endif %}
+        <div class="recommender-info">
+            <div class="recommender-name">{{ recommender_name }}</div>
+            <div class="recommender-title">{{ recommender_title }}</div>
+            <div>{{ recommender_company }}</div>
+            <div class="date">{{ date }}</div>
+        </div>
+    </div>
+    
+    <h1>Technical Recommendation Letter</h1>
+    
+    <p><strong>TO WHOM IT MAY CONCERN:</strong></p>
+    
+    {{ content }}
+    
+    <div class="signature">
+        <div class="signature-line">
+            {{ recommender_name }}<br>
+            {{ recommender_title }}<br>
+            {{ recommender_company }}
+        </div>
+    </div>
+</body>
+</html>
