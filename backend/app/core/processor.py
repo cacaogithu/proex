@@ -42,14 +42,15 @@ class SubmissionProcessor:
             
             # PHASE 2.5: Scrape company logos
             print("\nPHASE 2.5: Scraping company logos...")
-            for i, testimonial in enumerate(organized_data.get('testimonials', [])):
+            # Use 'testimonies' key consistently
+            for i, testimonial in enumerate(organized_data.get('testimonies', [])):
                 company_name = testimonial.get('recommender_company', '')
                 company_website = testimonial.get('recommender_company_website', '')
                 
                 if company_name:
                     logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
                     if logo_path:
-                        organized_data['testimonials'][i]['company_logo_path'] = logo_path
+                        organized_data['testimonies'][i]['company_logo_path'] = logo_path
                         print(f"  ✓ Logo found for {company_name}")
                     else:
                         print(f"  ⚠️ No logo found for {company_name}")
@@ -117,7 +118,8 @@ class SubmissionProcessor:
             self.update_status(submission_id, "completed")
             self.db.save_processed_data(submission_id, {
                 "letters": letters,
-                "organized_data": organized_data
+                "organized_data": organized_data,
+                "design_structures": design_structures
             })
             
             print(f"\n{'='*60}")
@@ -149,5 +151,154 @@ class SubmissionProcessor:
         except Exception as e:
             error_msg = str(e)
             print(f"\n✗ ERROR: {error_msg}\n")
+            self.update_status(submission_id, "error", error_msg)
+            raise
+    
+    def regenerate_specific_letters(
+        self, 
+        submission_id: str, 
+        letter_indices: list[int],
+        custom_instructions: str | None = None
+    ):
+        """Regenerate only specific letters from a completed submission"""
+        try:
+            print(f"\n{'='*60}")
+            print(f"Regenerating letters {letter_indices} for submission: {submission_id}")
+            print(f"{'='*60}\n")
+            
+            # Get existing submission data
+            submission = self.db.get_submission(submission_id)
+            if not submission or submission['status'] != 'completed':
+                raise Exception("Submission not found or not completed")
+            
+            # Load processed data
+            import json
+            processed_data = json.loads(submission.get('processed_data', '{}'))
+            
+            if not processed_data:
+                raise Exception("No processed data found for this submission")
+            
+            # Get organized_data from processed_data (not raw_data which is empty)
+            organized_data = processed_data.get('organized_data', {})
+            if not organized_data:
+                raise Exception("No organized data found in processed_data")
+            
+            existing_letters = processed_data.get('letters', [])
+            # Use 'testimonies' key (that's what LLM processor returns)
+            testimonials = organized_data.get('testimonies', [])
+            
+            self.update_status(submission_id, "regenerating")
+            
+            # Regenerate heterogeneity for selected letters only
+            print(f"\nRegenerating design structures for {len(letter_indices)} letter(s)...")
+            
+            # Get existing designs (design_structures is a dict with 'design_structures' key containing the list)
+            design_structures_dict = processed_data.get('design_structures', {})
+            existing_designs = design_structures_dict.get('design_structures', [])
+            if not existing_designs:
+                raise Exception("No design structures found in processed_data")
+            
+            # Create new designs for selected indices
+            selected_testimonials = [testimonials[i] for i in letter_indices]
+            new_designs_dict = self.heterogeneity.create_design_structures(selected_testimonials)
+            new_designs = new_designs_dict.get('design_structures', [])
+            
+            # Replace designs at specified indices
+            for i, letter_idx in enumerate(letter_indices):
+                if letter_idx < len(existing_designs):
+                    existing_designs[letter_idx] = new_designs[i]
+            
+            # Regenerate blocks and PDFs for selected letters
+            output_dir = f"storage/outputs/{submission_id}"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            print(f"\nRegenerating content and PDFs...")
+            for i, letter_idx in enumerate(letter_indices):
+                if letter_idx >= len(testimonials):
+                    print(f"  ⚠️ Skipping invalid index: {letter_idx}")
+                    continue
+                
+                testimony = testimonials[letter_idx]
+                design = new_designs[i]
+                
+                print(f"\n  Letter {letter_idx + 1}/{len(testimonials)}: {testimony.get('recommender_name', 'Unknown')}")
+                
+                # Generate blocks
+                blocks = self.block_generator.generate_all_blocks(
+                    testimony=testimony,
+                    petitioner=organized_data.get('petitioner', {}),
+                    strategy=organized_data.get('strategy', {}),
+                    onet=organized_data.get('onet', {}),
+                    design_structure=design,
+                    custom_instructions=custom_instructions
+                )
+                
+                # Assembly
+                letter_html = self.block_generator.assemble_letter(blocks)
+                
+                # Get logo if available
+                logo_path = testimony.get('company_logo_path')
+                
+                # Generate PDF (use same naming as process_submission)
+                output_path = f"{output_dir}/letter_{letter_idx + 1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.pdf"
+                
+                recommender_info = {
+                    'name': testimony.get('recommender_name', ''),
+                    'title': testimony.get('recommender_title', ''),
+                    'company': testimony.get('recommender_company', ''),
+                    'location': testimony.get('recommender_location', '')
+                }
+                
+                self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
+                print(f"    ✓ Regenerated PDF with Template {design.get('template_id', 'A')}")
+                
+                # Track template usage
+                template_id = design.get('template_id', 'A')
+                self.db.increment_template_usage(template_id)
+                
+                # Update letter info
+                existing_letters[letter_idx].update({
+                    "pdf_path": output_path,
+                    "template_id": template_id,
+                    "regenerated": True
+                })
+            
+            # Update processed data (save back as dict with design_structures key)
+            design_structures_dict['design_structures'] = existing_designs
+            processed_data['design_structures'] = design_structures_dict
+            processed_data['letters'] = existing_letters
+            self.db.save_processed_data(submission_id, processed_data)
+            
+            # Re-send email with updated files
+            print("\nUploading to Google Drive and sending email...")
+            # Database stores email in 'user_email' column
+            user_email = submission.get('user_email')
+            
+            if user_email and check_email_service_health():
+                # Extract PDF paths from letters (send_results_email expects paths, not dicts)
+                pdf_paths = [os.path.abspath(letter['pdf_path']) for letter in existing_letters]
+                email_result = send_results_email(submission_id, user_email, pdf_paths)
+                
+                if email_result.get('success'):
+                    print(f"✅ Email sent to {user_email} with updated files")
+                    print(f"✅ {email_result.get('files_uploaded', 0)} files uploaded to Google Drive")
+                else:
+                    print(f"⚠️ Email sending failed: {email_result.get('error', 'Unknown error')}")
+            else:
+                if not user_email:
+                    print("⚠️ No email address, skipping notification")
+                else:
+                    print("⚠️ Email service unavailable, but files are ready for download")
+            
+            self.update_status(submission_id, "completed")
+            
+            print(f"\n{'='*60}")
+            print(f"Regeneration completed successfully!")
+            print(f"Regenerated {len(letter_indices)} letter(s)")
+            print(f"{'='*60}\n")
+            
+        except Exception as e:
+            error_msg = str(e)
+            print(f"\n❌ Error during regeneration: {error_msg}")
             self.update_status(submission_id, "error", error_msg)
             raise

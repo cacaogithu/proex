@@ -255,10 +255,18 @@ async def regenerate_letters(
                 detail=f"Índice inválido: {idx}. Total de cartas: {len(letters)}"
             )
     
-    # TODO: Implement selective regeneration logic
-    # For now, return placeholder
+    # Start regeneration in background
+    processor = SubmissionProcessor()
+    background_tasks.add_task(
+        processor.regenerate_specific_letters,
+        submission_id,
+        regenerate_request.letter_indices,
+        regenerate_request.instructions
+    )
+    
     return {
         "message": f"Regeneração iniciada para {len(regenerate_request.letter_indices)} carta(s)",
         "letter_indices": regenerate_request.letter_indices,
-        "status": "processing"
+        "status": "processing",
+        "instructions": regenerate_request.instructions
     }

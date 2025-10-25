@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import axios from 'axios'
+import LetterFeedback from '../components/LetterFeedback'
 
 export default function StatusPage() {
   const [submissionId, setSubmissionId] = useState('')
   const [loading, setLoading] = useState(false)
   const [submission, setSubmission] = useState<any>(null)
   const [error, setError] = useState<string>('')
+  const [showFeedback, setShowFeedback] = useState(false)
 
   const checkStatus = async () => {
     if (!submissionId.trim()) {
@@ -20,11 +22,23 @@ export default function StatusPage() {
     try {
       const response = await axios.get(`/api/submissions/${submissionId}`)
       setSubmission(response.data)
+      
+      if (response.data.status === 'completed') {
+        const processedData = JSON.parse(response.data.processed_data || '{}')
+        response.data.letters = processedData.letters || []
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Erro ao consultar status')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRegenerateComplete = () => {
+    setShowFeedback(false)
+    setTimeout(() => {
+      checkStatus()
+    }, 2000)
   }
 
   const downloadResults = () => {
@@ -170,15 +184,46 @@ export default function StatusPage() {
                 </div>
               </div>
               
-              <button
-                onClick={downloadResults}
-                className="w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 font-semibold flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Todas as Cartas (ZIP)
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={downloadResults}
+                  className="flex-1 bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 font-semibold flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download ZIP
+                </button>
+                <button
+                  onClick={() => setShowFeedback(!showFeedback)}
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 font-semibold flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  {showFeedback ? 'Ocultar Feedback' : 'Avaliar e Editar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {submission.status === 'completed' && showFeedback && submission.letters && (
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-gray-900">Feedback e Edição Seletiva</h4>
+                <span className="text-xs text-gray-500">
+                  Avalie cada carta e regenere as que precisam de ajustes
+                </span>
+              </div>
+              {submission.letters.map((letter: any, index: number) => (
+                <LetterFeedback
+                  key={index}
+                  submissionId={submission.id}
+                  letter={letter}
+                  letterIndex={index}
+                  onRegenerateComplete={handleRegenerateComplete}
+                />
+              ))}
             </div>
           )}
 
