@@ -4,7 +4,7 @@
 Plataforma web standalone 100% funcional para processar cartas de recomendação para vistos EB-2 NIW. Replica completamente a lógica dos workflows n8n em código Python/TypeScript.
 
 ## Status do Projeto
-✅ **MVP Completo e Funcional** (23 de Outubro de 2025)
+✅ **MVP Completo e Funcional** (25 de Outubro de 2025)
 
 ### Funcionalidades Implementadas
 - ✅ Upload de múltiplos PDFs (Quadro, CV, Estratégia, OneNote, Testemunhos)
@@ -13,21 +13,27 @@ Plataforma web standalone 100% funcional para processar cartas de recomendação
 - ✅ Heterogeneity Architect - gera estilos únicos para cada testemunho
 - ✅ Geração dos 5 blocos (BLOCO3-7) por carta
 - ✅ **Logo Scraping** - Busca automática de logos das empresas (Clearbit API + scraping)
-- ✅ **Geração de DOCX editáveis** - Documentos Word ao invés de PDFs (python-docx)
-- ✅ **Logos nos documentos** - Logos das empresas adicionados ao cabeçalho
+- ✅ **Geração de PDFs com heterogeneidade visual** - 6 templates HTML/CSS únicos + WeasyPrint
+- ✅ **Heterogeneidade visual total** - Cada carta tem fonte, cores e layout diferentes
+- ✅ **Logos nos documentos** - Logos das empresas adicionados ao cabeçalho dos PDFs
+- ✅ **Sistema de Feedback ML** - Avaliação de cartas (1-5 estrelas) + comentários
+- ✅ **Analytics de Templates** - Métricas de performance e ratings por template
+- ✅ **Regeneração Seletiva** - Regenerar apenas 1-2 cartas específicas (não todas)
 - ✅ Sistema de tracking de status em tempo real
 - ✅ Download de resultados em formato ZIP
 - ✅ Interface web responsiva com React + Tailwind CSS
+- ✅ Upload automático para Google Drive e envio de email
 
 ## Arquitetura
 
 ### Stack Tecnológica
 **Backend:**
 - FastAPI (Python 3.11) - API REST
-- SQLite - Banco de dados local
+- SQLite - Banco de dados local com analytics ML
 - pdfplumber - Extração de PDFs
 - OpenAI SDK - Integração com OpenRouter (Gemini + Claude)
-- python-docx - Geração de DOCX editáveis
+- WeasyPrint - Geração de PDFs com HTML/CSS
+- Jinja2 - Templates HTML dinâmicos
 - requests + BeautifulSoup - Logo scraping
 - Markdown - Processamento de texto
 
@@ -44,17 +50,25 @@ proex-platform/
 ├── backend/
 │   ├── app/
 │   │   ├── api/              # Rotas FastAPI
-│   │   │   └── submissions.py
+│   │   │   └── submissions.py (+ feedback/regeneration endpoints)
 │   │   ├── core/             # Lógica de processamento
 │   │   │   ├── pdf_extractor.py    # Extração de PDFs
 │   │   │   ├── llm_processor.py    # Clean & Organize (LLM tier strategy)
 │   │   │   ├── heterogeneity.py    # Design structures
 │   │   │   ├── block_generator.py  # BLOCO3-7
 │   │   │   ├── logo_scraper.py     # Logo scraping com cache
-│   │   │   ├── docx_generator.py   # Assembly & DOCX generation
-│   │   │   └── processor.py        # Orquestrador principal
+│   │   │   ├── html_pdf_generator.py  # HTML templates + WeasyPrint
+│   │   │   ├── email_sender.py     # Gmail + Google Drive integration
+│   │   │   └── processor.py        # Orquestrador principal + regeneração
+│   │   ├── templates/        # 6 templates HTML/CSS únicos (A-F)
+│   │   │   ├── template_a.html (Technical/Courier)
+│   │   │   ├── template_b.html (Academic/Times)
+│   │   │   ├── template_c.html (Narrative/Garamond)
+│   │   │   ├── template_d.html (Business/Calibri)
+│   │   │   ├── template_e.html (USA/Helvetica)
+│   │   │   └── template_f.html (Testimony/Verdana)
 │   │   ├── db/               # Banco de dados
-│   │   │   └── database.py
+│   │   │   └── database.py (+ letter_ratings, template_performance)
 │   │   └── main.py           # App FastAPI
 │   └── storage/
 │       ├── uploads/          # PDFs enviados
@@ -62,9 +76,11 @@ proex-platform/
 │
 ├── frontend/
 │   ├── src/
+│   │   ├── components/
+│   │   │   └── LetterFeedback.tsx  # Rating + regeneração seletiva
 │   │   ├── pages/
 │   │   │   ├── SubmitPage.tsx    # Formulário de upload
-│   │   │   └── StatusPage.tsx    # Consulta de status
+│   │   │   └── StatusPage.tsx    # Consulta de status + feedback
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   └── package.json
@@ -117,15 +133,18 @@ proex-platform/
   - Fallback para scraping direto do website
   - Cache interno para evitar re-fetches
   - Timeouts e retry logic robustos
-- **Assembly e DOCX**:
-  - Combina os 5 blocos em carta completa via LLM
+- **Assembly e PDF com Heterogeneidade Visual** (NOVO - Out 2025):
+  - Combina os 5 blocos em carta completa via LLM (Claude 3.7 Sonnet)
   - Converte Markdown para HTML (com parser completo)
-  - Gera DOCX editável com python-docx
-  - Suporte completo para: listas aninhadas, hyperlinks, formatação inline, tabelas
+  - Aplica um dos 6 templates HTML/CSS únicos (A-F) baseado no design structure
+  - Gera PDF com WeasyPrint mantendo estilos visuais
+  - Cada template tem: fonte única, paleta de cores, layout diferente
   - Logos adicionados ao cabeçalho dos documentos
-- Salva em `storage/outputs/{submission_id}/`
+  - Suporte completo para: listas aninhadas, hyperlinks, formatação inline, tabelas
+- Salva PDFs em `storage/outputs/{submission_id}/`
+- Incrementa contadores de uso de templates para analytics
 
-### Fase 6: Upload para Google Drive e Envio de Email (NOVO - Out 2025)
+### Fase 6: Upload para Google Drive e Envio de Email
 - **Upload Automático para Google Drive**:
   - Cria pasta "ProEx - Cartas EB-2 NIW/{submission_id}" no Google Drive do usuário
   - Upload de todos os DOCX gerados
@@ -141,6 +160,31 @@ proex-platform/
   - Gerenciamento automático de tokens OAuth
   - Health check e retry logic
 
+### Fase 7: Feedback ML e Regeneração Seletiva (NOVO - Out 2025)
+- **Sistema de Feedback**:
+  - Avaliação por carta (1-5 estrelas) + comentários opcionais
+  - Dados salvos em tabela `letter_ratings` com timestamp
+  - Associação carta ↔ template_id para analytics
+- **Analytics de Templates**:
+  - Tabela `template_performance` rastreia métricas por template (A-F):
+    * Total de usos (incrementado ao gerar carta)
+    * Total de ratings recebidos
+    * Média de rating (atualizada dinamicamente)
+    * Contagem por rating (1★, 2★, 3★, 4★, 5★)
+  - Endpoint `/analytics/templates` retorna ranking de performance
+- **Regeneração Seletiva**:
+  - Usuário pode regenerar apenas 1-2 cartas específicas (não todas)
+  - Sistema carrega `organized_data` e `design_structures` do `processed_data`
+  - Gera novo design + blocos + assembly + PDF apenas para cartas selecionadas
+  - Preserva cartas não selecionadas
+  - Envia email/Drive novamente com todas as cartas (incluindo regeneradas)
+  - Permite instruções customizadas opcionais para o LLM
+- **Interface Frontend**:
+  - Componente `LetterFeedback` com estrelas interativas
+  - Modal para adicionar instruções antes de regenerar
+  - Toggle "Avaliar e Editar" na StatusPage
+  - Visual feedback de cartas regeneradas
+
 ## API Endpoints
 
 ### POST /api/submissions
@@ -153,8 +197,26 @@ Consulta status da submissão
 - **Response**: Objeto submission com status atual
 
 ### GET /api/submissions/{id}/download
-Download dos documentos DOCX gerados
-- **Response**: Arquivo ZIP com todas as cartas em formato Word editável
+Download dos documentos PDF gerados
+- **Response**: Arquivo ZIP com todas as cartas
+
+### POST /api/submissions/{id}/letters/{letter_index}/rating (NOVO)
+Salva avaliação de uma carta específica
+- **Body**: `{rating: 1-5, comment?: string}`
+- **Response**: `{rating_id, message, template_id}`
+
+### GET /api/submissions/{id}/ratings (NOVO)
+Retorna todas as avaliações de uma submissão
+- **Response**: `{ratings: [{id, letter_index, template_id, rating, comment, created_at}]}`
+
+### GET /api/analytics/templates (NOVO)
+Retorna analytics de performance de todos os templates
+- **Response**: `{analytics: [{template_id, template_name, total_uses, avg_rating, rating_*_count}]}`
+
+### POST /api/submissions/{id}/regenerate (NOVO)
+Regenera cartas específicas com instruções opcionais
+- **Body**: `{letter_indices: [0, 2], instructions?: string}`
+- **Response**: `{message, letter_indices, status}`
 
 ## Configuração
 
