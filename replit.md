@@ -1,319 +1,41 @@
 # ProEx Platform - Processamento de Cartas EB-2 NIW
 
-## Visão Geral
-Plataforma web standalone 100% funcional para processar cartas de recomendação para vistos EB-2 NIW. Replica completamente a lógica dos workflows n8n em código Python/TypeScript.
+## Overview
+The ProEx Platform is a standalone web application designed to process recommendation letters for EB-2 NIW visas. It automates the entire workflow, from PDF ingestion and data extraction to content generation using Large Language Models (LLMs), visual customization, and final document output in PDF and editable DOCX formats. The platform aims to provide unique, high-quality, and visually diverse recommendation letters, replicating complex n8n workflows in Python/TypeScript. Key capabilities include automatic logo scraping, sophisticated template management for visual heterogeneity, a machine learning-based feedback system, and seamless integration with Google Drive and email for delivery.
 
-## Status do Projeto
-✅ **MVP Completo e Funcional** (25 de Outubro de 2025)
+## User Preferences
+I prefer simple language. I want iterative development. Ask before making major changes. I prefer detailed explanations. Do not make changes to the folder Z. Do not make changes to the file Y.
 
-### Funcionalidades Implementadas
-- ✅ Upload de múltiplos PDFs (Quadro, CV, Estratégia, OneNote, Testemunhos)
-- ✅ Extração automática de texto dos PDFs usando pdfplumber
-- ✅ Processamento via LLM (OpenRouter: Gemini + Claude) para organizar dados
-- ✅ Heterogeneity Architect - gera estilos únicos para cada testemunho
-- ✅ Geração dos 5 blocos (BLOCO3-7) por carta
-- ✅ **Logo Scraping** - Busca automática de logos das empresas (Clearbit API + scraping)
-- ✅ **Geração de PDFs com heterogeneidade visual** - 6 templates HTML/CSS únicos + WeasyPrint
-- ✅ **Heterogeneidade visual total** - Cada carta tem fonte, cores e layout diferentes
-- ✅ **Logos nos documentos** - Logos das empresas adicionados ao cabeçalho dos PDFs
-- ✅ **Sistema de Feedback ML** - Avaliação de cartas (1-5 estrelas) + comentários
-- ✅ **Analytics de Templates** - Métricas de performance e ratings por template
-- ✅ **Regeneração Seletiva** - Regenerar apenas 1-2 cartas específicas (não todas)
-- ✅ Sistema de tracking de status em tempo real
-- ✅ Download de resultados em formato ZIP
-- ✅ Interface web responsiva com React + Tailwind CSS
-- ✅ Upload automático para Google Drive e envio de email
+## System Architecture
 
-## Arquitetura
+### UI/UX Decisions
+The platform features a responsive web interface built with React and Tailwind CSS. A key design principle is visual heterogeneity in the generated documents, with six radically distinct HTML/CSS templates (Technical, Academic, Narrative, Business, USA, Testimony) ensuring each letter has a unique font, color palette, and layout. Logos are dynamically added to document headers.
 
-### Stack Tecnológica
-**Backend:**
-- FastAPI (Python 3.11) - API REST
-- SQLite - Banco de dados local com analytics ML
-- pdfplumber - Extração de PDFs
-- OpenAI SDK - Integração com OpenRouter (Gemini + Claude)
-- WeasyPrint - Geração de PDFs com HTML/CSS
-- Jinja2 - Templates HTML dinâmicos
-- requests + BeautifulSoup - Logo scraping
-- Markdown - Processamento de texto
+### Technical Implementations
+The backend is built with FastAPI (Python 3.11) and uses SQLite for local data storage, including ML analytics and auto-schema migration. Key Python libraries include `pdfplumber` for PDF extraction, `WeasyPrint` for HTML-to-PDF conversion, `python-docx` + `html-for-docx` for editable DOCX generation, and `Jinja2` for dynamic HTML templating. The frontend uses React 18, TypeScript, Vite, React Router, and Axios.
 
-**Frontend:**
-- React 18 + TypeScript
-- Vite - Build tool
-- Tailwind CSS - Estilização
-- React Router - Navegação
-- Axios - Chamadas HTTP
+### Feature Specifications
+- **PDF Processing**: Uploads multiple PDFs (Quadros, CVs, Strategy, OneNote) with text extraction.
+- **LLM-Powered Content Generation**: Utilizes a tiered LLM strategy (Gemini Flash for extraction, Gemini Pro for block generation, Claude Sonnet for final assembly) via OpenRouter for data organization and content creation across 5 distinct blocks per letter.
+- **Heterogeneity Architect**: Programmatically ensures radical visual and structural diversity across generated letters through 6 archetypal templates with strict validation rules.
+- **Logo Scraping**: Automatically fetches company logos using Clearbit API with fallback to web scraping, including caching.
+- **Document Generation**: Produces visually unique PDFs and fully editable DOCX files.
+- **Feedback System**: ML-based 0-100 rating system per letter, template performance analytics, and selective regeneration capability with optional custom LLM instructions.
+- **Automated Delivery**: Uploads generated DOCX files to Google Drive and sends notification emails with direct links.
+- **Real-time Tracking**: Provides submission status updates.
 
-### Estrutura de Diretórios
-```
-proex-platform/
-├── backend/
-│   ├── app/
-│   │   ├── api/              # Rotas FastAPI
-│   │   │   └── submissions.py (+ feedback/regeneration endpoints)
-│   │   ├── core/             # Lógica de processamento
-│   │   │   ├── pdf_extractor.py    # Extração de PDFs
-│   │   │   ├── llm_processor.py    # Clean & Organize (LLM tier strategy)
-│   │   │   ├── heterogeneity.py    # Design structures
-│   │   │   ├── block_generator.py  # BLOCO3-7
-│   │   │   ├── logo_scraper.py     # Logo scraping com cache
-│   │   │   ├── html_pdf_generator.py  # HTML templates + WeasyPrint
-│   │   │   ├── email_sender.py     # Gmail + Google Drive integration
-│   │   │   └── processor.py        # Orquestrador principal + regeneração
-│   │   ├── templates/        # 6 templates HTML/CSS únicos (A-F)
-│   │   │   ├── template_a.html (Technical/Courier)
-│   │   │   ├── template_b.html (Academic/Times)
-│   │   │   ├── template_c.html (Narrative/Garamond)
-│   │   │   ├── template_d.html (Business/Calibri)
-│   │   │   ├── template_e.html (USA/Helvetica)
-│   │   │   └── template_f.html (Testimony/Verdana)
-│   │   ├── db/               # Banco de dados
-│   │   │   └── database.py (+ letter_ratings, template_performance)
-│   │   └── main.py           # App FastAPI
-│   └── storage/
-│       ├── uploads/          # PDFs enviados
-│       └── outputs/          # PDFs gerados
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── LetterFeedback.tsx  # Rating + regeneração seletiva
-│   │   ├── pages/
-│   │   │   ├── SubmitPage.tsx    # Formulário de upload
-│   │   │   └── StatusPage.tsx    # Consulta de status + feedback
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── package.json
-│
-├── start-backend.sh
-└── README.md
-```
+### System Design Choices
+- **Microservices-oriented**: Separate backend (FastAPI), email service (Node.js), and frontend (React) workflows.
+- **Tiered LLM Strategy**: Optimizes cost and quality by using different LLMs for specific tasks.
+- **Robust Error Handling**: Includes retry logic with exponential backoff for LLM calls and external integrations.
+- **Scalable Document Generation**: Designed to handle multiple letters while maintaining uniqueness and quality.
 
-## Fluxo de Processamento
+## External Dependencies
 
-### Fase 1: Recebimento e Extração
-- Usuário envia PDFs via formulário web
-- Sistema salva arquivos em `storage/uploads/{submission_id}/`
-- PDFExtractor extrai texto de todos os documentos
-
-### Fase 2: Clean and Organize (LLM)
-- LLMProcessor estrutura dados extraídos em JSON
-- Cria objeto com: petitioner, strategy, onet, testimonies
-- Valida e organiza informações
-
-### Fase 3: Heterogeneity Architect (REESCRITO COMPLETAMENTE - Out 2025)
-- **6 Templates Arquetípicos Radicalmente Distintos** (baseados nas cartas V1 reais):
-  * **Template A** - Technical Deep-Dive: Engenheiro técnico sênior com muitas siglas (PLC, SCADA, NR10, ISO)
-  * **Template B** - Case Study Acadêmico: Gestor MBA com Six Sigma DMAIC e seções explícitas
-  * **Template C** - Narrative Storytelling: Gestor operacional contando jornada problema→solução
-  * **Template D** - Business Partnership: Diretor comercial focado em ROI e parceria estratégica
-  * **Template E** - Support Letter: Executivo americano com quadros de resultados e mercado USA
-  * **Template F** - Technical Testimony: Líder de projeto com documentação anexa e trabalho em equipe
-
-- **Validação Programática RIGOROSA** (4 camadas determinísticas):
-  1. ✅ Count matching: número exato de structures
-  2. ✅ Template validity: apenas {A,B,C,D,E,F} aceitos
-  3. ✅ Uniqueness para ≤6 cartas: cada template usado EXATAMENTE uma vez (zero repetição)
-  4. ✅ Distribuição uniforme para >6 cartas: todos os 6 templates usados com counts ⌊N/6⌋ ou ⌈N/6⌉
-  
-- **Retry automático**: Regenera até 3x se validação falhar
-- **Garantia matemática**: Cada carta é radicalmente diferente das outras em estrutura, tom e estilo
-
-### Fase 4: Geração de Blocos
-- Para cada testemunho, gera 5 blocos:
-  - BLOCO3: Validação Empírica de Resultados
-  - BLOCO4: Diferenciação Técnica
-  - BLOCO5: Impacto Setorial
-  - BLOCO6: Qualificação do Recomendador
-  - BLOCO7: Conclusão
-
-### Fase 5: Logo Scraping e Assembly
-- **Logo Scraping** (com cache e retry):
-  - Tenta Clearbit API (melhor qualidade)
-  - Fallback para scraping direto do website
-  - Cache interno para evitar re-fetches
-  - Timeouts e retry logic robustos
-- **Assembly e PDF com Heterogeneidade Visual** (NOVO - Out 2025):
-  - Combina os 5 blocos em carta completa via LLM (Claude 3.7 Sonnet)
-  - Converte Markdown para HTML (com parser completo)
-  - Aplica um dos 6 templates HTML/CSS únicos (A-F) baseado no design structure
-  - Gera PDF com WeasyPrint mantendo estilos visuais
-  - Cada template tem: fonte única, paleta de cores, layout diferente
-  - Logos adicionados ao cabeçalho dos documentos
-  - Suporte completo para: listas aninhadas, hyperlinks, formatação inline, tabelas
-- Salva PDFs em `storage/outputs/{submission_id}/`
-- Incrementa contadores de uso de templates para analytics
-
-### Fase 6: Upload para Google Drive e Envio de Email
-- **Upload Automático para Google Drive**:
-  - Cria pasta "ProEx - Cartas EB-2 NIW/{submission_id}" no Google Drive do usuário
-  - Upload de todos os DOCX gerados
-  - Permissões configuradas para compartilhamento
-  - Retorna links diretos para visualização e download
-- **Envio de Email via Gmail**:
-  - Email HTML profissional com branding
-  - Links diretos para cada documento no Google Drive
-  - Informações do submission ID para rastreamento
-  - Instruções claras para o usuário (revisar, editar, baixar)
-- **Serviço Node.js dedicado** (porta 3001):
-  - Usa integração nativa do Replit com Google APIs
-  - Gerenciamento automático de tokens OAuth
-  - Health check e retry logic
-
-### Fase 7: Feedback ML e Regeneração Seletiva (NOVO - Out 2025)
-- **Sistema de Feedback**:
-  - Avaliação por carta (1-5 estrelas) + comentários opcionais
-  - Dados salvos em tabela `letter_ratings` com timestamp
-  - Associação carta ↔ template_id para analytics
-- **Analytics de Templates**:
-  - Tabela `template_performance` rastreia métricas por template (A-F):
-    * Total de usos (incrementado ao gerar carta)
-    * Total de ratings recebidos
-    * Média de rating (atualizada dinamicamente)
-    * Contagem por rating (1★, 2★, 3★, 4★, 5★)
-  - Endpoint `/analytics/templates` retorna ranking de performance
-- **Regeneração Seletiva**:
-  - Usuário pode regenerar apenas 1-2 cartas específicas (não todas)
-  - Sistema carrega `organized_data` e `design_structures` do `processed_data`
-  - Gera novo design + blocos + assembly + PDF apenas para cartas selecionadas
-  - Preserva cartas não selecionadas
-  - Envia email/Drive novamente com todas as cartas (incluindo regeneradas)
-  - Permite instruções customizadas opcionais para o LLM
-- **Interface Frontend**:
-  - Componente `LetterFeedback` com estrelas interativas
-  - Modal para adicionar instruções antes de regenerar
-  - Toggle "Avaliar e Editar" na StatusPage
-  - Visual feedback de cartas regeneradas
-
-## API Endpoints
-
-### POST /api/submissions
-Cria nova submissão e inicia processamento
-- **Params**: email, numberOfTestimonials, quadro, cv, testimonials[], estrategia?, onenote?
-- **Response**: `{submission_id, status, message}`
-
-### GET /api/submissions/{id}
-Consulta status da submissão
-- **Response**: Objeto submission com status atual
-
-### GET /api/submissions/{id}/download
-Download dos documentos PDF gerados
-- **Response**: Arquivo ZIP com todas as cartas
-
-### POST /api/submissions/{id}/letters/{letter_index}/rating (NOVO)
-Salva avaliação de uma carta específica
-- **Body**: `{rating: 1-5, comment?: string}`
-- **Response**: `{rating_id, message, template_id}`
-
-### GET /api/submissions/{id}/ratings (NOVO)
-Retorna todas as avaliações de uma submissão
-- **Response**: `{ratings: [{id, letter_index, template_id, rating, comment, created_at}]}`
-
-### GET /api/analytics/templates (NOVO)
-Retorna analytics de performance de todos os templates
-- **Response**: `{analytics: [{template_id, template_name, total_uses, avg_rating, rating_*_count}]}`
-
-### POST /api/submissions/{id}/regenerate (NOVO)
-Regenera cartas específicas com instruções opcionais
-- **Body**: `{letter_indices: [0, 2], instructions?: string}`
-- **Response**: `{message, letter_indices, status}`
-
-## Configuração
-
-### Integração LLM
-- ✅ **OpenRouter.ai** - API unificada para 400+ modelos LLM (muito mais barato que Replit AI)
-- ✅ Usa sua própria chave API OpenRouter (cobrado na sua conta OpenRouter)
-- ✅ **Estratégia de Modelos em Tiers** para otimizar custo/qualidade:
-  - **Gemini 2.5 Flash** (`google/gemini-2.5-flash`) - Extração rápida de dados ($0.30/$2.50 por 1M tokens)
-  - **Gemini 2.5 Pro** (`google/gemini-2.5-pro-preview-05-06`) - Geração de blocos de alta qualidade ($1.25/$10 por 1M tokens)
-  - **Claude 3.7 Sonnet** (`anthropic/claude-3.7-sonnet`) - Assembly premium de documentos ($3/$15 por 1M tokens)
-- ✅ Retry logic com exponential backoff para lidar com rate limiting
-- ✅ Variável configurada: `OPENROUTER_API_KEY`
-
-### Workflows Ativos
-1. **Backend API** - Porta 8000 (console) - FastAPI Python
-2. **Email Service** - Porta 3001 (console) - Node.js (Gmail + Google Drive)
-3. **Frontend** - Porta 5000 (webview) ✅ Porta principal - React + Vite
-
-## Status dos Componentes
-
-### Backend ✅
-- FastAPI rodando na porta 8000
-- SQLite database inicializado
-- Todos os módulos de processamento implementados
-- Sistema de background tasks funcionando
-
-### Frontend ✅
-- React app rodando na porta 5000
-- Formulário de upload completo
-- Sistema de tracking de status
-- Download de resultados
-
-### Integrações ✅
-- OpenAI SDK configurado com OpenRouter (multi-model strategy)
-- PDF extraction funcionando (pdfplumber)
-- Logo scraping com Clearbit API + website scraping
-- DOCX generation com python-docx + markdown parser
-- **Gmail Integration** - Envio de emails via Google APIs (OAuth automático)
-- **Google Drive Integration** - Upload e compartilhamento de arquivos
-- Retry logic e cache em todas as integrações externas
-
-## Próximos Passos (Opcionais)
-- [ ] Sistema de autenticação JWT
-- [ ] Notificações por email
-- [ ] Preview de PDFs antes do download
-- [ ] Dashboard administrativo
-- [ ] Métricas e analytics
-- [ ] Testes automatizados
-
-## Notas Importantes
-
-### Modelos LLM (Estratégia de Tiers)
-- **Tier 1 - Fast** (`google/gemini-2.5-flash`):
-  - Clean & Organize - Extração e estruturação de dados dos PDFs
-  - Rápido e econômico para processamento inicial
-  
-- **Tier 2 - Quality** (`google/gemini-2.5-pro-preview-05-06`):
-  - Heterogeneity Architect - Geração de design structures únicas
-  - Blocos 3-7 - Geração de conteúdo de alta qualidade
-  - Melhor capacidade de raciocínio e escrita criativa
-  
-- **Tier 3 - Premium** (`anthropic/claude-3.7-sonnet`):
-  - Assembly final dos documentos
-  - Maior qualidade de escrita e coerência narrativa
-  - Usado apenas na etapa final para maximizar qualidade
-
-- Todas as chamadas via OpenRouter.ai com retry logic
-- Exponential backoff para lidar com rate limiting (429 errors)
-
-### Limitações
-- PDFs devem estar em formato legível (não escaneados sem OCR)
-- Processamento é assíncrono (pode levar alguns minutos)
-- Storage local (arquivos ficam no servidor Replit)
-
-### Segurança
-- API key armazenada em Replit Secrets
-- Arquivos salvos com IDs únicos (UUID)
-- SQLite com acesso local apenas
-
-## Comandos Úteis
-
-### Backend
-```bash
-./start-backend.sh
-# ou
-cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-### Frontend
-```bash
-cd frontend && npm run dev
-```
-
-### Logs
-- Backend: Console workflow "Backend API"
-- Frontend: Console workflow "Frontend"
-
-## Autor
-Desenvolvido para ProEx Venture
-Data: Outubro 2025
+- **OpenRouter.ai**: Unified API for various LLMs (Gemini 2.5 Flash, Gemini 2.5 Pro, Claude 3.7 Sonnet) for data processing and content generation. Requires `OPENROUTER_API_KEY`.
+- **Clearbit API**: Used for logo scraping (primary source).
+- **Google Drive API**: For automatic upload and sharing of generated DOCX files.
+- **Gmail API**: For sending email notifications with document links.
+- **pdfplumber**: Python library for PDF text extraction.
+- **WeasyPrint**: Python library for converting HTML/CSS to PDF.
+- **python-docx / html-for-docx**: Python libraries for generating editable Word documents from HTML.
