@@ -136,6 +136,30 @@ class Database:
             )
         """)
         
+        # ML/Embedding tables
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS letter_embeddings (
+                id TEXT PRIMARY KEY,
+                submission_id TEXT NOT NULL,
+                letter_index INTEGER NOT NULL,
+                embedding TEXT NOT NULL,
+                cluster_id INTEGER,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(submission_id) REFERENCES submissions(id)
+            )
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ml_insights (
+                id TEXT PRIMARY KEY,
+                insight_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                confidence REAL DEFAULT 1.0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        
         # Run migration if needed (converts old rating schema to new score schema)
         self._migrate_schema_if_needed(cursor)
         
@@ -392,3 +416,149 @@ class Database:
         
         conn.commit()
         conn.close()
+    
+    def save_letter_embedding(
+        self, 
+        submission_id: str, 
+        letter_index: int, 
+        embedding: list, 
+        cluster_id: Optional[int] = None
+    ) -> str:
+        """Save embedding for a letter"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        embedding_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        # Convert embedding to JSON string
+        embedding_json = json.dumps(embedding)
+        
+        cursor.execute("""
+            INSERT INTO letter_embeddings
+            (id, submission_id, letter_index, embedding, cluster_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (embedding_id, submission_id, letter_index, embedding_json, cluster_id, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return embedding_id
+    
+    def get_all_embeddings(self) -> List[Dict]:
+        """Get all embeddings for ML training"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.*, r.score
+            FROM letter_embeddings e
+            LEFT JOIN letter_ratings r 
+            ON e.submission_id = r.submission_id AND e.letter_index = r.letter_index
+        """)
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        results = []
+        for row in rows:
+            data = dict(row)
+            # Parse embedding from JSON
+            data['embedding'] = json.loads(data['embedding'])
+            results.append(data)
+        
+        return results
+    
+    def update_cluster_assignments(self, embedding_updates: List[tuple]):
+        """
+        Bulk update cluster assignments
+        
+        Args:
+            embedding_updates: List of (embedding_id, cluster_id) tuples
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        for embedding_id, cluster_id in embedding_updates:
+            cursor.execute("""
+                UPDATE letter_embeddings
+                SET cluster_id = ?
+                WHERE id = ?
+            """, (cluster_id, embedding_id))
+        
+        conn.commit()
+        conn.close()
+    
+    def save_ml_insight(self, insight_type: str, content: dict, confidence: float = 1.0) -> str:
+        """
+        Save ML-generated insight
+        
+        Args:
+            insight_type: 'feedback_pattern', 'cluster_profile', 'template_recommendation', etc
+            content: Dictionary with insight data
+            confidence: Confidence score (0-1)
+        """
+        import json
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        insight_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        content_json = json.dumps(content)
+        
+        cursor.execute("""
+            INSERT INTO ml_insights
+            (id, insight_type, content, confidence, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (insight_id, insight_type, content_json, confidence, now, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return insight_id
+    
+    def get_ml_insights(self, insight_type: Optional[str] = None) -> List[Dict]:
+        """Get ML insights, optionally filtered by type"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        if insight_type:
+            cursor.execute(
+                "SELECT * FROM ml_insights WHERE insight_type = ? ORDER BY created_at DESC",
+                (insight_type,)
+            )
+        else:
+            cursor.execute("SELECT * FROM ml_insights ORDER BY created_at DESC")
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        results = []
+        for row in rows:
+            data = dict(row)
+            data['content'] = json.loads(data['content'])
+            results.append(data)
+        
+        return results
+    
+    def get_all_letter_ratings(self) -> List[Dict]:
+        """Get all letter ratings for ML training"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM letter_ratings ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in rows]
