@@ -6,6 +6,7 @@ from .html_pdf_generator import HTMLPDFGenerator
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from ..db.database import Database
+from ..ml.prompt_enhancer import PromptEnhancer
 import os
 from typing import Dict
 
@@ -19,6 +20,13 @@ class SubmissionProcessor:
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.db = Database()
+        self.prompt_enhancer = PromptEnhancer(self.db)
+        
+        # Try to train ML models with existing data
+        try:
+            self.prompt_enhancer.train_models(min_samples=5)
+        except Exception as e:
+            print(f"ℹ️  ML training skipped (likely first run): {e}")
     
     def update_status(self, submission_id: str, status: str, error: str | None = None):
         self.db.update_submission_status(submission_id, status, error)
@@ -120,6 +128,13 @@ class SubmissionProcessor:
                 template_id = design.get('template_id', 'A')
                 self.db.increment_template_usage(template_id)
                 
+                # Generate embedding for ML/clustering (unsupervised learning)
+                print("    - Generating semantic embedding for ML...")
+                letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
+                if letter_embedding:
+                    self.db.save_letter_embedding(submission_id, i, letter_embedding)
+                    print("    ✓ Embedding saved for future ML training")
+                
                 # Store complete letter data including blocks
                 letters.append({
                     "testimony_id": testimony.get('testimony_id', str(i+1)),
@@ -130,7 +145,8 @@ class SubmissionProcessor:
                     "has_logo": logo_path is not None,
                     "blocks": blocks,  # Store all generated blocks
                     "letter_html": letter_html,  # Store assembled HTML
-                    "design": design  # Store design structure used
+                    "design": design,  # Store design structure used
+                    "embedding": letter_embedding  # Store embedding for ML
                 })
             
             self.update_status(submission_id, "completed")
@@ -139,6 +155,13 @@ class SubmissionProcessor:
                 "organized_data": organized_data,
                 "design_structures": design_structures
             })
+            
+            # Retrain ML models with new data (for next iteration)
+            print("\n🧠 Re-training ML models with new data...")
+            try:
+                self.prompt_enhancer.train_models(min_samples=5)
+            except Exception as e:
+                print(f"   ℹ️  ML training skipped: {e}")
             
             print(f"\n{'='*60}")
             print(f"✓ COMPLETED! Generated {len(letters)} PDF + DOCX letters")
