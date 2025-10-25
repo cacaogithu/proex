@@ -64,6 +64,10 @@ waitForPort = 3001
 outputType = "console"
 
 [[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -80,5 +84,5 @@ localPort = 34973
 externalPort = 3001
 
 [[ports]]
-localPort = 3001
-externalPort = 3001
+localPort = 39325
+externalPort = 3002

@@ -125,6 +125,22 @@ proex-platform/
   - Logos adicionados ao cabeçalho dos documentos
 - Salva em `storage/outputs/{submission_id}/`
 
+### Fase 6: Upload para Google Drive e Envio de Email (NOVO - Out 2025)
+- **Upload Automático para Google Drive**:
+  - Cria pasta "ProEx - Cartas EB-2 NIW/{submission_id}" no Google Drive do usuário
+  - Upload de todos os DOCX gerados
+  - Permissões configuradas para compartilhamento
+  - Retorna links diretos para visualização e download
+- **Envio de Email via Gmail**:
+  - Email HTML profissional com branding
+  - Links diretos para cada documento no Google Drive
+  - Informações do submission ID para rastreamento
+  - Instruções claras para o usuário (revisar, editar, baixar)
+- **Serviço Node.js dedicado** (porta 3001):
+  - Usa integração nativa do Replit com Google APIs
+  - Gerenciamento automático de tokens OAuth
+  - Health check e retry logic
+
 ## API Endpoints
 
 ### POST /api/submissions
@@ -153,8 +169,9 @@ Download dos documentos DOCX gerados
 - ✅ Variável configurada: `OPENROUTER_API_KEY`
 
 ### Workflows Ativos
-1. **Backend API** - Porta 8000 (console)
-2. **Frontend** - Porta 5000 (webview) ✅ Porta principal
+1. **Backend API** - Porta 8000 (console) - FastAPI Python
+2. **Email Service** - Porta 3001 (console) - Node.js (Gmail + Google Drive)
+3. **Frontend** - Porta 5000 (webview) ✅ Porta principal - React + Vite
 
 ## Status dos Componentes
 
@@ -175,6 +192,8 @@ Download dos documentos DOCX gerados
 - PDF extraction funcionando (pdfplumber)
 - Logo scraping com Clearbit API + website scraping
 - DOCX generation com python-docx + markdown parser
+- **Gmail Integration** - Envio de emails via Google APIs (OAuth automático)
+- **Google Drive Integration** - Upload e compartilhamento de arquivos
 - Retry logic e cache em todas as integrações externas
 
 ## Próximos Passos (Opcionais)

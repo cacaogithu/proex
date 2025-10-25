@@ -10,7 +10,7 @@ let gmailConnectionSettings = null;
 let driveConnectionSettings = null;
 
 async function getGmailAccessToken() {
-  if (gmailConnectionSettings && gmailConnectionSettings.settings.expires_at && 
+  if (gmailConnectionSettings?.settings?.expires_at && 
       new Date(gmailConnectionSettings.settings.expires_at).getTime() > Date.now()) {
     return gmailConnectionSettings.settings.access_token;
   }
@@ -37,7 +37,7 @@ async function getGmailAccessToken() {
   ).then(res => res.json()).then(data => data.items?.[0]);
 
   const accessToken = gmailConnectionSettings?.settings?.access_token || 
-                     gmailConnectionSettings.settings?.oauth?.credentials?.access_token;
+                     gmailConnectionSettings?.settings?.oauth?.credentials?.access_token;
 
   if (!gmailConnectionSettings || !accessToken) {
     throw new Error('Gmail not connected');
@@ -46,7 +46,7 @@ async function getGmailAccessToken() {
 }
 
 async function getDriveAccessToken() {
-  if (driveConnectionSettings && driveConnectionSettings.settings.expires_at && 
+  if (driveConnectionSettings?.settings?.expires_at && 
       new Date(driveConnectionSettings.settings.expires_at).getTime() > Date.now()) {
     return driveConnectionSettings.settings.access_token;
   }
@@ -73,7 +73,7 @@ async function getDriveAccessToken() {
   ).then(res => res.json()).then(data => data.items?.[0]);
 
   const accessToken = driveConnectionSettings?.settings?.access_token || 
-                     driveConnectionSettings.settings?.oauth?.credentials?.access_token;
+                     driveConnectionSettings?.settings?.oauth?.credentials?.access_token;
 
   if (!driveConnectionSettings || !accessToken) {
     throw new Error('Google Drive not connected');
@@ -95,37 +95,51 @@ async function getDriveClient() {
   return google.drive({ version: 'v3', auth: oauth2Client });
 }
 
-export async function uploadToGoogleDrive(filePath, fileName, folderName = 'ProEx - Cartas EB-2 NIW') {
+async function findOrCreateFolder(drive, folderName, parentId = null) {
+  const query = parentId 
+    ? `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    : `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id, name)',
+    spaces: 'drive'
+  });
+
+  if (response.data.files && response.data.files.length > 0) {
+    console.log(`📁 Found existing folder: ${folderName} (${response.data.files[0].id})`);
+    return response.data.files[0].id;
+  }
+
+  const folderMetadata = {
+    name: folderName,
+    mimeType: 'application/vnd.google-apps.folder'
+  };
+  
+  if (parentId) {
+    folderMetadata.parents = [parentId];
+  }
+
+  const folder = await drive.files.create({
+    requestBody: folderMetadata,
+    fields: 'id'
+  });
+
+  console.log(`📁 Created new folder: ${folderName} (${folder.data.id})`);
+  return folder.data.id;
+}
+
+export async function uploadToGoogleDrive(filePath, fileName, submissionId) {
   try {
     console.log(`📤 Uploading ${fileName} to Google Drive...`);
     const drive = await getDriveClient();
 
-    let folderId = null;
-    const folderResponse = await drive.files.list({
-      q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-      fields: 'files(id, name)',
-      spaces: 'drive'
-    });
-
-    if (folderResponse.data.files && folderResponse.data.files.length > 0) {
-      folderId = folderResponse.data.files[0].id;
-      console.log(`📁 Found existing folder: ${folderName} (${folderId})`);
-    } else {
-      const folderMetadata = {
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder'
-      };
-      const folder = await drive.files.create({
-        requestBody: folderMetadata,
-        fields: 'id'
-      });
-      folderId = folder.data.id;
-      console.log(`📁 Created new folder: ${folderName} (${folderId})`);
-    }
+    const parentFolderId = await findOrCreateFolder(drive, 'ProEx - Cartas EB-2 NIW');
+    const submissionFolderId = await findOrCreateFolder(drive, submissionId, parentFolderId);
 
     const fileMetadata = {
       name: fileName,
-      parents: [folderId]
+      parents: [submissionFolderId]
     };
 
     const media = {
@@ -137,14 +151,6 @@ export async function uploadToGoogleDrive(filePath, fileName, folderName = 'ProE
       requestBody: fileMetadata,
       media: media,
       fields: 'id, name, webViewLink, webContentLink'
-    });
-
-    await drive.permissions.create({
-      fileId: file.data.id,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone'
-      }
     });
 
     console.log(`✅ Uploaded: ${file.data.name} (${file.data.id})`);
@@ -263,8 +269,7 @@ export async function processAndSendResults(submissionId, recipientEmail, docxFi
     const driveFiles = [];
     for (const docxPath of docxFiles) {
       const fileName = path.basename(docxPath);
-      const folderName = `ProEx - Cartas EB-2 NIW/${submissionId}`;
-      const uploadedFile = await uploadToGoogleDrive(docxPath, fileName, folderName);
+      const uploadedFile = await uploadToGoogleDrive(docxPath, fileName, submissionId);
       driveFiles.push(uploadedFile);
     }
 
