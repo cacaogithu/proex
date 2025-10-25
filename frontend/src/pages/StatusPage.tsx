@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 import LetterFeedback from '../components/LetterFeedback'
+import OverallFeedback from '../components/OverallFeedback'
 
 export default function StatusPage() {
   const [submissionId, setSubmissionId] = useState('')
@@ -119,7 +120,7 @@ export default function StatusPage() {
               <p className="font-medium">{submission.user_email}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Número de Testemunhos</p>
+              <p className="text-sm text-gray-500">Número de Cartas Geradas</p>
               <p className="font-medium">{submission.number_of_testimonials}</p>
             </div>
             <div>
@@ -142,7 +143,7 @@ export default function StatusPage() {
           {submission.status === 'completed' && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Cartas Geradas:</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">Cartas de Recomendação Geradas:</h4>
                 <div className="space-y-2">
                   {submission.files?.map((file: string, index: number) => (
                     <a
@@ -208,22 +209,33 @@ export default function StatusPage() {
           )}
 
           {submission.status === 'completed' && showFeedback && submission.letters && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-semibold text-gray-900">Feedback e Edição Seletiva</h4>
                 <span className="text-xs text-gray-500">
-                  Avalie cada carta e regenere as que precisam de ajustes
+                  Avalie o conjunto de cartas e cada carta individualmente
                 </span>
               </div>
-              {submission.letters.map((letter: any, index: number) => (
-                <LetterFeedback
-                  key={index}
-                  submissionId={submission.id}
-                  letter={letter}
-                  letterIndex={index}
-                  onRegenerateComplete={handleRegenerateComplete}
-                />
-              ))}
+              
+              <OverallFeedback submissionId={submission.id} />
+              
+              <div className="border-t pt-4">
+                <h5 className="font-semibold text-gray-800 mb-3">Avaliação Individual de Cartas</h5>
+                <p className="text-sm text-gray-600 mb-3">
+                  Avalie cada carta separadamente e regenere as que precisam de ajustes
+                </p>
+                <div className="space-y-3">
+                  {submission.letters.map((letter: any, index: number) => (
+                    <LetterFeedback
+                      key={index}
+                      submissionId={submission.id}
+                      letter={letter}
+                      letterIndex={index}
+                      onRegenerateComplete={handleRegenerateComplete}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

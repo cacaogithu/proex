@@ -18,28 +18,21 @@ interface Props {
 }
 
 export default function LetterFeedback({ submissionId, letter, letterIndex, onRegenerateComplete }: Props) {
-  const [rating, setRating] = useState<number>(0)
+  const [score, setScore] = useState<number>(50)
   const [comment, setComment] = useState('')
-  const [showComment, setShowComment] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [showRegenerateModal, setShowRegenerateModal] = useState(false)
   const [regenerateInstructions, setRegenerateInstructions] = useState('')
   const [regenerating, setRegenerating] = useState(false)
 
-  const handleRatingClick = (value: number) => {
-    setRating(value)
-    setShowComment(true)
-  }
-
-  const submitRating = async () => {
-    if (rating === 0) return
-
+  const submitScore = async () => {
     setSubmitLoading(true)
     try {
       await axios.post(
-        `/api/submissions/${submissionId}/letters/${letterIndex}/rating`,
-        { rating, comment: comment || undefined }
+        `/api/submissions/${submissionId}/letters/${letterIndex}/score`,
+        { score, comment: comment || undefined }
       )
       setSubmitSuccess(true)
       setTimeout(() => setSubmitSuccess(false), 3000)
@@ -68,6 +61,13 @@ export default function LetterFeedback({ submissionId, letter, letterIndex, onRe
     }
   }
 
+  const getScoreColor = (value: number) => {
+    if (value >= 80) return 'bg-green-500'
+    if (value >= 60) return 'bg-blue-500'
+    if (value >= 40) return 'bg-yellow-500'
+    return 'bg-red-500'
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -94,68 +94,78 @@ export default function LetterFeedback({ submissionId, letter, letterIndex, onRe
       </div>
 
       {!submitSuccess ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Avaliar:</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  onClick={() => handleRatingClick(value)}
-                  className="focus:outline-none"
-                >
-                  <svg
-                    className={`w-6 h-6 ${
-                      value <= rating
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-300'
-                    } hover:text-yellow-400 transition-colors`}
-                    fill={value <= rating ? 'currentColor' : 'none'}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                    />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowFeedback(!showFeedback)}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {showFeedback ? '▼ Ocultar Avaliação' : '▶ Avaliar Esta Carta'}
+          </button>
 
-          {showComment && (
-            <>
+          {showFeedback && (
+            <div className="space-y-3 border-t pt-3">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Avaliação (0-100):</span>
+                  <span className={`px-3 py-1 rounded-full text-white text-sm font-bold ${getScoreColor(score)}`}>
+                    {score}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={score}
+                  onChange={(e) => setScore(Number(e.target.value))}
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, ${
+                      score >= 80 ? '#10b981' : 
+                      score >= 60 ? '#3b82f6' : 
+                      score >= 40 ? '#eab308' : '#ef4444'
+                    } 0%, ${
+                      score >= 80 ? '#10b981' : 
+                      score >= 60 ? '#3b82f6' : 
+                      score >= 40 ? '#eab308' : '#ef4444'
+                    } ${score}%, #e5e7eb ${score}%, #e5e7eb 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0 - Ruim</span>
+                  <span>50 - Médio</span>
+                  <span>100 - Excelente</span>
+                </div>
+              </div>
+
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Comentários (opcional)"
+                placeholder="Comentários (opcional) - O que você gostou ou o que poderia melhorar?"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:ring-blue-500 focus:border-blue-500"
-                rows={2}
+                rows={3}
               />
+
               <div className="flex gap-2">
                 <button
-                  onClick={submitRating}
-                  disabled={submitLoading || rating === 0}
-                  className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  onClick={submitScore}
+                  disabled={submitLoading}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
                 >
                   {submitLoading ? 'Salvando...' : 'Salvar Avaliação'}
                 </button>
                 <button
                   onClick={() => setShowRegenerateModal(true)}
-                  className="px-4 py-1.5 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600"
+                  className="px-4 py-2 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 font-medium"
                 >
                   Regenerar Esta Carta
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       ) : (
-        <div className="bg-green-50 border border-green-200 rounded-md p-2">
-          <p className="text-green-800 text-sm">✓ Avaliação salva com sucesso!</p>
+        <div className="bg-green-50 border border-green-200 rounded-md p-3">
+          <p className="text-green-800 text-sm font-medium">✓ Avaliação salva com sucesso! (Score: {score}/100)</p>
         </div>
       )}
 

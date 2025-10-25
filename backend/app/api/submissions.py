@@ -24,6 +24,13 @@ async def create_submission(
     estrategia: Optional[UploadFile] = File(None),
     onenote: Optional[UploadFile] = File(None)
 ):
+    # Validate: number of testimonials uploaded must match numberOfTestimonials
+    if len(testimonials) != numberOfTestimonials:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Número de CVs enviados ({len(testimonials)}) não corresponde ao número solicitado ({numberOfTestimonials})"
+        )
+    
     submission = db.create_submission(email, numberOfTestimonials)
     submission_id = submission['id']
     
@@ -152,20 +159,28 @@ async def download_results(submission_id: str):
 # Feedback and ML endpoints
 from pydantic import BaseModel
 
-class LetterRating(BaseModel):
-    rating: int
+class LetterScore(BaseModel):
+    score: int  # 0-100
     comment: Optional[str] = None
 
-@router.post("/submissions/{submission_id}/letters/{letter_index}/rating")
-async def rate_letter(
+class SubmissionFeedback(BaseModel):
+    overall_score: int  # 0-100
+    feedback_text: Optional[str] = None
+
+@router.post("/submissions/{submission_id}/letters/{letter_index}/score")
+async def score_letter(
     submission_id: str,
     letter_index: int,
-    rating_data: LetterRating
+    score_data: LetterScore
 ):
-    """Save rating for a specific letter"""
+    """Save score (0-100) for a specific letter"""
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Validate score
+    if not 0 <= score_data.score <= 100:
+        raise HTTPException(status_code=400, detail="Score deve estar entre 0 e 100")
     
     # Get letter info to get template_id
     processed_data = json.loads(submission.get('processed_data', '{}'))
@@ -176,19 +191,56 @@ async def rate_letter(
     
     template_id = letters[letter_index].get('template_id', 'A')
     
-    rating_id = db.save_letter_rating(
+    rating_id = db.save_letter_score(
         submission_id,
         letter_index,
         template_id,
-        rating_data.rating,
-        rating_data.comment
+        score_data.score,
+        score_data.comment
     )
     
     return {
         "rating_id": rating_id,
-        "message": "Rating salvo com sucesso",
+        "message": "Avaliação salva com sucesso",
         "template_id": template_id
     }
+
+
+@router.post("/submissions/{submission_id}/feedback")
+async def save_overall_feedback(
+    submission_id: str,
+    feedback: SubmissionFeedback
+):
+    """Save overall feedback for entire submission"""
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Validate score
+    if not 0 <= feedback.overall_score <= 100:
+        raise HTTPException(status_code=400, detail="Score deve estar entre 0 e 100")
+    
+    feedback_id = db.save_submission_feedback(
+        submission_id,
+        feedback.overall_score,
+        feedback.feedback_text
+    )
+    
+    return {
+        "feedback_id": feedback_id,
+        "message": "Feedback geral salvo com sucesso"
+    }
+
+
+@router.get("/submissions/{submission_id}/feedback")
+async def get_overall_feedback(submission_id: str):
+    """Get overall feedback for a submission"""
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    feedback = db.get_submission_feedback(submission_id)
+    return {"feedback": feedback}
 
 
 @router.get("/submissions/{submission_id}/ratings")

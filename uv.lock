@@ -528,6 +528,19 @@ wheels = [
 ]
 
 [[package]]
+name = "html-for-docx"
+version = "1.0.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "python-docx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/96/67106cd045180b521a71bd7c28290feb24dbbaa3a92c1729b2772702439d/html_for_docx-1.0.10.tar.gz", hash = "sha256:0a51a8c4f13bd6183f0e44a9b9dc59b00ba03016e5e74da0a2fdd44cd41af188", size = 32539, upload-time = "2025-08-20T19:57:48.6Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ad/fd/bf91663d3796faea9cb3e13e2eaa780b2ac54853259adbb6c584c1a98089/html_for_docx-1.0.10-py3-none-any.whl", hash = "sha256:7eda6a45a999004d995a6f548e9a28e7e9c31477a29a2b9347694d8eb5d44c42", size = 31382, upload-time = "2025-08-20T19:57:47.148Z" },
+]
+
+[[package]]
 name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1183,6 +1196,7 @@ dependencies = [
     { name = "bcrypt" },
     { name = "beautifulsoup4" },
     { name = "fastapi" },
+    { name = "html-for-docx" },
     { name = "jinja2" },
     { name = "markdown" },
     { name = "openai" },
@@ -1203,6 +1217,7 @@ requires-dist = [
     { name = "bcrypt", specifier = ">=5.0.0" },
     { name = "beautifulsoup4", specifier = ">=4.14.2" },
     { name = "fastapi", specifier = ">=0.119.1" },
+    { name = "html-for-docx", specifier = ">=1.0.10" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "markdown", specifier = ">=3.9" },
     { name = "openai", specifier = ">=2.6.0" },

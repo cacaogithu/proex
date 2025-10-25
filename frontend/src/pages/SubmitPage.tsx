@@ -59,9 +59,12 @@ export default function SubmitPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h2 className="text-3xl font-bold text-gray-900 mb-8">
-        Nova Submissão de Documentos
+      <h2 className="text-3xl font-bold text-gray-900 mb-2">
+        Nova Submissão - Geração de Cartas de Recomendação EB-2 NIW
       </h2>
+      <p className="text-gray-600 mb-8">
+        Envie os documentos necessários para gerar cartas de recomendação profissionais baseadas nos CVs dos seus recomendadores.
+      </p>
 
       {result && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
@@ -100,16 +103,20 @@ export default function SubmitPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Número de Testemunhos
+            Número de Cartas de Recomendação a Gerar *
           </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Informe quantas cartas de recomendação você deseja gerar (1-10)
+          </p>
           <input
             type="number"
             min="1"
             max="10"
+            required
             value={numberOfTestimonials}
             onChange={(e) => {
               const val = e.target.value
-              setNumberOfTestimonials(val) // Directly set the value as string
+              setNumberOfTestimonials(val)
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
@@ -148,12 +155,16 @@ export default function SubmitPage() {
         </div>
 
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">Testemunhos (CVs/LinkedIn) *</h3>
+          <h3 className="text-lg font-semibold mb-2">CVs dos Recomendadores *</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Envie os CVs ou perfis LinkedIn (em PDF) dos profissionais que farão as recomendações. 
+            O sistema gerará automaticamente cartas de recomendação únicas baseadas nestes documentos.
+          </p>
           <div className="space-y-3">
-            {Array.from({ length: parseInt(numberOfTestimonials) || 0 }).map((_, index) => ( // Ensure length is a number
+            {Array.from({ length: parseInt(numberOfTestimonials) || 0 }).map((_, index) => (
               <div key={index}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Testemunho {index + 1}
+                  CV do Recomendador {index + 1}
                 </label>
                 <input
                   type="file"

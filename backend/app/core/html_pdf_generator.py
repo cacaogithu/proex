@@ -4,6 +4,11 @@ from typing import Dict, Optional
 import os
 from datetime import datetime
 import uuid
+from docx import Document
+from docx.shared import Pt, RGBColor, Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from html4docx import HtmlToDocx
+import re
 
 class HTMLPDFGenerator:
     def __init__(self):
@@ -216,6 +221,79 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>)
         HTML(string=full_html, base_url=os.path.dirname(template_file)).write_pdf(output_path)
         
         print(f"✅ PDF generated with template {template_id}: {os.path.basename(output_path)}")
+    
+    def html_to_docx(
+        self,
+        html_content: str,
+        output_path: str,
+        design: Dict,
+        logo_path: Optional[str] = None,
+        recommender_info: Optional[Dict] = None
+    ):
+        """Convert HTML to editable DOCX for consultant editing"""
+        
+        # Create new document
+        doc = Document()
+        
+        # Set margins
+        sections = doc.sections
+        for section in sections:
+            section.top_margin = Inches(1)
+            section.bottom_margin = Inches(1)
+            section.left_margin = Inches(1)
+            section.right_margin = Inches(1)
+        
+        # Add logo at top if available
+        if logo_path and os.path.exists(logo_path):
+            try:
+                doc.add_picture(logo_path, width=Inches(2.5))
+                last_paragraph = doc.paragraphs[-1]
+                last_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            except Exception as e:
+                print(f"⚠️ Could not add logo to DOCX: {e}")
+        
+        # Add header info
+        if recommender_info:
+            header_p = doc.add_paragraph()
+            header_run = header_p.add_run(f"{recommender_info.get('name', '')}\n")
+            header_run.bold = True
+            header_run.font.size = Pt(12)
+            
+            if recommender_info.get('title'):
+                header_p.add_run(f"{recommender_info['title']}\n").font.size = Pt(10)
+            if recommender_info.get('company'):
+                header_p.add_run(f"{recommender_info['company']}\n").font.size = Pt(10)
+            if recommender_info.get('location'):
+                header_p.add_run(f"{recommender_info['location']}\n").font.size = Pt(10)
+        
+        # Add date
+        date_p = doc.add_paragraph(datetime.now().strftime('%B %d, %Y'))
+        date_p.add_run('\n')
+        
+        # Convert HTML content to DOCX
+        parser = HtmlToDocx()
+        parser.table_style = 'Light Grid Accent 1'
+        
+        # Clean HTML - remove problematic styling
+        clean_html = html_content
+        
+        # Add the cleaned HTML to document
+        try:
+            parser.add_html_to_document(clean_html, doc)
+        except Exception as e:
+            print(f"⚠️  HTML parsing error, using fallback: {e}")
+            # Fallback: strip HTML tags and add as plain text
+            plain_text = re.sub('<[^<]+?>', '', html_content)
+            doc.add_paragraph(plain_text)
+        
+        # Create output directory if needed
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # Save DOCX
+        doc.save(output_path)
+        
+        template_id = design.get('template_id', 'A')
+        print(f"✅ Editable DOCX generated with template {template_id}: {os.path.basename(output_path)}")
 
 # Keep backward compatibility
 class DOCXGenerator(HTMLPDFGenerator):

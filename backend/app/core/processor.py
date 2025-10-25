@@ -67,6 +67,14 @@ class SubmissionProcessor:
             testimonies = organized_data.get('testimonies', [])
             designs = design_structures.get('design_structures', [])
             
+            # Validate: number of testimonies must match expected number
+            submission = self.db.get_submission(submission_id)
+            expected_count = submission.get('number_of_testimonials', len(testimonies))
+            
+            if len(testimonies) != expected_count:
+                print(f"⚠️  WARNING: Expected {expected_count} testimonies but found {len(testimonies)}")
+                print(f"   Generating letters for all {len(testimonies)} testimonies found")
+            
             for i, testimony in enumerate(testimonies):
                 design = designs[i] if i < len(designs) else designs[0]
                 
@@ -103,16 +111,26 @@ class SubmissionProcessor:
                 self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
                 print(f"    ✓ Styled PDF generated with Template {design.get('template_id', 'A')}")
                 
+                # Also generate editable DOCX for consultant editing
+                docx_output_path = output_path.replace('.pdf', '.docx')
+                print(f"    - Generating editable DOCX...")
+                self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
+                
                 # Track template usage for ML/analytics
                 template_id = design.get('template_id', 'A')
                 self.db.increment_template_usage(template_id)
                 
+                # Store complete letter data including blocks
                 letters.append({
                     "testimony_id": testimony.get('testimony_id', str(i+1)),
                     "recommender": testimony.get('recommender_name', 'Unknown'),
                     "pdf_path": output_path,
+                    "docx_path": docx_output_path,  # Store DOCX path
                     "template_id": template_id,
-                    "has_logo": logo_path is not None
+                    "has_logo": logo_path is not None,
+                    "blocks": blocks,  # Store all generated blocks
+                    "letter_html": letter_html,  # Store assembled HTML
+                    "design": design  # Store design structure used
                 })
             
             self.update_status(submission_id, "completed")
@@ -123,17 +141,21 @@ class SubmissionProcessor:
             })
             
             print(f"\n{'='*60}")
-            print(f"✓ COMPLETED! Generated {len(letters)} styled PDF letters")
+            print(f"✓ COMPLETED! Generated {len(letters)} PDF + DOCX letters")
             print(f"{'='*60}\n")
             
-            # PHASE 5: Send email with Google Drive links
+            # PHASE 5: Send email with Google Drive links (both PDF and DOCX)
             submission = self.db.get_submission(submission_id)
             recipient_email = submission.get('email') if submission else None
             
             if recipient_email and check_email_service_health():
                 print("\nPHASE 5: Sending results via email and Google Drive...")
-                pdf_paths = [os.path.abspath(letter['pdf_path']) for letter in letters]
-                email_result = send_results_email(submission_id, recipient_email, pdf_paths)
+                # Send both PDFs and DOCXs
+                file_paths = []
+                for letter in letters:
+                    file_paths.append(os.path.abspath(letter['pdf_path']))
+                    file_paths.append(os.path.abspath(letter.get('docx_path', letter['pdf_path'].replace('.pdf', '.docx'))))
+                email_result = send_results_email(submission_id, recipient_email, file_paths)
                 
                 if email_result.get('success'):
                     print(f"✅ Email sent to {recipient_email}")

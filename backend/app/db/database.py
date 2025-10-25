@@ -14,6 +14,66 @@ class Database:
             os.makedirs(db_dir, exist_ok=True)
         self.init_db()
     
+    def _migrate_schema_if_needed(self, cursor):
+        """Auto-migrate old schema to new schema (rating→score, etc)"""
+        try:
+            # Check if old schema exists (has 'rating' column instead of 'score')
+            cursor.execute("PRAGMA table_info(letter_ratings)")
+            columns = {row[1]: row for row in cursor.fetchall()}
+            
+            if 'rating' in columns and 'score' not in columns:
+                print("🔄 Migrating database schema: rating → score...")
+                
+                # Migrate letter_ratings table
+                cursor.execute("""
+                    CREATE TABLE letter_ratings_new (
+                        id TEXT PRIMARY KEY,
+                        submission_id TEXT NOT NULL,
+                        letter_index INTEGER NOT NULL,
+                        template_id TEXT NOT NULL,
+                        score INTEGER CHECK(score >= 0 AND score <= 100),
+                        comment TEXT,
+                        created_at TEXT NOT NULL,
+                        FOREIGN KEY(submission_id) REFERENCES submissions(id)
+                    )
+                """)
+                
+                # Copy data, converting rating (1-5) to score (0-100)
+                cursor.execute("""
+                    INSERT INTO letter_ratings_new 
+                    SELECT id, submission_id, letter_index, template_id, 
+                           rating * 20 as score, comment, created_at
+                    FROM letter_ratings
+                """)
+                
+                cursor.execute("DROP TABLE letter_ratings")
+                cursor.execute("ALTER TABLE letter_ratings_new RENAME TO letter_ratings")
+                
+                # Migrate template_performance table
+                cursor.execute("""
+                    CREATE TABLE template_performance_new (
+                        template_id TEXT PRIMARY KEY,
+                        total_uses INTEGER DEFAULT 0,
+                        total_ratings INTEGER DEFAULT 0,
+                        avg_score REAL DEFAULT 0.0,
+                        last_updated TEXT NOT NULL
+                    )
+                """)
+                
+                cursor.execute("""
+                    INSERT INTO template_performance_new
+                    SELECT template_id, total_uses, total_ratings,
+                           avg_rating * 20 as avg_score, last_updated
+                    FROM template_performance
+                """)
+                
+                cursor.execute("DROP TABLE template_performance")
+                cursor.execute("ALTER TABLE template_performance_new RENAME TO template_performance")
+                
+                print("✅ Schema migration completed successfully!")
+        except Exception as e:
+            print(f"ℹ️  Schema migration skipped (likely fresh DB): {e}")
+    
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -48,8 +108,19 @@ class Database:
                 submission_id TEXT NOT NULL,
                 letter_index INTEGER NOT NULL,
                 template_id TEXT NOT NULL,
-                rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+                score INTEGER CHECK(score >= 0 AND score <= 100),
                 comment TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(submission_id) REFERENCES submissions(id)
+            )
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS submission_feedback (
+                id TEXT PRIMARY KEY,
+                submission_id TEXT NOT NULL,
+                overall_score INTEGER CHECK(overall_score >= 0 AND overall_score <= 100),
+                feedback_text TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(submission_id) REFERENCES submissions(id)
             )
@@ -60,15 +131,13 @@ class Database:
                 template_id TEXT PRIMARY KEY,
                 total_uses INTEGER DEFAULT 0,
                 total_ratings INTEGER DEFAULT 0,
-                avg_rating REAL DEFAULT 0.0,
-                rating_5_count INTEGER DEFAULT 0,
-                rating_4_count INTEGER DEFAULT 0,
-                rating_3_count INTEGER DEFAULT 0,
-                rating_2_count INTEGER DEFAULT 0,
-                rating_1_count INTEGER DEFAULT 0,
+                avg_score REAL DEFAULT 0.0,
                 last_updated TEXT NOT NULL
             )
         """)
+        
+        # Run migration if needed (converts old rating schema to new score schema)
+        self._migrate_schema_if_needed(cursor)
         
         conn.commit()
         conn.close()
@@ -168,38 +237,38 @@ class Database:
         return [dict(row) for row in rows]
     
     # Feedback and ML methods
-    def save_letter_rating(
+    def save_letter_score(
         self,
         submission_id: str,
         letter_index: int,
         template_id: str,
-        rating: int,
+        score: int,
         comment: Optional[str] = None
     ) -> str:
-        """Save rating for a specific letter and update template performance"""
+        """Save score (0-100) for a specific letter and update template performance"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         rating_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         
-        # Save rating
+        # Save score
         cursor.execute("""
             INSERT INTO letter_ratings
-            (id, submission_id, letter_index, template_id, rating, comment, created_at)
+            (id, submission_id, letter_index, template_id, score, comment, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (rating_id, submission_id, letter_index, template_id, rating, comment, now))
+        """, (rating_id, submission_id, letter_index, template_id, score, comment, now))
         
         # Update template performance
-        self._update_template_performance(cursor, template_id, rating, now)
+        self._update_template_performance(cursor, template_id, score, now)
         
         conn.commit()
         conn.close()
         
         return rating_id
     
-    def _update_template_performance(self, cursor, template_id: str, rating: int, now: str):
-        """Update template performance metrics"""
+    def _update_template_performance(self, cursor, template_id: str, score: int, now: str):
+        """Update template performance metrics with score 0-100"""
         # Check if template exists
         cursor.execute("SELECT * FROM template_performance WHERE template_id = ?", (template_id,))
         exists = cursor.fetchone()
@@ -208,26 +277,22 @@ class Database:
             # Create new record
             cursor.execute("""
                 INSERT INTO template_performance
-                (template_id, total_uses, total_ratings, avg_rating, 
-                 rating_5_count, rating_4_count, rating_3_count, rating_2_count, rating_1_count, last_updated)
-                VALUES (?, 0, 0, 0.0, 0, 0, 0, 0, 0, ?)
+                (template_id, total_uses, total_ratings, avg_score, last_updated)
+                VALUES (?, 0, 0, 0.0, ?)
             """, (template_id, now))
         
         # Get current stats
-        cursor.execute("SELECT * FROM template_performance WHERE template_id = ?", (template_id,))
+        cursor.execute("SELECT total_ratings, avg_score FROM template_performance WHERE template_id = ?", (template_id,))
         row = cursor.fetchone()
         
-        total_ratings = row[2] + 1
-        current_total = row[1] * row[2]  # total_uses * avg_rating
-        new_avg = (current_total + rating) / total_ratings
+        total_ratings = row[0] + 1
+        current_total = row[1] * row[0]  # avg_score * total_ratings
+        new_avg = (current_total + score) / total_ratings
         
-        # Update counts
-        rating_field = f"rating_{rating}_count"
-        cursor.execute(f"""
+        cursor.execute("""
             UPDATE template_performance
             SET total_ratings = ?,
-                avg_rating = ?,
-                {rating_field} = {rating_field} + 1,
+                avg_score = ?,
                 last_updated = ?
             WHERE template_id = ?
         """, (total_ratings, new_avg, now, template_id))
@@ -253,11 +318,52 @@ class Database:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        cursor.execute("SELECT * FROM template_performance ORDER BY avg_rating DESC")
+        cursor.execute("SELECT * FROM template_performance ORDER BY avg_score DESC")
         rows = cursor.fetchall()
         conn.close()
         
         return [dict(row) for row in rows]
+    
+    def save_submission_feedback(
+        self,
+        submission_id: str,
+        overall_score: int,
+        feedback_text: Optional[str] = None
+    ) -> str:
+        """Save overall feedback for entire submission"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        feedback_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        cursor.execute("""
+            INSERT INTO submission_feedback
+            (id, submission_id, overall_score, feedback_text, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (feedback_id, submission_id, overall_score, feedback_text, now))
+        
+        conn.commit()
+        conn.close()
+        
+        return feedback_id
+    
+    def get_submission_feedback(self, submission_id: str) -> Optional[Dict]:
+        """Get overall feedback for a submission"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "SELECT * FROM submission_feedback WHERE submission_id = ? ORDER BY created_at DESC LIMIT 1",
+            (submission_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return dict(row)
+        return None
     
     def increment_template_usage(self, template_id: str):
         """Increment usage count when a template is used"""
@@ -273,9 +379,8 @@ class Database:
         if not exists:
             cursor.execute("""
                 INSERT INTO template_performance
-                (template_id, total_uses, total_ratings, avg_rating,
-                 rating_5_count, rating_4_count, rating_3_count, rating_2_count, rating_1_count, last_updated)
-                VALUES (?, 1, 0, 0.0, 0, 0, 0, 0, 0, ?)
+                (template_id, total_uses, total_ratings, avg_score, last_updated)
+                VALUES (?, 1, 0, 0.0, ?)
             """, (template_id, now))
         else:
             cursor.execute("""
