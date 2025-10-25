@@ -129,7 +129,7 @@ async function findOrCreateFolder(drive, folderName, parentId = null) {
   return folder.data.id;
 }
 
-export async function uploadToGoogleDrive(filePath, fileName, submissionId) {
+export async function uploadToGoogleDrive(filePath, fileName, submissionId, recipientEmail) {
   try {
     console.log(`📤 Uploading ${fileName} to Google Drive...`);
     const drive = await getDriveClient();
@@ -152,6 +152,19 @@ export async function uploadToGoogleDrive(filePath, fileName, submissionId) {
       media: media,
       fields: 'id, name, webViewLink, webContentLink'
     });
+
+    if (recipientEmail) {
+      await drive.permissions.create({
+        fileId: file.data.id,
+        requestBody: {
+          type: 'user',
+          role: 'writer',
+          emailAddress: recipientEmail
+        },
+        sendNotificationEmail: false
+      });
+      console.log(`🔐 Shared with ${recipientEmail} (writer access)`);
+    }
 
     console.log(`✅ Uploaded: ${file.data.name} (${file.data.id})`);
     return {
@@ -269,7 +282,7 @@ export async function processAndSendResults(submissionId, recipientEmail, docxFi
     const driveFiles = [];
     for (const docxPath of docxFiles) {
       const fileName = path.basename(docxPath);
-      const uploadedFile = await uploadToGoogleDrive(docxPath, fileName, submissionId);
+      const uploadedFile = await uploadToGoogleDrive(docxPath, fileName, submissionId, recipientEmail);
       driveFiles.push(uploadedFile);
     }
 
