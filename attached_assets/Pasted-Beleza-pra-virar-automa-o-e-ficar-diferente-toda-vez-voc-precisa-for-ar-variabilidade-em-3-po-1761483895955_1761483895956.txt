@@ -1,0 +1,266 @@
+Beleza — pra virar automação (e ficar diferente toda vez), você precisa forçar variabilidade em 3 pontos: entrada (estilo), geração (regras) e pós-processo (crítica/reescrita). Abaixo vai o blueprint + código que você pode colar no Replit.
+Arquitetura (simples e antifedor-de-AI)
+1) Pool de “style capsules” + “layout templates” (10–20 unidades)
+Cada capsule = tom, cadência, idioma, formato de data/telefone, vocativo/fecho, regras de pontuação, jargão permitido, etc.
+Cada template = HTML/CSS diferente (serif vs sans, margens, sem barras/gradiente).
+2) Sampler com restrições
+Sorteia 5 capsules distintas + 5 templates distintos por rodada (sem repetição).
+Injeta micro-variáveis estocásticas (ex.: “parágrafos=4–6”, “frase média=12–18”, “vocativo 1 de 6 opções”).
+Escolhe estruturas diferentes: carta simples, memorando, affidavit numerado, e-mail impresso, parecer com mini-tabela.
+3) Geração → Crítica → Reescrita (loop curto)
+Gera rascunho com prompt que inclui as regras duras (forbidden, métrica concreta, etc.).
+Pós-processo mede: n-gram Jaccard (<0,18), frases médias dentro do range, termos proibidos, repetição com histórico.
+Se falhar, manda feedback específico e pede reescrita (até 2–3 tentativas).
+4) Render HTML → PDF
+Injeta o texto no template escolhido e exporta para PDF (WeasyPrint ou Puppeteer).
+Salva features no banco (ngrams, médias, capsules usadas) pra usar de anticolagem nas próximas rodadas.
+Estrutura do projeto no Replit
+/capsules/
+  bruno_kc.json
+  ivan_bracell.json
+  ...
+/templates/
+  memo_en.html
+  carta_serif_pt.html
+  affidavit_pt.html
+  email_print_en.html
+  parecer_pt.html
+src/
+  main.py
+  llm.py
+  render.py
+  heterogeneity.py
+  store.json   # histórico leve (ou use Supabase/SQLite)
+Capsules (exemplo resumido – crie 10–20)
+{
+  "name": "carta_serif_pt_seca",
+  "language": "pt-BR",
+  "tone": "sóbrio e direto",
+  "avg_sentence_len_range": [12, 18],
+  "date_format": "DD/MM/YYYY",
+  "phone_format": "+55 (XX) 9XXXX-XXXX",
+  "structure": "plain_letter",
+  "bilingual_policy": "portuguese_only",
+  "vocatives": ["Prezados Senhores,", "Prezados avaliadores,"],
+  "closings": ["Atenciosamente,", "Cordialmente,"],
+  "forbidden_ngrams": ["A quem possa interessar", "É com grande satisfação", "Como tal,"],
+  "metrics_required": 2
+}
+Faça outras mudando: idioma (EN), tipo (memorando/affidavit/e-mail/parecer), cadência (18–24), pontuação (usa ponto e vírgula), formatação de data (“October 26, 2025”), etc.
+Código base (Python) — cole no Replit
+Ajuste o generate_with_llm() para a sua API (OpenAI, etc.). O resto roda padrão.
+# src/main.py
+import json, random, uuid, re, os
+from pathlib import Path
+from heterogeneity import jaccard_4gram, avg_sentence_len, find_forbidden
+from llm import generate_with_llm
+from render import render_pdf
+
+BATCH = 5
+FORBIDDEN_GLOBAL = [
+  "To Whom It May Concern", "A quem possa interessar",
+  "É com grande satisfação", "Como tal,"
+]
+
+def load_capsules():
+    return [json.loads(Path(p).read_text()) for p in Path("capsules").glob("*.json")]
+
+def load_templates():
+    return [p for p in Path("templates").glob("*.html")]
+
+def load_store():
+    p = Path("src/store.json")
+    return json.loads(p.read_text()) if p.exists() else {"history": []}
+
+def save_store(store):
+    Path("src/store.json").write_text(json.dumps(store, ensure_ascii=False, indent=2))
+
+def pick_distinct(items, k):
+    return random.sample(items, k)
+
+def build_system_prompt(capsule, case_data):
+    rules = f"""
+HARD RULES:
+- Follow capsule strictly (tone, cadence {capsule['avg_sentence_len_range']}, language {capsule['language']}, structure {capsule['structure']}, date {capsule['date_format']}).
+- Insert {capsule['metrics_required']} concrete, checkable metrics (no números redondos).
+- Forbidden phrases (global + capsule) must not appear.
+- Vary openings; no templatey headings; no bars/gradients (content only).
+"""
+    forbidden = FORBIDDEN_GLOBAL + capsule.get("forbidden_ngrams", [])
+    return rules, forbidden
+
+def critique(text, capsule, forbidden, prior_texts):
+    issues = []
+
+    # Similaridade vs batch/histórico
+    max_sim = 0.0
+    for t in prior_texts:
+        max_sim = max(max_sim, jaccard_4gram(text, t))
+    if max_sim >= 0.18:
+        issues.append(f"Reduce 4-gram similarity (current={max_sim:.2f} ≥ 0.18). Rewrite with different openings and cadence.")
+
+    # Frase média
+    av = avg_sentence_len(text)
+    lo, hi = capsule["avg_sentence_len_range"]
+    if not (lo <= av <= hi):
+        issues.append(f"Adjust sentence length (avg={av:.1f}, target {lo}-{hi}). Split/merge sentences accordingly.")
+
+    # Proibidos
+    found = find_forbidden(text, forbidden)
+    if found:
+        issues.append("Remove clichés/forbidden: " + ", ".join(found))
+
+    # Micro-métricas
+    if capsule["metrics_required"] > 0 and len(re.findall(r"\b\d+([.,]\d+)?\b", text)) < capsule["metrics_required"]:
+        issues.append(f"Add at least {capsule['metrics_required']} concrete metrics tied to projects (avoid round numbers).")
+
+    return issues
+
+def assemble_user_prompt(capsule, case_data):
+    voc = random.choice(capsule["vocatives"])
+    close = random.choice(capsule["closings"])
+    # Pequenas variações estocásticas
+    paragraphs = random.randint(4,6) if capsule["structure"]=="plain_letter" else random.randint(3,5)
+
+    return f"""
+Write a {capsule['structure']} in {capsule['language']} with {paragraphs} short paragraphs.
+Start with vocative: "{voc}"
+End with closing: "{close}" followed by name, role, phone in {capsule['phone_format']} and date in {capsule['date_format']}.
+Use the following case data strictly and mention at least one micro-detail per paragraph:
+
+<CASE_DATA>
+{json.dumps(case_data, ensure_ascii=False)}
+</CASE_DATA>
+"""
+
+def main():
+    random.seed()  # new run, new sampling
+    capsules = load_capsules()
+    templates = load_templates()
+    store = load_store()
+    history_texts = [h["text"] for h in store["history"][-500:]]  # janela
+
+    selected_caps = pick_distinct(capsules, BATCH)
+    selected_tmpls = pick_distinct(templates, BATCH)
+
+    outputs = []
+    batch_texts = []
+
+    case_data = json.loads(Path("src/case_data.json").read_text())
+
+    for i in range(BATCH):
+        cap = selected_caps[i]
+        tmpl = selected_tmpls[i]
+        sys_rules, forbidden = build_system_prompt(cap, case_data)
+        user_prompt = assemble_user_prompt(cap, case_data)
+
+        attempts = 0
+        text = None
+        while attempts < 3:
+            attempts += 1
+            draft = generate_with_llm(system=sys_rules, user=user_prompt)
+            issues = critique(draft, cap, forbidden, history_texts + batch_texts)
+            if not issues:
+                text = draft
+                break
+            # feedback de reescrita
+            fb = "Rewrite addressing ONLY these issues:\n- " + "\n- ".join(issues)
+            draft = generate_with_llm(system=sys_rules, user=user_prompt + "\n\n" + fb)
+            # segunda checagem
+            issues2 = critique(draft, cap, forbidden, history_texts + batch_texts)
+            if not issues2:
+                text = draft
+                break
+            # se ainda falhou, continua o loop (até 3)
+        if text is None:
+            # falha: ainda assim salva o melhor que conseguiu (honesto e útil)
+            text = draft
+
+        out_id = str(uuid.uuid4())[:8]
+        pdf_path = render_pdf(text, tmpl, f"out_letter_{out_id}.pdf")
+        outputs.append({"capsule": cap["name"], "template": Path(tmpl).name, "pdf": pdf_path})
+        batch_texts.append(text)
+        store["history"].append({"text": text, "capsule": cap["name"]})
+
+    save_store(store)
+    for o in outputs:
+        print(o)
+
+if __name__ == "__main__":
+    main()
+# src/heterogeneity.py
+import re
+from collections import Counter
+
+def _ngrams(tokens, n):
+    return [' '.join(tokens[i:i+n]) for i in range(len(tokens)-n+1)]
+
+def jaccard_4gram(a, b):
+    ta = re.findall(r"\w+|\S", a.lower())
+    tb = re.findall(r"\w+|\S", b.lower())
+    A = set(_ngrams(ta, 4))
+    B = set(_ngrams(tb, 4))
+    if not A or not B: return 0.0
+    return len(A & B) / len(A | B)
+
+def avg_sentence_len(text):
+    sents = re.split(r"[.!?]+(?:\s+|$)", text.strip())
+    sents = [s for s in sents if s]
+    words = [len(re.findall(r"\w+", s)) for s in sents] or [0]
+    return sum(words)/len(words)
+
+def find_forbidden(text, forbidden_list):
+    low = text.lower()
+    return [f for f in forbidden_list if f.lower() in low]
+# src/llm.py  (substitua pela sua SDK/API)
+import os
+
+def generate_with_llm(system: str, user: str) -> str:
+    # TODO: troque por sua chamada real (OpenAI, etc.)
+    # Exemplo (pseudo):
+    # res = client.chat.completions.create(model="gpt-5", messages=[{"role":"system","content":system},{"role":"user","content":user}], temperature=0.9, top_p=0.9)
+    # return res.choices[0].message.content
+    raise NotImplementedError("Plugue aqui sua chamada de modelo.")
+# src/render.py
+from pathlib import Path
+from jinja2 import Template
+import subprocess, tempfile
+
+def render_pdf(text: str, template_path: str, out_pdf: str) -> str:
+    html = Path(template_path).read_text()
+    html = Template(html).render(body=text)
+    tmp_html = Path(tempfile.gettempdir()) / (out_pdf.replace(".pdf",".html"))
+    tmp_html.write_text(html)
+    # Use weasyprint (pip install weasyprint) ou wkhtmltopdf se preferir
+    subprocess.run(["weasyprint", str(tmp_html), out_pdf], check=True)
+    return out_pdf
+templates/carta_serif_pt.html (base enxuta; crie outras variando tipografia/margens)
+<!doctype html><html lang="pt-br"><meta charset="utf-8">
+<title>Carta</title>
+<style>
+  @page { margin: 28mm 22mm; }
+  body{ font: 12pt Georgia, "Times New Roman", serif; color:#111; }
+  h1,h2,h3{ margin:0 }
+  .body p{ text-align: justify; line-height: 1.35 }
+</style>
+<body>
+  <div class="body">
+    {{ body | safe }}
+  </div>
+</body></html>
+Crie mais 4–6 templates com: sans (Inter), margens diferentes, alinhamento “ragged-right”, memo com cabeçalho Assunto/De/Para/Data, affidavit com <ol> numerada, e-mail impresso com “From/To/Subject/Date”.
+O que você “fala” pro seu Replit (pipeline)
+Variabilidade garantida: mantenha ≥10 capsules e ≥6 templates. O sampler impede repetição por batch.
+Heterogeneity gate: a função critique() é o guarda — se falhar, reescreve com feedback objetivo.
+Histórico: store.json guarda os últimos 500 textos para comparar n-gram (evita cartas clonadas entre clientes). Mova isso pra Supabase se quiser multi-instância.
+Entradas por cliente: salve case_data.json por cliente (e.g., /clients/<id>/case_data.json) e rode main.py apontando para a pasta.
+PDF: instale weasyprint (ou use Puppeteer se preferir Node).
+Temperatura/top-p: suba temperature=0.9 e top_p=0.9 somente porque o gate corta exageros.
+Logs: logue similarity, avg_sentence_len, capsule, template — isso vira métrica de qualidade.
+Dicas finais (sem frescura)
+Mate o “To Whom…”: bloqueado globalmente. Varie vocativos por capsule.
+Exija 2–3 micro-detalhes por carta (linha, SKU, horas, norma). Isso quebra o padrão LLM.
+Mude a forma, não só o texto: um memorando e um affidavit numerado naturalmente soam de autores diferentes.
+Sem barras/gradientes: seus screenshots têm a mesma barra azul grossa — isso grita “template”. Deixe o design invisível.
+Cadência manda: impor faixas de tamanho de frase por capsule é o hack mais efetivo pra “voz”.
+Se quiser, eu te mando 10 capsules + 6 templates prontos pra jogar na pasta e rodar, já com PT/EN misto, data/telefone variados, e estruturas diferentes.

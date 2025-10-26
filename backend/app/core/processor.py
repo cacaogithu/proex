@@ -5,6 +5,7 @@ from .block_generator import BlockGenerator
 from .html_pdf_generator import HTMLPDFGenerator
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
+from .validation import validate_batch, print_validation_report
 from ..db.database import Database
 from ..ml.prompt_enhancer import PromptEnhancer
 import os
@@ -151,11 +152,16 @@ class SubmissionProcessor:
                     "embedding": letter_embedding  # Store embedding for ML
                 })
             
+            # VALIDATION: Check heterogeneity and quality (light validation, no rewrite)
+            validation_report = validate_batch(letters)
+            print_validation_report(validation_report)
+            
             self.update_status(submission_id, "completed")
             self.db.save_processed_data(submission_id, {
                 "letters": letters,
                 "organized_data": organized_data,
-                "design_structures": design_structures
+                "design_structures": design_structures,
+                "validation_report": validation_report  # Store metrics for monitoring
             })
             
             # Retrain ML models with new data (for next iteration)
