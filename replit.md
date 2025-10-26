@@ -28,6 +28,11 @@ The backend is built with FastAPI (Python 3.11) and uses SQLite for local data s
   - **Semantic Embeddings**: Generates 9-dimensional feature vectors for each letter (technical_depth, academic_rigor, leadership_focus, etc.)
   - **Automatic Re-training**: Models retrain after each submission to learn from new data
   - **Template Recommendation**: Suggests best-performing templates based on context and historical data
+- **Lightweight Heterogeneity Validation**: Post-generation quality monitoring with zero LLM cost:
+  - **N-gram Jaccard Similarity**: Detects excessive similarity between letters in the same batch using 4-gram analysis (warns if >20%)
+  - **Forbidden Phrases Detection**: Flags common clichés and generic phrases in Portuguese/English
+  - **Non-blocking Monitoring**: Logs warnings without stopping generation or triggering rewrites
+  - **Metrics Persistence**: Validation reports saved to database for ML learning and operational visibility
 - **Automated Delivery**: Uploads generated DOCX files to Google Drive and sends notification emails with direct links.
 - **Real-time Tracking**: Provides submission status updates.
 
