@@ -104,9 +104,10 @@ class PromptEnhancer:
         Returns:
             Prompt melhorado com insights de ML
         """
+        # Se não está treinado, simplesmente retorna prompt base
+        # Treinamento acontece apenas na inicialização e após cada submissão
         if not self.is_trained:
-            # Tentar treinar automaticamente se houver dados
-            self.train_models(min_samples=5)
+            return base_prompt
         
         enhancements = []
         
