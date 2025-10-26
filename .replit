@@ -84,4 +84,5 @@ localPort = 34973
 externalPort = 3001
 
 [deployment]
-deploymentTarget = "cloudrun"
+deploymentTarget = "vm"
+run = ["bash", "start-production.sh"]
