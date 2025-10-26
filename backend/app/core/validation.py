@@ -98,7 +98,7 @@ def jaccard_4gram(text_a: str, text_b: str) -> float:
     return intersection / union if union > 0 else 0.0
 
 
-def find_forbidden_phrases(text: str, categories: List[str] = None) -> List[str]:
+def find_forbidden_phrases(text: str, categories: List[str] | None = None) -> List[str]:
     """
     Find forbidden phrases in text
     
@@ -246,7 +246,7 @@ def print_validation_report(report: Dict):
         for warn in report['warnings'][:5]:  # Show first 5
             print(f"  - {warn['message']}")
         if len(report['warnings']) > 5:
-            print(f"  ... and {len(report['warnings']-5} more")
+            print(f"  ... and {len(report['warnings'])-5} more")
     else:
         print("\n✅ No warnings - all letters passed validation!")
     
