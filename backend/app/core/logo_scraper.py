@@ -13,6 +13,8 @@ class LogoScraper:
         }
         # Cache logos during a single run to avoid re-fetching
         self._logo_cache = {}
+        # Brandfetch API key (free tier: 100 requests/month)
+        self.brandfetch_key = os.environ.get('BRANDFETCH_API_KEY', '')
     
     def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
         """
@@ -33,28 +35,71 @@ class LogoScraper:
         
         logo_path = None
         
-        # Method 1: Try Clearbit API (best quality, free tier available)
+        # Method 1: Try Brandfetch API (best database)
+        if company_website and self.brandfetch_key:
+            logo_path = self._try_brandfetch(company_website)
+            if logo_path:
+                self._logo_cache[cache_key] = logo_path
+                return logo_path
+        
+        # Method 2: Try Clearbit API (good fallback)
         if company_website:
             logo_path = self._try_clearbit(company_website)
             if logo_path:
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
         
-        # Method 2: Try scraping company website directly
+        # Method 3: Try Logo.dev API
+        if company_website:
+            logo_path = self._try_logodev(company_website)
+            if logo_path:
+                self._logo_cache[cache_key] = logo_path
+                return logo_path
+        
+        # Method 4: Try favicon extraction (more reliable than full scraping)
+        if company_website:
+            logo_path = self._try_favicon(company_website)
+            if logo_path:
+                self._logo_cache[cache_key] = logo_path
+                return logo_path
+        
+        # Method 5: Try scraping company website directly
         if company_website:
             logo_path = self._scrape_website_logo(company_website)
             if logo_path:
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
         
-        # Method 3: Try Google Images search as fallback
-        logo_path = self._google_logo_search(company_name)
-        if logo_path:
-            self._logo_cache[cache_key] = logo_path
-            return logo_path
-        
         print(f"⚠️ Could not find logo for {company_name}")
         self._logo_cache[cache_key] = None
+        return None
+    
+    def _try_brandfetch(self, website: str) -> Optional[str]:
+        """Use Brandfetch API - excellent logo database"""
+        try:
+            domain = urlparse(website).netloc or website
+            domain = domain.replace('www.', '')
+            
+            # Brandfetch API endpoint
+            api_url = f"https://api.brandfetch.io/v2/brands/{domain}"
+            headers = {**self.headers, 'Authorization': f'Bearer {self.brandfetch_key}'}
+            
+            response = requests.get(api_url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                # Try to get the logo from the response
+                logos = data.get('logos', [])
+                if logos and len(logos) > 0:
+                    logo_url = logos[0].get('formats', [{}])[0].get('src')
+                    if logo_url:
+                        logo_response = requests.get(logo_url, headers=self.headers, timeout=5)
+                        if logo_response.status_code == 200:
+                            logo_path = self._save_logo(domain, logo_response.content)
+                            print(f"✓ Logo found via Brandfetch: {domain}")
+                            return logo_path
+        except Exception as e:
+            print(f"Brandfetch failed: {str(e)}")
+        
         return None
     
     def _try_clearbit(self, website: str) -> Optional[str]:
@@ -82,6 +127,55 @@ class LogoScraper:
             except Exception as e:
                 print(f"Clearbit failed: {str(e)}")
                 break
+        
+        return None
+    
+    def _try_logodev(self, website: str) -> Optional[str]:
+        """Use Logo.dev API - alternative to Clearbit"""
+        try:
+            domain = urlparse(website).netloc or website
+            domain = domain.replace('www.', '')
+            
+            logodev_url = f"https://img.logo.dev/{domain}?token=pk_X-1ZO13CRYuAq5BIwG4BQA"
+            
+            response = requests.get(logodev_url, headers=self.headers, timeout=3)
+            if response.status_code == 200 and len(response.content) > 1000:  # Ensure it's not an error placeholder
+                logo_path = self._save_logo(domain, response.content)
+                print(f"✓ Logo found via Logo.dev: {domain}")
+                return logo_path
+        except Exception as e:
+            print(f"Logo.dev failed: {str(e)}")
+        
+        return None
+    
+    def _try_favicon(self, website: str) -> Optional[str]:
+        """Extract high-quality favicon as logo fallback"""
+        try:
+            if not website.startswith('http'):
+                website = f"https://{website}"
+            
+            domain = urlparse(website).netloc or website
+            
+            # Try common high-res favicon paths
+            favicon_paths = [
+                f"{website}/apple-touch-icon.png",
+                f"{website}/apple-touch-icon-precomposed.png",
+                f"{website}/favicon-196x196.png",
+                f"{website}/favicon-128x128.png",
+                f"{website}/favicon.ico",
+            ]
+            
+            for favicon_url in favicon_paths:
+                try:
+                    response = requests.get(favicon_url, headers=self.headers, timeout=3)
+                    if response.status_code == 200 and len(response.content) > 500:
+                        logo_path = self._save_logo(domain.replace('www.', ''), response.content)
+                        print(f"✓ Logo found via favicon: {domain}")
+                        return logo_path
+                except:
+                    continue
+        except Exception as e:
+            print(f"Favicon extraction failed: {str(e)}")
         
         return None
     
@@ -121,19 +215,7 @@ class LogoScraper:
         
         return None
     
-    def _google_logo_search(self, company_name: str) -> Optional[str]:
-        """
-        Fallback: Try to find logo via Google Images
-        Note: This is a simplified version. For production, consider using Google Custom Search API
-        """
-        try:
-            # For now, return None - would require Google API key
-            # In production, implement Google Custom Search API here
-            pass
-        except Exception as e:
-            print(f"Google search failed: {str(e)}")
-        
-        return None
+    
     
     def _save_logo(self, company_identifier: str, image_data: bytes) -> str:
         """Save logo to storage and return path"""
