@@ -120,7 +120,7 @@ Receba 5 blocos de uma carta e produza o conteúdo HTML COMPLETO E ESTILIZADO.
 6. Adicione assinatura e encerramento apropriado
 
 # INSTRUÇÕES DE FORMATAÇÃO HTML
-1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno)
+1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
 2. Use as classes CSS específicas do template conforme indicado acima
 3. Estruture com tags semânticas: <p>, <h2>, <ul>, <li>, <table>, <blockquote>, <div>
 4. Use <strong> para ênfases, <em> para itálico
@@ -140,7 +140,7 @@ Receba 5 blocos de uma carta e produza o conteúdo HTML COMPLETO E ESTILIZADO.
 
 # TODO EM PORTUGUÊS BRASILEIRO
 
-Output: APENAS HTML content (sem tags <html>, <head>, <body>)
+Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
 """
         
         import time

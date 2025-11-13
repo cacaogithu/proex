@@ -9,10 +9,99 @@ from .validation import validate_batch, print_validation_report
 from ..db.database import Database
 from ..ml.prompt_enhancer import PromptEnhancer
 import os
-from typing import Dict
+from typing import Dict, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class SubmissionProcessor:
+    def __init__(self):
+        self.pdf_extractor = PDFExtractor()
+        self.llm = LLMProcessor()
+        self.db = Database()
+        self.prompt_enhancer = PromptEnhancer(self.db)
+        
+        # Try to train ML models with existing data
+        try:
+            self.prompt_enhancer.train_models(min_samples=5)
+        except Exception as e:
+            print(f"ℹ️  ML training skipped (likely first run): {e}")
+        
+        # Initialize other components AFTER ML training
+        self.heterogeneity = HeterogeneityArchitect(self.llm)
+        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
+        self.pdf_generator = HTMLPDFGenerator()
+        self.logo_scraper = LogoScraper()
+        self.max_workers = 5 # Set max workers for parallel processing
+    
+    def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
+        """Helper function to generate a single letter, designed for parallel execution."""
+        
+        recommender_name = testimony.get('recommender_name', 'Unknown')
+        print(f"\n  [START] Letter {index+1}: {recommender_name}")
+        
+        # 1. Fetch company logo (This is now done inside the parallel function)
+        company_name = testimony.get('recommender_company', '')
+        company_website = testimony.get('recommender_company_website')
+        logo_path = None
+        
+        if company_name:
+            logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
+        
+        # 2. Generate 5 blocks
+        print(f"    - Generating 5 blocks for {recommender_name}...")
+        blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
+        print(f"    ✓ Blocks generated for {recommender_name}")
+        
+        # 3. Assemble letter
+        print(f"    - Assembling letter for {recommender_name}...")
+        letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
+        print(f"    ✓ Letter assembled for {recommender_name}")
+        
+        # 4. Generate PDF and DOCX
+        output_path = f"storage/outputs/{submission_id}/letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf"
+        print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')}) for {recommender_name}...")
+        
+        recommender_info = {
+            'name': recommender_name,
+            'title': testimony.get('recommender_position', ''),
+            'company': testimony.get('recommender_company', ''),
+            'location': testimony.get('recommender_location', '')
+        }
+        
+        self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
+        print(f"    ✓ Styled PDF generated for {recommender_name}")
+        
+        docx_output_path = output_path.replace('.pdf', '.docx')
+        print(f"    - Generating editable DOCX for {recommender_name}...")
+        self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
+        
+        # 5. Track template usage
+        template_id = design.get('template_id', 'A')
+        self.db.increment_template_usage(template_id)
+        
+        # 6. Generate embedding for ML/clustering (unsupervised learning)
+        print(f"    - Generating semantic embedding for {recommender_name}...")
+        letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
+        if letter_embedding:
+            self.db.save_letter_embedding(submission_id, index, letter_embedding)
+            print(f"    ✓ Embedding saved for {recommender_name}")
+        
+        print(f"  [END] Letter {index+1}: {recommender_name}")
+        
+        # Return complete letter data
+        return {
+            "testimony_id": testimony.get('testimony_id', str(index+1)),
+            "recommender": recommender_name,
+            "pdf_path": output_path,
+            "docx_path": docx_output_path,
+            "template_id": template_id,
+            "has_logo": logo_path is not None,
+            "blocks": blocks,
+            "letter_html": letter_html,
+            "design": design,
+            "embedding": letter_embedding,
+            "index": index # Include original index for sorting
+        }
     def __init__(self):
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
@@ -51,20 +140,8 @@ class SubmissionProcessor:
             organized_data = self.llm.clean_and_organize(extracted_texts)
             print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
             
-            # PHASE 2.5: Scrape company logos
-            print("\nPHASE 2.5: Scraping company logos...")
-            # Use 'testimonies' key consistently
-            for i, testimonial in enumerate(organized_data.get('testimonies', [])):
-                company_name = testimonial.get('recommender_company', '')
-                company_website = testimonial.get('recommender_company_website', '')
-                
-                if company_name:
-                    logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
-                    if logo_path:
-                        organized_data['testimonies'][i]['company_logo_path'] = logo_path
-                        print(f"  ✓ Logo found for {company_name}")
-                    else:
-                        print(f"  ⚠️ No logo found for {company_name}")
+            # PHASE 2.5: Logo scraping is now integrated into the parallel letter generation function.
+            print("\nPHASE 2.5: Logo scraping will run in parallel with letter generation.")
             
             self.update_status(submission_id, "designing")
             print("\nPHASE 3: Generating design structures (Heterogeneity Architect)...")
@@ -86,71 +163,38 @@ class SubmissionProcessor:
                 print(f"⚠️  WARNING: Expected {expected_count} testimonies but found {len(testimonies)}")
                 print(f"   Generating letters for all {len(testimonies)} testimonies found")
             
+            # Prepare tasks for parallel execution
+            tasks = []
             for i, testimony in enumerate(testimonies):
                 design = designs[i] if i < len(designs) else designs[0]
-                
-                print(f"\n  Letter {i+1}/{len(testimonies)}: {testimony.get('recommender_name', 'Unknown')}")
-                
-                # Fetch company logo
-                company_name = testimony.get('recommender_company', '')
-                company_website = testimony.get('recommender_company_website')
-                logo_path = None
-                
-                if company_name:
-                    logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
-                
-                print("    - Generating 5 blocks...")
-                blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
-                print("    ✓ Blocks generated")
-                
-                print("    - Assembling letter with Claude 4.5 Sonnet...")
-                letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
-                print("    ✓ Letter assembled")
-                
-                # Generate PDF with heterogeneous HTML templates
-                output_path = f"storage/outputs/{submission_id}/letter_{i+1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.pdf"
-                print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')})...")
-                
-                # Prepare recommender info for template
-                recommender_info = {
-                    'name': testimony.get('recommender_name', 'Professional Recommender'),
-                    'title': testimony.get('recommender_position', ''),
-                    'company': testimony.get('recommender_company', ''),
-                    'location': testimony.get('recommender_location', '')
+                tasks.append((submission_id, i, testimony, design, organized_data))
+            
+            # Execute letter generation in parallel
+            print(f"\n🚀 Starting parallel generation of {len(tasks)} letters with {self.max_workers} workers...")
+            
+            # Use ThreadPoolExecutor for I/O-bound tasks (API calls, file I/O)
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_to_letter = {
+                    executor.submit(self._generate_single_letter, *task): task
+                    for task in tasks
                 }
                 
-                self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
-                print(f"    ✓ Styled PDF generated with Template {design.get('template_id', 'A')}")
-                
-                # Also generate editable DOCX for consultant editing
-                docx_output_path = output_path.replace('.pdf', '.docx')
-                print(f"    - Generating editable DOCX...")
-                self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
-                
-                # Track template usage for ML/analytics
-                template_id = design.get('template_id', 'A')
-                self.db.increment_template_usage(template_id)
-                
-                # Generate embedding for ML/clustering (unsupervised learning)
-                print("    - Generating semantic embedding for ML...")
-                letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
-                if letter_embedding:
-                    self.db.save_letter_embedding(submission_id, i, letter_embedding)
-                    print("    ✓ Embedding saved for future ML training")
-                
-                # Store complete letter data including blocks
-                letters.append({
-                    "testimony_id": testimony.get('testimony_id', str(i+1)),
-                    "recommender": testimony.get('recommender_name', 'Unknown'),
-                    "pdf_path": output_path,
-                    "docx_path": docx_output_path,  # Store DOCX path
-                    "template_id": template_id,
-                    "has_logo": logo_path is not None,
-                    "blocks": blocks,  # Store all generated blocks
-                    "letter_html": letter_html,  # Store assembled HTML
-                    "design": design,  # Store design structure used
-                    "embedding": letter_embedding  # Store embedding for ML
-                })
+                # Collect results as they complete
+                unsorted_letters = []
+                for future in as_completed(future_to_letter):
+                    try:
+                        letter_data = future.result()
+                        unsorted_letters.append(letter_data)
+                    except Exception as exc:
+                        print(f"  [ERROR] Letter generation failed: {exc}")
+                        # Handle error for this specific letter, but continue with others
+                        # You might want to log this error more formally
+                        pass
+            
+            # Sort letters back into original order
+            letters = sorted(unsorted_letters, key=lambda x: x['index'])
+            
+            print(f"\n✅ All {len(letters)} letters generated and sorted.")
             
             # VALIDATION: Check heterogeneity and quality (light validation, no rewrite)
             validation_report = validate_batch(letters)
