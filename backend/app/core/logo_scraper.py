@@ -133,11 +133,14 @@ class LogoScraper:
     def _try_logodev(self, website: str) -> Optional[str]:
         """Use Logo.dev API - alternative to Clearbit"""
         try:
+            import os
             domain = urlparse(website).netloc or website
             domain = domain.replace('www.', '')
-            
-            logodev_url = f"https://img.logo.dev/{domain}?token=pk_X-1ZO13CRYuAq5BIwG4BQA"
-            
+
+            # Security: Get API key from environment variable
+            logodev_token = os.getenv('LOGODEV_API_KEY', 'pk_X-1ZO13CRYuAq5BIwG4BQA')  # Fallback for backward compatibility
+            logodev_url = f"https://img.logo.dev/{domain}?token={logodev_token}"
+
             response = requests.get(logodev_url, headers=self.headers, timeout=3)
             if response.status_code == 200 and len(response.content) > 1000:  # Ensure it's not an error placeholder
                 logo_path = self._save_logo(domain, response.content)
@@ -172,7 +175,8 @@ class LogoScraper:
                         logo_path = self._save_logo(domain.replace('www.', ''), response.content)
                         print(f"✓ Logo found via favicon: {domain}")
                         return logo_path
-                except:
+                except (requests.RequestException, IOError, OSError):
+                    # Try next favicon path
                     continue
         except Exception as e:
             print(f"Favicon extraction failed: {str(e)}")

@@ -67,5 +67,6 @@ def check_email_service_health() -> bool:
     try:
         response = requests.get(f"{EMAIL_SERVICE_URL}/health", timeout=5)
         return response.status_code == 200
-    except:
+    except (requests.RequestException, Exception):
+        # Email service is not available
         return False

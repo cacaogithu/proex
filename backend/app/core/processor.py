@@ -35,59 +35,59 @@ class SubmissionProcessor:
     
     def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
-        
+
         recommender_name = testimony.get('recommender_name', 'Unknown')
         print(f"\n  [START] Letter {index+1}: {recommender_name}")
-        
+
         # 1. Fetch company logo (This is now done inside the parallel function)
         company_name = testimony.get('recommender_company', '')
         company_website = testimony.get('recommender_company_website')
         logo_path = None
-        
+
         if company_name:
             logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
-        
+
         # 2. Generate 5 blocks
         print(f"    - Generating 5 blocks for {recommender_name}...")
         blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
         print(f"    ✓ Blocks generated for {recommender_name}")
-        
+
         # 3. Assemble letter
         print(f"    - Assembling letter for {recommender_name}...")
         letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
         print(f"    ✓ Letter assembled for {recommender_name}")
-        
+
         # 4. Generate PDF and DOCX
         output_path = f"storage/outputs/{submission_id}/letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf"
         print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')}) for {recommender_name}...")
-        
+
         recommender_info = {
             'name': recommender_name,
             'title': testimony.get('recommender_position', ''),
             'company': testimony.get('recommender_company', ''),
             'location': testimony.get('recommender_location', '')
         }
-        
+
         self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
         print(f"    ✓ Styled PDF generated for {recommender_name}")
-        
+
         docx_output_path = output_path.replace('.pdf', '.docx')
         print(f"    - Generating editable DOCX for {recommender_name}...")
         self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
-        
+
         # 5. Track template usage
         template_id = design.get('template_id', 'A')
         self.db.increment_template_usage(template_id)
-        
+
         # 6. Generate embedding for ML/clustering (unsupervised learning)
         print(f"    - Generating semantic embedding for {recommender_name}...")
         letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
         if letter_embedding:
             self.db.save_letter_embedding(submission_id, index, letter_embedding)
             print(f"    ✓ Embedding saved for {recommender_name}")
-        
+
         print(f"  [END] Letter {index+1}: {recommender_name}")
-        
+
         # Return complete letter data
         return {
             "testimony_id": testimony.get('testimony_id', str(index+1)),
@@ -102,23 +102,6 @@ class SubmissionProcessor:
             "embedding": letter_embedding,
             "index": index # Include original index for sorting
         }
-    def __init__(self):
-        self.pdf_extractor = PDFExtractor()
-        self.llm = LLMProcessor()
-        self.db = Database()
-        self.prompt_enhancer = PromptEnhancer(self.db)
-        
-        # Try to train ML models with existing data
-        try:
-            self.prompt_enhancer.train_models(min_samples=5)
-        except Exception as e:
-            print(f"ℹ️  ML training skipped (likely first run): {e}")
-        
-        # Initialize other components AFTER ML training
-        self.heterogeneity = HeterogeneityArchitect(self.llm)
-        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
-        self.pdf_generator = HTMLPDFGenerator()
-        self.logo_scraper = LogoScraper()
     
     def update_status(self, submission_id: str, status: str, error: str | None = None):
         self.db.update_submission_status(submission_id, status, error)
@@ -181,20 +164,41 @@ class SubmissionProcessor:
                 
                 # Collect results as they complete
                 unsorted_letters = []
+                failed_letters = []
                 for future in as_completed(future_to_letter):
+                    task = future_to_letter[future]
+                    letter_index = task[1]
+                    testimony = task[2]
                     try:
                         letter_data = future.result()
                         unsorted_letters.append(letter_data)
                     except Exception as exc:
-                        print(f"  [ERROR] Letter generation failed: {exc}")
-                        # Handle error for this specific letter, but continue with others
-                        # You might want to log this error more formally
-                        pass
+                        error_msg = f"Letter {letter_index + 1} ({testimony.get('recommender_name', 'Unknown')}) failed: {str(exc)}"
+                        print(f"  [ERROR] {error_msg}")
+                        failed_letters.append({
+                            "index": letter_index,
+                            "recommender": testimony.get('recommender_name', 'Unknown'),
+                            "error": str(exc)
+                        })
+                        # Create placeholder entry to maintain proper indexing
+                        unsorted_letters.append({
+                            "index": letter_index,
+                            "testimony_id": testimony.get('testimony_id', str(letter_index + 1)),
+                            "recommender": testimony.get('recommender_name', 'Unknown'),
+                            "error": str(exc),
+                            "failed": True
+                        })
             
             # Sort letters back into original order
             letters = sorted(unsorted_letters, key=lambda x: x['index'])
-            
-            print(f"\n✅ All {len(letters)} letters generated and sorted.")
+
+            # Report results
+            successful_letters = [l for l in letters if not l.get('failed', False)]
+            print(f"\n✅ {len(successful_letters)}/{len(letters)} letters generated successfully.")
+            if failed_letters:
+                print(f"⚠️  {len(failed_letters)} letter(s) failed:")
+                for failed in failed_letters:
+                    print(f"   - Letter {failed['index'] + 1} ({failed['recommender']}): {failed['error']}")
             
             # VALIDATION: Check heterogeneity and quality (light validation, no rewrite)
             validation_report = validate_batch(letters)

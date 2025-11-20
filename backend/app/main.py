@@ -10,11 +10,16 @@ load_dotenv()
 
 app = FastAPI(title="ProEx Platform", version="1.0.0")
 
+# Security: Configure CORS with specific origins from environment variable
+# For development, set CORS_ORIGINS="http://localhost:3000,http://localhost:5173"
+# For production, set to your actual frontend domain
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
