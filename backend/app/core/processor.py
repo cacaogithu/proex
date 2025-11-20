@@ -9,12 +9,20 @@ from .validation import validate_batch, print_validation_report
 from ..db.database import Database
 from ..ml.prompt_enhancer import PromptEnhancer
 import os
+import logging
 from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+logger = logging.getLogger(__name__)
+
+# Configuration constants
+MAX_PARALLEL_WORKERS = 5  # Maximum concurrent letter generation tasks
+MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
 
 
 class SubmissionProcessor:
     def __init__(self):
+        logger.info("Initializing SubmissionProcessor")
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
         self.db = Database()
@@ -22,16 +30,19 @@ class SubmissionProcessor:
         
         # Try to train ML models with existing data
         try:
-            self.prompt_enhancer.train_models(min_samples=5)
+            logger.info(f"Attempting to train ML models with min {MIN_ML_TRAINING_SAMPLES} samples")
+            self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
+            logger.info("ML models trained successfully")
         except Exception as e:
-            print(f"ℹ️  ML training skipped (likely first run): {e}")
-        
+            logger.info(f"ML training skipped (likely first run): {e}")
+
         # Initialize other components AFTER ML training
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
-        self.max_workers = 5 # Set max workers for parallel processing
+        self.max_workers = MAX_PARALLEL_WORKERS
+        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers")
     
     def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
@@ -212,12 +223,20 @@ class SubmissionProcessor:
                 "validation_report": validation_report  # Store metrics for monitoring
             })
             
-            # Retrain ML models with new data (for next iteration)
-            print("\n🧠 Re-training ML models with new data...")
-            try:
-                self.prompt_enhancer.train_models(min_samples=5)
-            except Exception as e:
-                print(f"   ℹ️  ML training skipped: {e}")
+            # Retrain ML models periodically (every 10 submissions) instead of every time
+            # This significantly improves performance
+            total_submissions = self.db.get_total_submissions_count()
+            if total_submissions % 10 == 0:
+                logger.info(f"Triggering ML model retraining at {total_submissions} submissions")
+                print("\n🧠 Re-training ML models with new data...")
+                try:
+                    self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
+                    logger.info("ML models retrained successfully")
+                except Exception as e:
+                    logger.warning(f"ML training failed: {e}")
+                    print(f"   ℹ️  ML training skipped: {e}")
+            else:
+                logger.debug(f"Skipping ML retraining (will retrain at next multiple of 10)")
             
             print(f"\n{'='*60}")
             print(f"✓ COMPLETED! Generated {len(letters)} PDF + DOCX letters")
