@@ -30,11 +30,12 @@ class SubmissionProcessor:
         
         # Try to train ML models with existing data
         try:
-            logger.info(f"Attempting to train ML models with min {MIN_ML_TRAINING_SAMPLES} samples")
-            self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
-            logger.info("ML models trained successfully")
+            # Silently attempt training - will only log if there's enough data
+            trained = self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
+            if trained:
+                logger.info("ML models trained successfully")
         except Exception as e:
-            logger.info(f"ML training skipped (likely first run): {e}")
+            logger.warning(f"ML training failed: {e}")
 
         # Initialize other components AFTER ML training
         self.heterogeneity = HeterogeneityArchitect(self.llm)
@@ -146,8 +147,15 @@ class SubmissionProcessor:
             
             self.update_status(submission_id, "designing")
             print("\nPHASE 3: Generating design structures (Heterogeneity Architect)...")
-            design_structures = self.heterogeneity.generate_design_structures(organized_data)
-            print(f"✓ Generated {len(design_structures.get('design_structures', []))} unique designs")
+            try:
+                design_structures = self.heterogeneity.generate_design_structures(organized_data)
+                print(f"✓ Generated {len(design_structures.get('design_structures', []))} unique designs")
+            except Exception as e:
+                error_msg = f"Failed to generate design structures: {str(e)}"
+                print(f"❌ {error_msg}")
+                logger.error(error_msg, exc_info=True)
+                self.update_status(submission_id, "error", error_msg)
+                raise ValueError(error_msg) from e
             
             self.update_status(submission_id, "generating")
             print("\nPHASE 4: Generating letters...")
