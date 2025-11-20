@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 logger = logging.getLogger(__name__)
 
 # Configuration constants
-MAX_PARALLEL_WORKERS = 5  # Maximum concurrent letter generation tasks
+MAX_PARALLEL_WORKERS = 10  # Maximum concurrent letter generation tasks (increased from 5)
 MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
 
 
@@ -90,12 +90,19 @@ class SubmissionProcessor:
         template_id = design.get('template_id', 'A')
         self.db.increment_template_usage(template_id)
 
-        # 6. Generate embedding for ML/clustering (unsupervised learning)
-        print(f"    - Generating semantic embedding for {recommender_name}...")
-        letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
-        if letter_embedding:
-            self.db.save_letter_embedding(submission_id, index, letter_embedding)
-            print(f"    ✓ Embedding saved for {recommender_name}")
+        # 6. Generate embedding for ML/clustering (optional - can be slow)
+        # PERFORMANCE: Disabled by default to save ~5-10 seconds per letter
+        # Enable via ENABLE_EMBEDDINGS=true environment variable
+        letter_embedding = None
+        if os.getenv("ENABLE_EMBEDDINGS", "false").lower() == "true":
+            print(f"    - Generating semantic embedding for {recommender_name}...")
+            try:
+                letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
+                if letter_embedding:
+                    self.db.save_letter_embedding(submission_id, index, letter_embedding)
+                    print(f"    ✓ Embedding saved for {recommender_name}")
+            except Exception as e:
+                print(f"    ⚠️  Embedding generation skipped: {e}")
 
         print(f"  [END] Letter {index+1}: {recommender_name}")
 
