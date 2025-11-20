@@ -2,6 +2,7 @@ from typing import Dict, Optional
 import json
 import time
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class BlockGenerator:
@@ -44,7 +45,8 @@ class BlockGenerator:
                 return content
             except Exception as e:
                 if "429" in str(e) and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 3
+                    # Reduced wait times: 1s, 2s (instead of 3s, 6s, 12s)
+                    wait_time = (2 ** attempt)
                     print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
                     time.sleep(wait_time)
                     continue
@@ -248,11 +250,37 @@ Encerramento forte.
             return "Error generating block 7"
     
     def generate_all_blocks(self, testimony: Dict, design: Dict, context: Dict) -> Dict[str, str]:
-        print(f"Generating blocks for {testimony.get('recommender_name', 'Unknown')}...")
-        return {
-            "block3": self.generate_block3(testimony, design, context),
-            "block4": self.generate_block4(testimony, design, context),
-            "block5": self.generate_block5(testimony, design, context),
-            "block6": self.generate_block6(testimony, design, context),
-            "block7": self.generate_block7(testimony, design, context)
+        """Generate all 5 blocks in parallel for maximum performance"""
+        recommender_name = testimony.get('recommender_name', 'Unknown')
+        print(f"Generating 5 blocks in parallel for {recommender_name}...")
+
+        blocks = {}
+
+        # Define block generation tasks
+        block_tasks = {
+            "block3": (self.generate_block3, testimony, design, context),
+            "block4": (self.generate_block4, testimony, design, context),
+            "block5": (self.generate_block5, testimony, design, context),
+            "block6": (self.generate_block6, testimony, design, context),
+            "block7": (self.generate_block7, testimony, design, context)
         }
+
+        # Execute all blocks in parallel (5 concurrent API calls)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # Submit all tasks
+            future_to_block = {
+                executor.submit(func, *args): block_name
+                for block_name, (func, *args) in block_tasks.items()
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_block):
+                block_name = future_to_block[future]
+                try:
+                    blocks[block_name] = future.result()
+                except Exception as exc:
+                    print(f"    ✗ {block_name} failed: {exc}")
+                    blocks[block_name] = f"Error generating {block_name}: {exc}"
+
+        print(f"    ✓ All 5 blocks completed for {recommender_name}")
+        return blocks

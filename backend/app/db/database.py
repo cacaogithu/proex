@@ -425,7 +425,11 @@ class Database:
         cluster_id: Optional[int] = None
     ):
         """Save letter embedding for ML/clustering in Supabase Vector DB"""
-        self.supabase_db.save_letter_embedding(submission_id, letter_index, embedding, cluster_id)
+        try:
+            self.supabase_db.save_letter_embedding(submission_id, letter_index, embedding, cluster_id)
+        except Exception as e:
+            # Gracefully handle Supabase failures (it's optional)
+            print(f"⚠️  Embedding save failed (non-critical): {e}")
     
     def get_all_embeddings(self) -> List[Dict]:
         """Get all letter embeddings and their associated scores for ML training from Supabase Vector DB"""
