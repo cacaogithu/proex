@@ -212,15 +212,28 @@ class SubmissionProcessor:
                     print(f"   - Letter {failed['index'] + 1} ({failed['recommender']}): {failed['error']}")
             
             # VALIDATION: Check heterogeneity and quality (light validation, no rewrite)
-            validation_report = validate_batch(letters)
+            # Only validate successfully generated letters
+            successful_letters_for_validation = [l for l in letters if not l.get('failed', False)]
+            validation_report = validate_batch(successful_letters_for_validation)
             print_validation_report(validation_report)
-            
-            self.update_status(submission_id, "completed")
+
+            # Update status based on results
+            if len(successful_letters) == len(letters):
+                self.update_status(submission_id, "completed")
+            elif len(successful_letters) > 0:
+                self.update_status(submission_id, "completed_with_errors")
+                logger.warning(f"Submission {submission_id} completed with {len(failed_letters)} failed letter(s)")
+            else:
+                self.update_status(submission_id, "error", "All letters failed to generate")
+                logger.error(f"Submission {submission_id} failed - no successful letters")
+
             self.db.save_processed_data(submission_id, {
-                "letters": letters,
+                "letters": letters,  # Include all letters (both successful and failed) for debugging
                 "organized_data": organized_data,
                 "design_structures": design_structures,
-                "validation_report": validation_report  # Store metrics for monitoring
+                "validation_report": validation_report,  # Store metrics for monitoring
+                "failed_count": len(failed_letters),
+                "success_count": len(successful_letters)
             })
             
             # Retrain ML models periodically (every 10 submissions) instead of every time
@@ -246,23 +259,28 @@ class SubmissionProcessor:
             submission = self.db.get_submission(submission_id)
             recipient_email = submission.get('email') if submission else None
             
-            if recipient_email and check_email_service_health():
+            if recipient_email and check_email_service_health() and len(successful_letters) > 0:
                 print("\nPHASE 5: Sending results via email and Google Drive...")
-                # Send both PDFs and DOCXs
+                # Send both PDFs and DOCXs (only for successfully generated letters)
                 file_paths = []
-                for letter in letters:
+                for letter in successful_letters:
                     file_paths.append(os.path.abspath(letter['pdf_path']))
                     file_paths.append(os.path.abspath(letter.get('docx_path', letter['pdf_path'].replace('.pdf', '.docx'))))
+
                 email_result = send_results_email(submission_id, recipient_email, file_paths)
-                
+
                 if email_result.get('success'):
                     print(f"✅ Email sent to {recipient_email}")
                     print(f"✅ {email_result.get('files_uploaded', 0)} files uploaded to Google Drive")
+                    if len(failed_letters) > 0:
+                        print(f"⚠️  Note: {len(failed_letters)} letter(s) failed and were not included in the email")
                 else:
                     print(f"⚠️ Email sending failed: {email_result.get('error', 'Unknown error')}")
             else:
                 if not recipient_email:
                     print("⚠️ No email address provided, skipping email notification")
+                elif len(successful_letters) == 0:
+                    print("⚠️ No successful letters to send, skipping email notification")
                 else:
                     print("⚠️ Email service not available, skipping email notification")
             

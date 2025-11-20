@@ -53,6 +53,14 @@ class BlockGenerator:
         return ""
     
     def generate_block3(self, testimony: Dict, design: Dict, context: Dict, letter_embedding: Optional[list] = None) -> str:
+        """Generate Block 3 of the letter.
+
+        Args:
+            letter_embedding: Currently unused. Reserved for future ML enhancement
+                             where embeddings from similar letters could improve generation.
+                             Currently, embeddings are generated AFTER letter creation,
+                             not before, so this is always None.
+        """
         base_prompt = f"""# ROLE
 Você é `Block3_PROMPT`
 

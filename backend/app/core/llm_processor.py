@@ -108,4 +108,5 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
                 if attempt == max_retries - 1:
                     print(f"Error in clean_and_organize: {str(e)}")
                     raise
-        return {}
+        # This line is unreachable - exception will always be raised above
+        raise RuntimeError("clean_and_organize failed after all retries")
