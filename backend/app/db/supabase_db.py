@@ -1,19 +1,29 @@
 import os
 import json
 from typing import Optional, Dict, List
-# Import the necessary tool for MCP calls
-from manus_mcp_cli import tool_call
+
+# DEPRECATED: This Supabase integration is currently non-functional
+# The manus_mcp_cli dependency is not available and _call_supabase_tool is not implemented
+# This class is kept as a placeholder for future implementation
+# Set ENABLE_SUPABASE=true in environment to enable (not recommended until properly implemented)
 
 class SupabaseDB:
     """
-    Handles interactions with the Supabase database for ML/Feedback data.
-    Assumes project ID is set and pg_vector extension is enabled.
+    DEPRECATED: Non-functional Supabase integration placeholder.
+
+    Originally intended to handle ML/Feedback data with vector embeddings.
+    Currently disabled due to missing dependencies and incomplete implementation.
+
+    To enable: Set ENABLE_SUPABASE=true environment variable (not recommended).
     """
     def __init__(self, project_id: str):
         self.project_id = project_id
         self.server = "supabase"
-        # The actual embedding dimension is 9 based on ml/embedding_engine.py
-        self.embedding_dim = 9 
+        self.embedding_dim = 9
+        self.enabled = os.getenv("ENABLE_SUPABASE", "false").lower() == "true"
+
+        if self.enabled:
+            print("⚠️  WARNING: Supabase integration is experimental and non-functional") 
 
     def _call_supabase_tool(self, tool_name: str, input_data: Dict) -> Dict:
         """Helper to call the manus-mcp-cli tool."""
@@ -74,6 +84,10 @@ class SupabaseDB:
         comment: Optional[str] = None
     ) -> bool:
         """Save score (0-100) for a specific letter."""
+        if not self.enabled:
+            return False  # Silently skip if disabled
+
+        # NOTE: This code has SQL injection vulnerabilities - needs parameterized queries
         query = f"""
         INSERT INTO letter_ratings (submission_id, letter_index, template_id, score, comment)
         VALUES ('{submission_id}', {letter_index}, '{template_id}', {score}, '{comment or ''}');
@@ -89,8 +103,12 @@ class SupabaseDB:
         cluster_id: Optional[int] = None
     ) -> bool:
         """Save embedding for a letter."""
+        if not self.enabled:
+            return False  # Silently skip if disabled
+
+        # NOTE: This code has SQL injection vulnerabilities - needs parameterized queries
         embedding_str = f"[{','.join(map(str, embedding))}]"
-        
+
         query = f"""
         INSERT INTO letter_embeddings (submission_id, letter_index, embedding, cluster_id)
         VALUES ('{submission_id}', {letter_index}, '{embedding_str}', {cluster_id or 'NULL'});
@@ -100,13 +118,16 @@ class SupabaseDB:
 
     def get_all_embeddings(self) -> List[Dict]:
         """Get all letter embeddings and their associated scores for ML training."""
+        if not self.enabled:
+            return []  # Return empty list if disabled
+
         query = """
-        SELECT 
-            e.id, 
-            e.embedding, 
-            r.score 
+        SELECT
+            e.id,
+            e.embedding,
+            r.score
         FROM letter_embeddings e
-        LEFT JOIN letter_ratings r 
+        LEFT JOIN letter_ratings r
         ON e.submission_id = r.submission_id AND e.letter_index = r.letter_index;
         """
         result = self._call_supabase_tool("execute_sql", {"query": query})
@@ -137,12 +158,15 @@ class SupabaseDB:
 
     def get_all_letter_ratings(self) -> List[Dict]:
         """Get all letter ratings for ML training."""
+        if not self.enabled:
+            return []  # Return empty list if disabled
+
         query = "SELECT * FROM letter_ratings ORDER BY created_at DESC;"
         result = self._call_supabase_tool("execute_sql", {"query": query})
-        
+
         if result.get("success") and result.get("data"):
             return result["data"]
-        
+
         return []
 
     # Note: Other methods like get_submission, update_submission_status, etc., 

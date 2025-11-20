@@ -8,12 +8,17 @@ from typing import Optional, Dict, List
 
 
 class Database:
-    def __init__(self, db_path="proex.db", supabase_project_id: str = "xlbrcrbngyrkwtcqgmbe"):
+    def __init__(self, db_path="proex.db", supabase_project_id: Optional[str] = None):
         self.db_path = db_path
         db_dir = os.path.dirname(self.db_path)
         if db_dir:  # Only create directory if path has a directory component
             os.makedirs(db_dir, exist_ok=True)
         self.init_db()
+
+        # Configuration: Supabase project ID from environment variable
+        # Note: Supabase integration is currently disabled by default
+        if supabase_project_id is None:
+            supabase_project_id = os.getenv("SUPABASE_PROJECT_ID", "xlbrcrbngyrkwtcqgmbe")
         self.supabase_db = SupabaseDB(supabase_project_id)
     
     def _migrate_schema_if_needed(self, cursor):
@@ -233,11 +238,22 @@ class Database:
         conn.commit()
         conn.close()
     
+    def get_total_submissions_count(self) -> int:
+        """Get total number of completed submissions (for ML retraining scheduling)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM submissions WHERE status = 'completed'")
+        count = cursor.fetchone()[0]
+
+        conn.close()
+        return count
+
     def get_user_submissions(self, email: str) -> List[Dict]:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
         cursor.execute(
             "SELECT * FROM submissions WHERE user_email = ? ORDER BY created_at DESC",
             (email,)

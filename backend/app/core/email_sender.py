@@ -1,10 +1,14 @@
 import requests
 import logging
+import os
 from typing import List
 
 logger = logging.getLogger(__name__)
 
-EMAIL_SERVICE_URL = "http://localhost:3001"
+# Configuration: Email service URL from environment variable
+# For development: http://localhost:3001
+# For production: Set EMAIL_SERVICE_URL environment variable
+EMAIL_SERVICE_URL = os.getenv("EMAIL_SERVICE_URL", "http://localhost:3001")
 
 def send_results_email(submission_id: str, recipient_email: str, docx_files: List[str]) -> dict:
     """
@@ -67,5 +71,6 @@ def check_email_service_health() -> bool:
     try:
         response = requests.get(f"{EMAIL_SERVICE_URL}/health", timeout=5)
         return response.status_code == 200
-    except:
+    except (requests.RequestException, Exception):
+        # Email service is not available
         return False

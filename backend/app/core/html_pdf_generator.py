@@ -147,7 +147,7 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
         for attempt in range(3):
             try:
                 response = llm.client.chat.completions.create(
-                    model="anthropic/claude-3.7-sonnet:beta",
+                    model="anthropic/claude-3.5-sonnet",
                     messages=[{
                         "role": "user",
                         "content": prompt

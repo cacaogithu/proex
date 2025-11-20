@@ -1,23 +1,47 @@
 from typing import Dict, Optional
 import json
 import time
+import re
 
 
 class BlockGenerator:
     def __init__(self, llm_processor, prompt_enhancer=None):
         self.llm = llm_processor
         self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
-    
-    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3) -> str:
+
+    def _count_words(self, text: str) -> int:
+        """Count words in text"""
+        return len(re.findall(r'\w+', text))
+
+    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3, max_tokens: int = 2000, min_words: int = 0, max_words: int = 0) -> str:
         for attempt in range(max_retries):
             try:
                 # Using Gemini 2.5 Pro - cost-effective for high-quality content
                 response = self.llm.client.chat.completions.create(
                     model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
-                return response.choices[0].message.content
+                content = response.choices[0].message.content
+
+                # Validate word count if specified
+                if min_words > 0 or max_words > 0:
+                    word_count = self._count_words(content)
+                    if min_words > 0 and word_count < min_words:
+                        print(f"⚠️  Word count too low: {word_count}/{min_words} words (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            # Strengthen prompt for next attempt
+                            prompt = prompt + f"\n\nCRITICAL: Your previous response had only {word_count} words. You MUST write AT LEAST {min_words} words. Count as you write."
+                            continue
+                    if max_words > 0 and word_count > max_words:
+                        print(f"⚠️  Word count too high: {word_count}/{max_words} words (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            # Strengthen prompt for next attempt
+                            prompt = prompt + f"\n\nCRITICAL: Your previous response had {word_count} words. You MUST write NO MORE THAN {max_words} words. Be concise."
+                            continue
+
+                return content
             except Exception as e:
                 if "429" in str(e) and attempt < max_retries - 1:
                     wait_time = (2 ** attempt) * 3
@@ -48,7 +72,9 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
 {{"block": 3, "markdown_draft": "<rascunho markdown>"}}
 
 # ESTRUTURA — BLOCO 3: VALIDAÇÃO EMPÍRICA DE RESULTADOS
-400–600 palavras. Primeira pessoa. Evidências quantitativas e qualitativas.
+CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 500 words minimum.
+Primeira pessoa. Evidências quantitativas e qualitativas.
 - Pelo menos 3 métricas quantitativas
 - 1-2 observações qualitativas
 - Lista com 4-6 resultados empíricos
@@ -76,11 +102,17 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
             try:
                 data = json.loads(content)
-                return data.get('markdown_draft', content)
-            except:
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                print(f"    ✓ Block 3 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                # If JSON parsing fails, return raw content
+                word_count = self._count_words(content)
+                print(f"    ✓ Block 3 generated: {word_count} words")
                 return content
         except Exception as e:
             print(f"Error generating block 3: {str(e)}")
@@ -97,7 +129,9 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 
 # BLOCO 4: DIFERENCIAÇÃO TÉCNICA E METODOLÓGICA
-500–700 palavras. Destaque capacidades técnicas únicas.
+CRITICAL REQUIREMENT: Write EXACTLY 500-700 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 600 words minimum.
+Destaque capacidades técnicas únicas.
 - Abordagens metodológicas exclusivas
 - Ferramentas e tecnologias avançadas
 - Processos inovadores
@@ -107,9 +141,12 @@ Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 - Linguagem técnica mas acessível
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=700)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 4 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
@@ -124,7 +161,9 @@ Você é `Block5_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 5: IMPACTO SETORIAL E ALCANCE
-400–600 palavras. Demonstre influência além do contexto imediato.
+CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 500 words minimum.
+Demonstre influência além do contexto imediato.
 - Reconhecimento por pares
 - Contribuições para o setor
 - Disseminação de conhecimento
@@ -134,9 +173,12 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 - Evidências concretas
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 5 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
@@ -151,7 +193,9 @@ Você é `Block6_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 6: QUALIFICAÇÃO DO RECOMENDADOR
-300–400 palavras. Estabeleça credibilidade.
+CRITICAL REQUIREMENT: Write EXACTLY 300-400 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 350 words minimum.
+Estabeleça credibilidade.
 - Experiência relevante
 - Posição para avaliar o trabalho
 - Contexto da colaboração
@@ -161,9 +205,12 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 - Profissional
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500, min_words=300, max_words=400)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 6 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 6: {str(e)}")
             return "Error generating block 6"
@@ -178,7 +225,9 @@ Você é `Block7_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 7: CONCLUSÃO E RECOMENDAÇÃO
-200–300 palavras. Encerramento forte.
+CRITICAL REQUIREMENT: Write EXACTLY 200-300 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 250 words minimum.
+Encerramento forte.
 - Síntese de valor
 - Recomendação clara
 - Perspectiva futura
@@ -188,9 +237,12 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 - Tom conclusivo
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1200, min_words=200, max_words=300)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 7 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 7: {str(e)}")
             return "Error generating block 7"
