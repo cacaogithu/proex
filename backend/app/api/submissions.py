@@ -24,8 +24,32 @@ async def create_submission(
     estrategia: Optional[UploadFile] = File(None),
     onenote: Optional[UploadFile] = File(None)
 ):
+    # Input validation: Email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
+        raise HTTPException(
+            status_code=400,
+            detail="Email inválido. Por favor, forneça um endereço de email válido."
+        )
+
+    # Input validation: Number of testimonials
+    if numberOfTestimonials < 1 or numberOfTestimonials > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Número de testemunhos deve estar entre 1 e 10"
+        )
+
+    # Validate: number of testimonials uploaded must match numberOfTestimonials
+    if len(testimonials) != numberOfTestimonials:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Número de CVs enviados ({len(testimonials)}) não corresponde ao número solicitado ({numberOfTestimonials})"
+        )
+
     # Security: Validate file sizes to prevent memory exhaustion
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB per file
+    MIN_FILE_SIZE = 100  # 100 bytes minimum (empty files are suspicious)
 
     files_to_check = [quadro, cv] + testimonials
     if estrategia:
@@ -34,10 +58,23 @@ async def create_submission(
         files_to_check.append(onenote)
 
     for file in files_to_check:
+        # Validate filename is present
+        if not file.filename or file.filename.strip() == "":
+            raise HTTPException(
+                status_code=400,
+                detail="Um ou mais arquivos têm nome inválido"
+            )
+
         # Read file size
         file.file.seek(0, 2)  # Seek to end
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to beginning
+
+        if file_size < MIN_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Arquivo {file.filename} está vazio ou é muito pequeno"
+            )
 
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
@@ -46,18 +83,11 @@ async def create_submission(
             )
 
         # Validate file extension
-        if not file.filename.endswith('.pdf'):
+        if not file.filename.lower().endswith('.pdf'):
             raise HTTPException(
                 status_code=400,
                 detail=f"Arquivo {file.filename} deve ser PDF"
             )
-
-    # Validate: number of testimonials uploaded must match numberOfTestimonials
-    if len(testimonials) != numberOfTestimonials:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Número de CVs enviados ({len(testimonials)}) não corresponde ao número solicitado ({numberOfTestimonials})"
-        )
     
     submission = db.create_submission(email, numberOfTestimonials)
     submission_id = submission['id']
