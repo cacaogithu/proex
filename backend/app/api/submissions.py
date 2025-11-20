@@ -12,6 +12,9 @@ from ..db.database import Database
 router = APIRouter()
 db = Database()
 
+# Configuration
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')
+
 
 @router.post("/submissions")
 async def create_submission(
@@ -91,8 +94,8 @@ async def create_submission(
     
     submission = db.create_submission(email, numberOfTestimonials)
     submission_id = submission['id']
-    
-    upload_dir = f"storage/uploads/{submission_id}"
+
+    upload_dir = os.path.join(STORAGE_BASE_DIR, "uploads", submission_id)
     os.makedirs(upload_dir, exist_ok=True)
     
     with open(f"{upload_dir}/quadro.pdf", "wb") as f:
@@ -131,7 +134,7 @@ async def get_submission(submission_id: str):
     
     # Add list of generated files if completed
     if submission['status'] == 'completed':
-        output_dir = f"storage/outputs/{submission_id}"
+        output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
         if os.path.exists(output_dir):
             files = [
                 f for f in os.listdir(output_dir) 
@@ -168,10 +171,10 @@ async def get_file(submission_id: str, filename: str):
     if not (filename.endswith('.pdf') or filename.endswith('.docx')):
         raise HTTPException(status_code=400, detail="Tipo de arquivo inválido")
 
-    file_path = f"storage/outputs/{submission_id}/{filename}"
+    file_path = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id, filename)
 
     # Security: Verify the resolved path is still within expected directory
-    expected_dir = os.path.abspath(f"storage/outputs/{submission_id}")
+    expected_dir = os.path.abspath(os.path.join(STORAGE_BASE_DIR, "outputs", submission_id))
     actual_path = os.path.abspath(file_path)
     if not actual_path.startswith(expected_dir):
         raise HTTPException(status_code=400, detail="Caminho de arquivo inválido")
@@ -199,11 +202,11 @@ async def download_results(submission_id: str):
     
     if submission['status'] != 'completed':
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Processamento ainda não completo. Status: {submission['status']}"
         )
-    
-    output_dir = f"storage/outputs/{submission_id}"
+
+    output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
     
     if not os.path.exists(output_dir):
         raise HTTPException(status_code=404, detail="Arquivos não encontrados")

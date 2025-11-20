@@ -4,6 +4,11 @@ import os
 from typing import Optional
 from urllib.parse import urljoin, urlparse
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Configuration constants
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
+DEFAULT_REQUEST_TIMEOUT = 5  # seconds
 
 
 class LogoScraper:
@@ -15,14 +20,19 @@ class LogoScraper:
         self._logo_cache = {}
         # Brandfetch API key (free tier: 100 requests/month)
         self.brandfetch_key = os.environ.get('BRANDFETCH_API_KEY', '')
+        # Max concurrent logo fetching methods
+        self.max_parallel_methods = 3
     
     def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
         """
-        Tries to fetch company logo using multiple methods:
+        Tries to fetch company logo using multiple methods in parallel for speed.
+
+        Methods tried (in parallel):
         1. Clearbit API (free tier)
-        2. Direct website scraping
-        3. Google search fallback
-        
+        2. Logo.dev API
+        3. Favicon extraction
+        4. Direct website scraping
+
         Returns: Path to downloaded logo or None
         """
         # Check cache first
@@ -30,49 +40,59 @@ class LogoScraper:
         if cache_key in self._logo_cache:
             print(f"✓ Logo found in cache for: {company_name}")
             return self._logo_cache[cache_key]
-        
+
+        if not company_website:
+            print(f"⚠️ No website provided for {company_name}, skipping logo fetch")
+            self._logo_cache[cache_key] = None
+            return None
+
         print(f"🔍 Searching logo for: {company_name}")
-        
+
+        # Build list of methods to try
+        methods = [
+            ('Clearbit', lambda: self._try_clearbit(company_website)),
+            ('Logo.dev', lambda: self._try_logodev(company_website)),
+            ('Favicon', lambda: self._try_favicon(company_website)),
+        ]
+
+        # Add Brandfetch if API key is available
+        if self.brandfetch_key:
+            methods.insert(0, ('Brandfetch', lambda: self._try_brandfetch(company_website)))
+
+        # Try all methods in parallel, return first successful result
         logo_path = None
-        
-        # Method 1: Try Brandfetch API (best database)
-        if company_website and self.brandfetch_key:
-            logo_path = self._try_brandfetch(company_website)
-            if logo_path:
-                self._logo_cache[cache_key] = logo_path
-                return logo_path
-        
-        # Method 2: Try Clearbit API (good fallback)
-        if company_website:
-            logo_path = self._try_clearbit(company_website)
-            if logo_path:
-                self._logo_cache[cache_key] = logo_path
-                return logo_path
-        
-        # Method 3: Try Logo.dev API
-        if company_website:
-            logo_path = self._try_logodev(company_website)
-            if logo_path:
-                self._logo_cache[cache_key] = logo_path
-                return logo_path
-        
-        # Method 4: Try favicon extraction (more reliable than full scraping)
-        if company_website:
-            logo_path = self._try_favicon(company_website)
-            if logo_path:
-                self._logo_cache[cache_key] = logo_path
-                return logo_path
-        
-        # Method 5: Try scraping company website directly
-        if company_website:
+        with ThreadPoolExecutor(max_workers=self.max_parallel_methods) as executor:
+            future_to_method = {
+                executor.submit(method_func): method_name
+                for method_name, method_func in methods
+            }
+
+            for future in as_completed(future_to_method):
+                method_name = future_to_method[future]
+                try:
+                    result = future.result()
+                    if result:
+                        logo_path = result
+                        print(f"✓ Logo found via {method_name} (parallel fetch)")
+                        # Cancel remaining tasks since we found a logo
+                        for f in future_to_method:
+                            f.cancel()
+                        break
+                except Exception as exc:
+                    # Silent failure - let other methods try
+                    pass
+
+        # If parallel methods failed, try website scraping (slower, so do it last)
+        if not logo_path:
             logo_path = self._scrape_website_logo(company_website)
-            if logo_path:
-                self._logo_cache[cache_key] = logo_path
-                return logo_path
-        
-        print(f"⚠️ Could not find logo for {company_name}")
-        self._logo_cache[cache_key] = None
-        return None
+
+        if logo_path:
+            self._logo_cache[cache_key] = logo_path
+        else:
+            print(f"⚠️ Could not find logo for {company_name}")
+            self._logo_cache[cache_key] = None
+
+        return logo_path
     
     def _try_brandfetch(self, website: str) -> Optional[str]:
         """Use Brandfetch API - excellent logo database"""
@@ -84,7 +104,7 @@ class LogoScraper:
             api_url = f"https://api.brandfetch.io/v2/brands/{domain}"
             headers = {**self.headers, 'Authorization': f'Bearer {self.brandfetch_key}'}
             
-            response = requests.get(api_url, headers=headers, timeout=5)
+            response = requests.get(api_url, headers=headers, timeout=DEFAULT_REQUEST_TIMEOUT)
             if response.status_code == 200:
                 data = response.json()
                 # Try to get the logo from the response
@@ -92,7 +112,7 @@ class LogoScraper:
                 if logos and len(logos) > 0:
                     logo_url = logos[0].get('formats', [{}])[0].get('src')
                     if logo_url:
-                        logo_response = requests.get(logo_url, headers=self.headers, timeout=5)
+                        logo_response = requests.get(logo_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
                         if logo_response.status_code == 200:
                             logo_path = self._save_logo(domain, logo_response.content)
                             print(f"✓ Logo found via Brandfetch: {domain}")
@@ -113,7 +133,7 @@ class LogoScraper:
                 
                 clearbit_url = f"https://logo.clearbit.com/{domain}"
                 
-                response = requests.get(clearbit_url, headers=self.headers, timeout=3)
+                response = requests.get(clearbit_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
                 if response.status_code == 200:
                     # Save logo
                     logo_path = self._save_logo(domain, response.content)
@@ -141,7 +161,7 @@ class LogoScraper:
             logodev_token = os.getenv('LOGODEV_API_KEY', 'pk_X-1ZO13CRYuAq5BIwG4BQA')  # Fallback for backward compatibility
             logodev_url = f"https://img.logo.dev/{domain}?token={logodev_token}"
 
-            response = requests.get(logodev_url, headers=self.headers, timeout=3)
+            response = requests.get(logodev_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
             if response.status_code == 200 and len(response.content) > 1000:  # Ensure it's not an error placeholder
                 logo_path = self._save_logo(domain, response.content)
                 print(f"✓ Logo found via Logo.dev: {domain}")
@@ -170,7 +190,7 @@ class LogoScraper:
             
             for favicon_url in favicon_paths:
                 try:
-                    response = requests.get(favicon_url, headers=self.headers, timeout=3)
+                    response = requests.get(favicon_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
                     if response.status_code == 200 and len(response.content) > 500:
                         logo_path = self._save_logo(domain.replace('www.', ''), response.content)
                         print(f"✓ Logo found via favicon: {domain}")
@@ -190,7 +210,7 @@ class LogoScraper:
             if not website.startswith('http'):
                 website = f"https://{website}"
             
-            response = requests.get(website, headers=self.headers, timeout=5)
+            response = requests.get(website, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # Look for common logo patterns
@@ -208,7 +228,7 @@ class LogoScraper:
                     logo_url = urljoin(website, str(logo['src']))
                     
                     # Download logo
-                    logo_response = requests.get(logo_url, headers=self.headers, timeout=5)
+                    logo_response = requests.get(logo_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
                     if logo_response.status_code == 200:
                         domain = urlparse(website).netloc.replace('www.', '')
                         logo_path = self._save_logo(domain, logo_response.content)
@@ -223,8 +243,8 @@ class LogoScraper:
     
     def _save_logo(self, company_identifier: str, image_data: bytes) -> str:
         """Save logo to storage and return path"""
-        # Create logos directory
-        logos_dir = "backend/storage/logos"
+        # Create logos directory (use centralized configuration)
+        logos_dir = os.path.join(STORAGE_BASE_DIR, "logos")
         os.makedirs(logos_dir, exist_ok=True)
         
         # Clean company name for filename

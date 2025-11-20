@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Configuration constants
 MAX_PARALLEL_WORKERS = 5  # Maximum concurrent letter generation tasks
 MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')  # Base storage directory
 
 
 class SubmissionProcessor:
@@ -69,7 +70,9 @@ class SubmissionProcessor:
         print(f"    ✓ Letter assembled for {recommender_name}")
 
         # 4. Generate PDF and DOCX
-        output_path = f"storage/outputs/{submission_id}/letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf"
+        output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf")
         print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')}) for {recommender_name}...")
 
         recommender_info = {
@@ -347,7 +350,7 @@ class SubmissionProcessor:
                     existing_designs[letter_idx] = new_designs[i]
             
             # Regenerate blocks and PDFs for selected letters
-            output_dir = f"storage/outputs/{submission_id}"
+            output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
             os.makedirs(output_dir, exist_ok=True)
             
             print(f"\nRegenerating content and PDFs...")
