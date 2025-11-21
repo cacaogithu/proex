@@ -5,6 +5,9 @@ from typing import Optional
 from urllib.parse import urljoin, urlparse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pdfplumber
+import io
+from PIL import Image
 
 # Configuration constants
 STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
@@ -23,15 +26,21 @@ class LogoScraper:
         # Max concurrent logo fetching methods
         self.max_parallel_methods = 3
     
-    def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
+    def set_pdf_path(self, pdf_path: str) -> None:
+        """Set the path to scan for logos (e.g., testimonial PDF)"""
+        self.pdf_path = pdf_path
+    
+    def get_company_logo(self, company_name: str, company_website: Optional[str] = None, pdf_path: Optional[str] = None) -> Optional[str]:
         """
         Tries to fetch company logo using multiple methods in parallel for speed.
 
-        Methods tried (in parallel):
-        1. Clearbit API (free tier)
-        2. Logo.dev API
-        3. Favicon extraction
-        4. Direct website scraping
+        Methods tried (in order of priority):
+        1. Extract from PDF if provided (FASTEST - instant)
+        2. Brandfetch API (if key available)
+        3. Clearbit API (free tier)
+        4. Logo.dev API
+        5. Favicon extraction
+        6. Direct website scraping
 
         Returns: Path to downloaded logo or None
         """
@@ -41,12 +50,20 @@ class LogoScraper:
             print(f"✓ Logo found in cache for: {company_name}")
             return self._logo_cache[cache_key]
 
+        print(f"🔍 Searching logo for: {company_name}")
+        
+        # TRY PDF EXTRACTION FIRST (fast and reliable)
+        if pdf_path and os.path.exists(pdf_path):
+            logo_path = self._extract_logo_from_pdf(pdf_path, company_name)
+            if logo_path:
+                print(f"✓ Logo extracted from PDF: {company_name}")
+                self._logo_cache[cache_key] = logo_path
+                return logo_path
+
         if not company_website:
-            print(f"⚠️ No website provided for {company_name}, skipping logo fetch")
+            print(f"⚠️ No website or PDF provided for {company_name}, skipping logo fetch")
             self._logo_cache[cache_key] = None
             return None
-
-        print(f"🔍 Searching logo for: {company_name}")
 
         # Build list of methods to try
         methods = [
@@ -93,6 +110,54 @@ class LogoScraper:
             self._logo_cache[cache_key] = None
 
         return logo_path
+    
+    def _extract_logo_from_pdf(self, pdf_path: str, company_name: str) -> Optional[str]:
+        """Extract logo/images directly from PDF - FAST and RELIABLE"""
+        try:
+            if not os.path.exists(pdf_path):
+                return None
+            
+            with pdfplumber.open(pdf_path) as pdf:
+                # Scan first 2 pages (logos usually at top)
+                pages_to_scan = min(2, len(pdf.pages))
+                
+                for page_idx in range(pages_to_scan):
+                    page = pdf.pages[page_idx]
+                    
+                    # Extract images from page
+                    if hasattr(page, 'images') and page.images:
+                        for img_idx, img in enumerate(page.images):
+                            # Get image coordinates
+                            x0, top, x1, bottom = img['x0'], img['top'], img['x1'], img['bottom']
+                            width = x1 - x0
+                            height = bottom - top
+                            
+                            # Prefer images in top area (headers/logos) and reasonable size
+                            is_header_position = top < (page.height * 0.3)  # Top 30% of page
+                            is_reasonable_size = 50 < width < 400 and 20 < height < 400
+                            
+                            if is_header_position and is_reasonable_size:
+                                try:
+                                    # Extract the image
+                                    cropped_page = page.within_bbox((x0, top, x1, bottom))
+                                    im = cropped_page.to_image(resolution=150)
+                                    
+                                    # Save extracted logo
+                                    if im and im.original:
+                                        image_data = io.BytesIO()
+                                        im.original.save(image_data, format='PNG')
+                                        image_data.seek(0)
+                                        
+                                        logo_path = self._save_logo(company_name, image_data.getvalue())
+                                        return logo_path
+                                except Exception as e:
+                                    print(f"Error extracting image from PDF: {str(e)}")
+                                    continue
+        
+        except Exception as e:
+            print(f"PDF logo extraction failed: {str(e)}")
+        
+        return None
     
     def _try_brandfetch(self, website: str) -> Optional[str]:
         """Use Brandfetch API - excellent logo database"""
