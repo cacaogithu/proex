@@ -154,7 +154,7 @@ class SubmissionProcessor:
             
             # Validate: number of testimonies must match expected number
             submission = self.db.get_submission(submission_id)
-            expected_count = submission.get('number_of_testimonials', len(testimonies))
+            expected_count = submission.get('number_of_testimonials', len(testimonies)) if submission else len(testimonies)
             
             if len(testimonies) != expected_count:
                 print(f"⚠️  WARNING: Expected {expected_count} testimonies but found {len(testimonies)}")
@@ -341,7 +341,7 @@ class SubmissionProcessor:
             
             # Create new designs for selected indices
             selected_testimonials = [testimonials[i] for i in letter_indices]
-            new_designs_dict = self.heterogeneity.create_design_structures(selected_testimonials)
+            new_designs_dict = self.heterogeneity.generate_design_structures({'testimonies': selected_testimonials})
             new_designs = new_designs_dict.get('design_structures', [])
             
             # Replace designs at specified indices
@@ -372,16 +372,10 @@ class SubmissionProcessor:
                 }
                 blocks = self.block_generator.generate_all_blocks(testimony, design, context)
                 
-                # Assemble letter with Claude
-                print("    - Assembling letter with Claude 4.5 Sonnet...")
-                letter_html = self.llm.assemble_letter_with_claude(
-                    blocks=blocks,
-                    design=design,
-                    testimony=testimony,
-                    petitioner=organized_data.get('petitioner', {}),
-                    custom_instructions=custom_instructions
-                )
-                print(f"✅ Letter assembled with Claude 4.5 Sonnet (Template {design.get('template_id', 'A')})")
+                # Assemble letter
+                print("    - Assembling letter...")
+                letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
+                print(f"✅ Letter assembled (Template {design.get('template_id', 'A')})")
                 
                 # Get logo if available
                 logo_path = testimony.get('company_logo_path')

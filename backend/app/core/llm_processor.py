@@ -18,7 +18,7 @@ class LLMProcessor:
         
         self.models = {
             "fast": "google/gemini-2.0-flash-exp:free",
-            "quality": "google/gemini-exp-1206:free",
+            "quality": "deepseek/deepseek-r1:free",
             "premium": "anthropic/claude-3.5-sonnet"
         }
     
