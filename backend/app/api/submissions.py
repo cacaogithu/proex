@@ -193,6 +193,22 @@ async def get_file(submission_id: str, filename: str):
     )
 
 
+@router.post("/submissions/{submission_id}/retry")
+async def retry_submission(submission_id: str, background_tasks: BackgroundTasks):
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submissão não encontrada")
+    
+    db.update_submission_status(submission_id, "received", None)
+    processor = SubmissionProcessor()
+    background_tasks.add_task(processor.process_submission, submission_id)
+    
+    return {
+        "status": "received",
+        "message": "Processamento reiniciado"
+    }
+
+
 @router.get("/submissions/{submission_id}/download")
 async def download_results(submission_id: str):
     submission = db.get_submission(submission_id)

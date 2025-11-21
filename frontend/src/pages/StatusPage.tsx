@@ -46,6 +46,22 @@ export default function StatusPage() {
     window.open(`/api/submissions/${submissionId}/download`, '_blank')
   }
 
+  const retrySubmission = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      await axios.post(`/api/submissions/${submissionId}/retry`)
+      setSubmission({ ...submission, status: 'received' })
+      setTimeout(() => {
+        checkStatus()
+      }, 1000)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Erro ao tentar novamente')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     const colors: any = {
       received: 'bg-blue-100 text-blue-800',
@@ -134,9 +150,18 @@ export default function StatusPage() {
           </div>
 
           {submission.error_message && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500 mb-1">Mensagem de Erro</p>
-              <p className="text-red-800">{submission.error_message}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Mensagem de Erro</p>
+                <p className="text-red-800">{submission.error_message}</p>
+              </div>
+              <button
+                onClick={retrySubmission}
+                disabled={loading}
+                className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+              >
+                {loading ? 'Tentando novamente...' : 'Tentar Novamente'}
+              </button>
             </div>
           )}
 
