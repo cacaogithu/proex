@@ -19,58 +19,76 @@ class LogoScraper:
     def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
         """
         Tries to fetch company logo using multiple methods:
-        1. Clearbit API (free tier)
-        2. Direct website scraping
-        3. Google search fallback
-        
-        Returns: Path to downloaded logo or None
+        1. Brandfetch API (best database)
+        2. Clearbit API (free tier)
+        3. Logo.dev API
+        4. Favicon extraction
+        5. Direct website scraping
+        6. Generate placeholder logo as fallback
+
+        Returns: Path to downloaded logo or placeholder
         """
         # Check cache first
         cache_key = company_website or company_name
         if cache_key in self._logo_cache:
-            print(f"✓ Logo found in cache for: {company_name}")
-            return self._logo_cache[cache_key]
-        
-        print(f"🔍 Searching logo for: {company_name}")
-        
+            cached_logo = self._logo_cache[cache_key]
+            if cached_logo and os.path.exists(cached_logo):
+                print(f"✓ Logo found in cache for: {company_name}")
+                return cached_logo
+
+        print(f"🔍 Searching logo for: {company_name} (website: {company_website})")
+
         logo_path = None
-        
+
         # Method 1: Try Brandfetch API (best database)
         if company_website and self.brandfetch_key:
+            print(f"   → Trying Brandfetch API...")
             logo_path = self._try_brandfetch(company_website)
-            if logo_path:
+            if logo_path and os.path.exists(logo_path):
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
-        
+
         # Method 2: Try Clearbit API (good fallback)
         if company_website:
+            print(f"   → Trying Clearbit API...")
             logo_path = self._try_clearbit(company_website)
-            if logo_path:
+            if logo_path and os.path.exists(logo_path):
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
-        
+
         # Method 3: Try Logo.dev API
         if company_website:
+            print(f"   → Trying Logo.dev API...")
             logo_path = self._try_logodev(company_website)
-            if logo_path:
+            if logo_path and os.path.exists(logo_path):
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
-        
+
         # Method 4: Try favicon extraction (more reliable than full scraping)
         if company_website:
+            print(f"   → Trying favicon extraction...")
             logo_path = self._try_favicon(company_website)
-            if logo_path:
+            if logo_path and os.path.exists(logo_path):
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
-        
+
         # Method 5: Try scraping company website directly
         if company_website:
+            print(f"   → Trying website scraping...")
             logo_path = self._scrape_website_logo(company_website)
-            if logo_path:
+            if logo_path and os.path.exists(logo_path):
                 self._logo_cache[cache_key] = logo_path
                 return logo_path
-        
-        print(f"⚠️ Could not find logo for {company_name}")
+
+        # Method 6: Generate placeholder logo with company initials
+        print(f"   → Generating placeholder logo for: {company_name}")
+        logo_path = self._generate_placeholder_logo(company_name)
+        if logo_path and os.path.exists(logo_path):
+            self._logo_cache[cache_key] = logo_path
+            print(f"✓ Placeholder logo created for: {company_name}")
+            return logo_path
+
+        print(f"⚠️ Could not find or create logo for {company_name}")
         self._logo_cache[cache_key] = None
         return None
     
@@ -226,11 +244,11 @@ class LogoScraper:
         # Create logos directory
         logos_dir = "backend/storage/logos"
         os.makedirs(logos_dir, exist_ok=True)
-        
+
         # Clean company name for filename
         safe_name = "".join(c for c in company_identifier if c.isalnum() or c in (' ', '-', '_')).strip()
         safe_name = safe_name.replace(' ', '_')
-        
+
         # Detect image format from content
         if image_data.startswith(b'\x89PNG'):
             ext = '.png'
@@ -242,10 +260,72 @@ class LogoScraper:
             ext = '.svg'
         else:
             ext = '.png'  # default
-        
+
         logo_path = f"{logos_dir}/{safe_name}{ext}"
-        
+
         with open(logo_path, 'wb') as f:
             f.write(image_data)
-        
+
         return logo_path
+
+    def _generate_placeholder_logo(self, company_name: str) -> Optional[str]:
+        """Generate a placeholder logo with company initials using SVG"""
+        try:
+            # Create logos directory
+            logos_dir = "backend/storage/logos"
+            os.makedirs(logos_dir, exist_ok=True)
+
+            # Get initials (up to 2-3 characters)
+            words = company_name.split()
+            if len(words) >= 2:
+                initials = ''.join(word[0].upper() for word in words[:3] if word)
+            else:
+                initials = company_name[:3].upper()
+
+            # Clean for filename
+            safe_name = "".join(c for c in company_name if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_name = safe_name.replace(' ', '_')
+
+            # Generate a color based on company name (deterministic)
+            hash_value = sum(ord(c) for c in company_name)
+            colors = [
+                ('#1976d2', '#0d47a1'),  # Blue
+                ('#388e3c', '#1b5e20'),  # Green
+                ('#7b1fa2', '#4a148c'),  # Purple
+                ('#d32f2f', '#b71c1c'),  # Red
+                ('#f57c00', '#e65100'),  # Orange
+                ('#0097a7', '#006064'),  # Teal
+                ('#5d4037', '#3e2723'),  # Brown
+                ('#455a64', '#263238'),  # Blue Grey
+            ]
+            color_pair = colors[hash_value % len(colors)]
+
+            # Calculate font size based on initials length
+            font_size = 48 if len(initials) <= 2 else 36 if len(initials) == 3 else 28
+
+            # Create SVG placeholder
+            svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:{color_pair[0]};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:{color_pair[1]};stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <rect width="200" height="100" rx="10" fill="url(#grad)"/>
+    <text x="100" y="58" font-family="Arial, Helvetica, sans-serif" font-size="{font_size}"
+          font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+        {initials}
+    </text>
+</svg>'''
+
+            logo_path = f"{logos_dir}/{safe_name}_placeholder.svg"
+
+            with open(logo_path, 'w', encoding='utf-8') as f:
+                f.write(svg_content)
+
+            return logo_path
+
+        except Exception as e:
+            print(f"Error generating placeholder logo: {str(e)}")
+            return None

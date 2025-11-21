@@ -153,7 +153,7 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
                         "content": prompt
                     }],
                     temperature=0.3,
-                    max_tokens=6000
+                    max_tokens=12000  # Increased for longer content
                 )
                 
                 html_content = response.choices[0].message.content.strip()
