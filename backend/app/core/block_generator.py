@@ -80,20 +80,22 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
 {{"block": 3, "markdown_draft": "<rascunho markdown>"}}
 
 # ESTRUTURA — BLOCO 3: VALIDAÇÃO EMPÍRICA DE RESULTADOS
-CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 500 words minimum.
-Primeira pessoa. Evidências quantitativas e qualitativas.
-- Pelo menos 3 métricas quantitativas
-- 1-2 observações qualitativas
-- Lista com 4-6 resultados empíricos
+CRITICAL REQUIREMENT: Write EXACTLY 1200-1600 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 1400 words minimum.
+Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
+- Pelo menos 5-7 métricas quantitativas (com números específicos)
+- 3-4 observações qualitativas profundas
+- Lista com 8-12 resultados empíricos documentados
+- Contexto e impacto de cada métrica
 
 # REGRAS
 - Voz: primeira pessoa (recomendador falando)
-- Foco: resultados apenas
+- Foco: resultados com análise aprofundada
 - Estilo: profissional, preciso, executivo
 - Output: Markdown apenas, sem HTML
 - TODO EM PORTUGUÊS
 - Remova termos: "imigração", "EB2-NIW", "peticionário"
+- Expanda com narrativa completa de cada resultado
 """
         
         # ML-powered prompt enhancement
@@ -110,7 +112,7 @@ Primeira pessoa. Evidências quantitativas e qualitativas.
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=1200, max_words=1600)
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)
@@ -137,21 +139,24 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 
 # BLOCO 4: DIFERENCIAÇÃO TÉCNICA E METODOLÓGICA
-CRITICAL REQUIREMENT: Write EXACTLY 500-700 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 600 words minimum.
-Destaque capacidades técnicas únicas.
-- Abordagens metodológicas exclusivas
-- Ferramentas e tecnologias avançadas
-- Processos inovadores
+CRITICAL REQUIREMENT: Write EXACTLY 1000-1400 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 1200 words minimum.
+Destaque capacidades técnicas únicas com profundidade.
+- Abordagens metodológicas exclusivas (explicar cada uma)
+- Ferramentas e tecnologias avançadas (listá-las com contexto)
+- Processos inovadores (detalhar implementação)
+- Vantagens competitivas específicas
+- Exemplos reais de aplicação
 
 # REGRAS
 - Primeira pessoa
 - Linguagem técnica mas acessível
+- Incluir métricas e resultados mensuráveis
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=700)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=1000, max_words=1400)
             word_count = self._count_words(content)
             print(f"    ✓ Block 4 generated: {word_count} words")
             return content
@@ -169,21 +174,24 @@ Você é `Block5_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 5: IMPACTO SETORIAL E ALCANCE
-CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 500 words minimum.
-Demonstre influência além do contexto imediato.
-- Reconhecimento por pares
-- Contribuições para o setor
-- Disseminação de conhecimento
+CRITICAL REQUIREMENT: Write EXACTLY 800-1100 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 950 words minimum.
+Demonstre influência além do contexto imediato com exemplos detalhados.
+- Reconhecimento por pares (conferências, publicações, mentorias)
+- Contribuições para o setor (iniciativas, transformações)
+- Disseminação de conhecimento (treinamentos, palestras, frameworks)
+- Impacto em múltiplas organizações
+- Legado e influência duradoura
 
 # REGRAS
 - Primeira pessoa
-- Evidências concretas
+- Evidências concretas e quantificáveis
+- Incluir nomes de instituições e projetos
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3500, min_words=800, max_words=1100)
             word_count = self._count_words(content)
             print(f"    ✓ Block 5 generated: {word_count} words")
             return content
@@ -201,21 +209,24 @@ Você é `Block6_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 6: QUALIFICAÇÃO DO RECOMENDADOR
-CRITICAL REQUIREMENT: Write EXACTLY 300-400 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 350 words minimum.
-Estabeleça credibilidade.
-- Experiência relevante
-- Posição para avaliar o trabalho
-- Contexto da colaboração
+CRITICAL REQUIREMENT: Write EXACTLY 500-700 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 600 words minimum.
+Estabeleça credibilidade de forma aprofundada.
+- Experiência relevante (anos, setores, especialidades)
+- Posição estratégica para avaliar o trabalho
+- Contexto detalhado da colaboração
+- Nível de supervisão e responsabilidade
+- Base factual para a recomendação
 
 # REGRAS
 - Primeira pessoa
-- Profissional
+- Profissional e convincente
+- Detalhe específico sobre relacionamento e observação
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500, min_words=300, max_words=400)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=700)
             word_count = self._count_words(content)
             print(f"    ✓ Block 6 generated: {word_count} words")
             return content
@@ -233,21 +244,24 @@ Você é `Block7_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 7: CONCLUSÃO E RECOMENDAÇÃO
-CRITICAL REQUIREMENT: Write EXACTLY 200-300 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 250 words minimum.
-Encerramento forte.
-- Síntese de valor
-- Recomendação clara
-- Perspectiva futura
+CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 500 words minimum.
+Encerramento forte com impacto.
+- Síntese integrada de todas as contribuições
+- Recomendação clara e sem hesitações
+- Perspectiva sobre potencial futuro
+- Apelo final convincente
+- Contacto e disponibilidade
 
 # REGRAS
 - Primeira pessoa
-- Tom conclusivo
+- Tom conclusivo e persuasivo
+- Reaffirm a excelência demonstrada
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1200, min_words=200, max_words=300)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=400, max_words=600)
             word_count = self._count_words(content)
             print(f"    ✓ Block 7 generated: {word_count} words")
             return content
