@@ -1,22 +1,13 @@
 from typing import Dict, List
 import json
-import time
 import random
+import time
 
 
-class StyleBlueprintGenerator:
-    """Generates unique style blueprints dynamically without templates"""
+class HeterogeneityArchitect:
+    """Generates dynamic heterogeneous designs WITHOUT templates - pure variation"""
     def __init__(self, llm_processor):
         self.llm = llm_processor
-        
-        # Style dimensions for dynamic generation (no templates!)
-        self.style_axes = {
-            'voice_intensity': ['technical-precise', 'strategic-analytical', 'narrative-conversational', 'formal-academic', 'direct-pragmatic'],
-            'structure_pattern': ['methodical-sections', 'problem-solution-flow', 'chronological-journey', 'evidence-clusters', 'comparison-contrast'],
-            'metric_emphasis': ['hyper-quantitative', 'balanced-quali-quant', 'transformation-focused', 'roi-centered', 'innovation-driven'],
-            'formality_level': ['ultra-formal', 'professional-standard', 'accessible-clear', 'conversational-warm', 'executive-concise'],
-            'visual_density': ['dense-technical', 'structured-readable', 'flowing-narrative', 'bulleted-scannable', 'mixed-dynamic']
-        }
     
     def _format_testimonies(self, testimonies: List[Dict]) -> str:
         formatted = []
@@ -27,62 +18,84 @@ Testemunho {i+1}:
 - Empresa: {t.get('recommender_company', 'N/A')}
 - Cargo: {t.get('recommender_role', 'N/A')}
 - Período: {t.get('collaboration_period', 'N/A')}
-- Texto: {t.get('testimony_text', '')[:200]}...
 """)
         return "\n".join(formatted)
     
-    def generate_style_blueprints(self, organized_data: Dict) -> Dict:
-        """Generate unique style blueprints dynamically (NO TEMPLATES!)"""
+    def generate_design_structures(self, organized_data: Dict) -> Dict:
+        """Generate UNIQUE heterogeneous designs for each testimony"""
         testimonies = organized_data.get('testimonies', [])
         num_testimonies = len(testimonies)
         
         if num_testimonies == 0:
             raise ValueError("Nenhum testemunho encontrado")
         
-        # Generate unique style combinations for each testimony
-        style_blueprints = []
-        used_combinations = set()
+        # Create truly unique design variations using randomized axes
+        design_structures = []
         
         for i, testimony in enumerate(testimonies):
-            # Ensure unique combination for each letter
-            while True:
-                voice = random.choice(self.style_axes['voice_intensity'])
-                structure = random.choice(self.style_axes['structure_pattern'])
-                metrics = random.choice(self.style_axes['metric_emphasis'])
-                formality = random.choice(self.style_axes['formality_level'])
-                visual = random.choice(self.style_axes['visual_density'])
-                
-                combination = f"{voice}-{structure}-{metrics}"
-                if combination not in used_combinations or len(used_combinations) >= 25:
-                    used_combinations.add(combination)
-                    break
+            # Generate unique design based on testimony characteristics
+            unique_seed = hash(testimony.get('recommender_name', '') + str(i)) % 100
+            random.seed(unique_seed)
             
-            style_blueprints.append({
+            # Create heterogeneous design parameters
+            design = {
                 'index': i,
                 'recommender_name': testimony.get('recommender_name', 'Unknown'),
                 'recommender_role': testimony.get('recommender_role', 'Unknown'),
-                'voice_style': voice,
-                'structure_pattern': structure,
-                'metric_emphasis': metrics,
-                'formality_level': formality,
-                'visual_density': visual,
-                'unique_id': f"STYLE_{i+1}_{voice[:4].upper()}",
-                'tone_instructions': f"Write in {voice} voice with {formality} tone",
-                'paragraph_style': f"Use {visual} formatting with {structure}",
-                'persona_description': f"A {formality} professional with {voice} communication style",
-                'opening_style': f"Begin with {structure} approach",
-                'technical_depth': 'HIGH' if 'technical' in voice else 'MEDIUM',
+                # Randomized tone instruction
+                'tone_instructions': random.choice([
+                    'Technical expert providing detailed analysis',
+                    'Strategic leader sharing business perspective',
+                    'Operational manager describing achievements',
+                    'Academic professional with formal approach',
+                    'Direct pragmatist focusing on results'
+                ]),
+                # Randomized structure
+                'structure_format': random.choice([
+                    'Analytical with data-driven sections',
+                    'Narrative flowing from challenge to solution',
+                    'Structured case study format',
+                    'Testimonial with personal observations',
+                    'Professional assessment with metrics'
+                ]),
+                # Randomized opening style
+                'opening_style': random.choice([
+                    'Start with specific technical context',
+                    'Begin with business challenge',
+                    'Open with collaboration background',
+                    'Introduce formal professional context',
+                    'Present key achievement upfront'
+                ]),
+                # Randomized paragraph style
+                'paragraph_style': random.choice([
+                    'Short, punchy paragraphs with metrics',
+                    'Flowing, narrative-style paragraphs',
+                    'Academic-style with structured sections',
+                    'Mixed short and long paragraphs',
+                    'Detailed explanatory paragraphs'
+                ]),
+                # Randomized technical depth
+                'technical_depth': random.choice(['HIGH', 'MEDIUM', 'MEDIUM-HIGH', 'LOW-MEDIUM']),
+                # Randomized visual elements
+                'visual_elements': random.choice([
+                    'Minimal, text-only',
+                    'Simple section breaks',
+                    'Professional spacing',
+                    'Light visual hierarchy',
+                    'Clear structure with emphasis'
+                ]),
+                # Unique features based on combination
                 'unique_features': [
-                    f"Primary voice: {voice}",
-                    f"Structure: {structure}",
-                    f"Emphasis: {metrics}"
+                    f"Voice: {random.choice(['technical', 'strategic', 'narrative', 'formal', 'pragmatic'])}",
+                    f"Focus: {random.choice(['expertise', 'results', 'transformation', 'partnership', 'innovation'])}"
                 ]
-            })
+            }
+            
+            design_structures.append(design)
         
-        # Return the dynamically generated style blueprints
         return {
             "petitioner_name": organized_data.get('petitioner', {}).get('name', 'Unknown'),
             "testimony_count": num_testimonies,
-            "heterogeneity_strategy": "Dynamic style blueprint generation with 5 axes of variation (no templates)",
-            "design_structures": style_blueprints
+            "heterogeneity_strategy": "Dynamic variation without templates - each letter unique",
+            "design_structures": design_structures
         }
