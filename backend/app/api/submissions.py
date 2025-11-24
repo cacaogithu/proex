@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 from typing import List, Optional
 import shutil
@@ -8,6 +8,7 @@ import json
 from io import BytesIO
 from ..core.processor import SubmissionProcessor
 from ..db.database import Database
+from .auth import get_current_user
 
 router = APIRouter()
 db = Database()
@@ -16,14 +17,17 @@ db = Database()
 @router.post("/submissions")
 async def create_submission(
     background_tasks: BackgroundTasks,
-    email: str = Form(...),
+    current_user: dict = Depends(get_current_user),
     numberOfTestimonials: int = Form(...),
     quadro: UploadFile = File(...),
     cv: UploadFile = File(...),
     testimonials: List[UploadFile] = File(...),
     estrategia: Optional[UploadFile] = File(None),
-    onenote: Optional[UploadFile] = File(None)
+    onenote: Optional[UploadFile] = File(None),
+    other_documents: List[UploadFile] = File(None)
 ):
+    email = current_user['email']
+    
     # Security: Validate file sizes to prevent memory exhaustion
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB per file
 
@@ -78,6 +82,13 @@ async def create_submission(
     if onenote:
         with open(f"{upload_dir}/onenote.pdf", "wb") as f:
             shutil.copyfileobj(onenote.file, f)
+
+    if other_documents:
+        for i, doc in enumerate(other_documents):
+            # Sanitize filename or use a safe name
+            safe_filename = f"other_{i}_{doc.filename}"
+            with open(f"{upload_dir}/{safe_filename}", "wb") as f:
+                shutil.copyfileobj(doc.file, f)
     
     for i, testimonial in enumerate(testimonials):
         with open(f"{upload_dir}/testimonial_{i}.pdf", "wb") as f:
@@ -94,10 +105,13 @@ async def create_submission(
 
 
 @router.get("/submissions/{submission_id}")
-async def get_submission(submission_id: str):
+async def get_submission(submission_id: str, current_user: dict = Depends(get_current_user)):
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Add list of generated files if completed
     if submission['status'] == 'completed':
@@ -115,21 +129,21 @@ async def get_submission(submission_id: str):
 
 
 @router.get("/submissions")
-async def list_submissions(email: Optional[str] = None):
-    if email:
-        submissions = db.get_user_submissions(email)
-    else:
-        submissions = []
+async def list_submissions(current_user: dict = Depends(get_current_user)):
+    submissions = db.get_user_submissions(current_user['email'])
     return submissions
 
 
 @router.get("/files/{submission_id}/{filename}")
-async def get_file(submission_id: str, filename: str):
+async def get_file(submission_id: str, filename: str, current_user: dict = Depends(get_current_user)):
     submission = db.get_submission(submission_id)
 
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
-
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
     # Security: Validate filename to prevent path traversal attacks
     if '/' in filename or '\\' in filename or '..' in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido")
@@ -161,11 +175,14 @@ async def get_file(submission_id: str, filename: str):
 
 
 @router.get("/submissions/{submission_id}/download")
-async def download_results(submission_id: str):
+async def download_results(submission_id: str, current_user: dict = Depends(get_current_user)):
     submission = db.get_submission(submission_id)
     
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     if submission['status'] != 'completed':
         raise HTTPException(
@@ -210,12 +227,16 @@ class SubmissionFeedback(BaseModel):
 async def score_letter(
     submission_id: str,
     letter_index: int,
-    score_data: LetterScore
+    score_data: LetterScore,
+    current_user: dict = Depends(get_current_user)
 ):
     """Save score (0-100) for a specific letter"""
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Validate score
     if not 0 <= score_data.score <= 100:
@@ -248,12 +269,16 @@ async def score_letter(
 @router.post("/submissions/{submission_id}/feedback")
 async def save_overall_feedback(
     submission_id: str,
-    feedback: SubmissionFeedback
+    feedback: SubmissionFeedback,
+    current_user: dict = Depends(get_current_user)
 ):
     """Save overall feedback for entire submission"""
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Validate score
     if not 0 <= feedback.overall_score <= 100:
@@ -272,22 +297,28 @@ async def save_overall_feedback(
 
 
 @router.get("/submissions/{submission_id}/feedback")
-async def get_overall_feedback(submission_id: str):
+async def get_overall_feedback(submission_id: str, current_user: dict = Depends(get_current_user)):
     """Get overall feedback for a submission"""
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     feedback = db.get_submission_feedback(submission_id)
     return {"feedback": feedback}
 
 
 @router.get("/submissions/{submission_id}/ratings")
-async def get_ratings(submission_id: str):
+async def get_ratings(submission_id: str, current_user: dict = Depends(get_current_user)):
     """Get all ratings for a submission"""
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     ratings = db.get_letter_ratings(submission_id)
     return {"ratings": ratings}
@@ -322,12 +353,16 @@ class RegenerateRequest(BaseModel):
 async def regenerate_letters(
     submission_id: str,
     regenerate_request: RegenerateRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
 ):
     """Regenerate specific letters with optional custom instructions"""
     submission = db.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission['user_email'] != current_user['email']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     if submission['status'] != 'completed':
         raise HTTPException(

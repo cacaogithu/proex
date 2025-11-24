@@ -104,7 +104,12 @@ Primeira pessoa. Evidências quantitativas e qualitativas.
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
+<<<<<<< HEAD
+            # Block 3 target: 400-600 words -> reserve sufficient tokens
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
+=======
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+>>>>>>> origin/main
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)
@@ -145,10 +150,15 @@ Destaque capacidades técnicas únicas.
 """
 
         try:
+<<<<<<< HEAD
+            # Block 4 target: 500-700 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000)
+=======
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=700)
             word_count = self._count_words(content)
             print(f"    ✓ Block 4 generated: {word_count} words")
             return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
@@ -177,10 +187,15 @@ Demonstre influência além do contexto imediato.
 """
 
         try:
+<<<<<<< HEAD
+            # Block 5 target: 400-600 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
+=======
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
             word_count = self._count_words(content)
             print(f"    ✓ Block 5 generated: {word_count} words")
             return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
@@ -209,10 +224,15 @@ Estabeleça credibilidade.
 """
 
         try:
+<<<<<<< HEAD
+            # Block 6 target: 300-400 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000)
+=======
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500, min_words=300, max_words=400)
             word_count = self._count_words(content)
             print(f"    ✓ Block 6 generated: {word_count} words")
             return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 6: {str(e)}")
             return "Error generating block 6"
@@ -241,10 +261,15 @@ Encerramento forte.
 """
 
         try:
+<<<<<<< HEAD
+            # Block 7 target: 200-300 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500)
+=======
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1200, min_words=200, max_words=300)
             word_count = self._count_words(content)
             print(f"    ✓ Block 7 generated: {word_count} words")
             return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 7: {str(e)}")
             return "Error generating block 7"

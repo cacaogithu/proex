@@ -1,5 +1,10 @@
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
+try:
+    from weasyprint import HTML, CSS
+except OSError:
+    print("WARNING: WeasyPrint system dependencies not found. PDF generation will fail.")
+    HTML = None
+    CSS = None
 from typing import Dict, Optional
 import os
 from datetime import datetime
@@ -7,7 +12,11 @@ import uuid
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from html4docx import HtmlToDocx
+try:
+    from html4docx import HtmlToDocx
+except ImportError:
+    print("WARNING: html4docx not found or incompatible. DOCX generation will fail.")
+    HtmlToDocx = None
 import re
 
 class HTMLPDFGenerator:
@@ -24,7 +33,7 @@ class HTMLPDFGenerator:
             'F': 'template_f_technical_testimony.html'
         }
     
-    def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm) -> str:
+    def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm, custom_instructions: Optional[str] = None) -> str:
         """Use Claude 4.5 Sonnet for premium HTML assembly - returns HTML content"""
         combined_blocks = f"""
 # BLOCO 3
@@ -99,25 +108,33 @@ ESTILO TECHNICAL TESTIMONY:
         
         style = style_guidance.get(template_id, style_guidance['A'])
         
+        custom_instr_text = ""
+        if custom_instructions:
+            custom_instr_text = f"""
+# CUSTOM INSTRUCTIONS FROM USER
+The user has requested specific changes for this letter. You MUST follow these instructions while maintaining the "NO SUMMARIZATION" rule:
+{custom_instructions}
+"""
+
         prompt = f"""# ROLE
-Você é um revisor de classe mundial especializado em cartas de recomendação profissionais. 
-Receba 5 blocos de uma carta e produza o conteúdo HTML COMPLETO E ESTILIZADO.
+Você é um FORMATADOR DE HTML EXPERT. Sua única função é formatar o texto fornecido para HTML, aplicando o estilo visual solicitado.
+
+🚨 **CRITICAL INSTRUCTION: DO NOT SUMMARIZE OR REWRITE** 🚨
+- Você DEVE MANTER 100% do conteúdo original dos blocos.
+- NÃO remova parágrafos.
+- NÃO encurte frases.
+- NÃO tente "melhorar" a fluidez se isso significar cortar conteúdo.
+- O objetivo é ter uma carta LONGA e DETALHADA (2000+ palavras). Se você resumir, FALHARÁ.
 
 **TEMPLATE ASSIGNED**: {template_id}
 **PERSONA**: {design.get('tone_instructions', '')}
 **ESTILO VISUAL**: 
 {style}
 
+{custom_instr_text}
+
 # INPUTS
 {combined_blocks}
-
-# INSTRUÇÕES CRÍTICAS DE CONTEÚDO
-1. Leia todos os blocos e crie uma narrativa coesa
-2. Verifique transições suaves entre seções
-3. REMOVA palavras problemáticas: "inferência lógica", "inferência técnica", "nexo causal" se mal usadas
-4. NUNCA mencione: "application", "EB2-NIW", "peticionário", "visto", "imigração"
-5. Seja autêntico e pessoal (primeira pessoa)
-6. Adicione assinatura e encerramento apropriado
 
 # INSTRUÇÕES DE FORMATAÇÃO HTML
 1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
@@ -128,14 +145,13 @@ Receba 5 blocos de uma carta e produza o conteúdo HTML COMPLETO E ESTILIZADO.
 
 # ESTRUTURA DO CONTEÚDO
 1. Saudação formal ("A quem possa interessar," ou similar)
-2. Blocos integrados em narrativa fluida
+2. INSERIR TODO O CONTEÚDO DOS BLOCOS 3, 4, 5, 6, 7 NA ÍNTEGRA.
 3. Use as divisões <h2> se aplicável ao template
 4. Encerramento formal apropriado ao template
 
 # HETEROGENEIDADE
 - Garanta que este testemunho tenha voz única
 - Siga rigorosamente o estilo visual do template {template_id}
-- Use causalidade direta: "Realizou X, gerando Y resultado"
 - Mantenha tom profissional mas humano
 
 # TODO EM PORTUGUÊS BRASILEIRO
