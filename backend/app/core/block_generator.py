@@ -80,8 +80,8 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
 {{"block": 3, "markdown_draft": "<rascunho markdown>"}}
 
 # ESTRUTURA — BLOCO 3: VALIDAÇÃO EMPÍRICA DE RESULTADOS
-CRITICAL REQUIREMENT: Write EXACTLY 800-1200 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 1000 words.
+CRITICAL REQUIREMENT: Write EXACTLY 500-700 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 600 words.
 Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
 - Pelo menos 5-7 métricas quantitativas (com números específicos)
 - 3-4 observações qualitativas profundas
@@ -95,6 +95,8 @@ Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
 - Output: Markdown apenas, sem HTML
 - TODO EM PORTUGUÊS
 - Remova termos: "imigração", "EB2-NIW", "peticionário"
+- ⚠️ NÃO use clichés: "a quem possa interessar", "com grande satisfação", "tenho o prazer", "sempre", "de maneira geral"
+- Seja específico e único em cada descrição - evite frases genéricas
 - Expanda com narrativa completa de cada resultado
 """
         
@@ -112,7 +114,7 @@ Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=600, max_words=900)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)
@@ -139,8 +141,8 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 
 # BLOCO 4: DIFERENCIAÇÃO TÉCNICA E METODOLÓGICA
-CRITICAL REQUIREMENT: Write EXACTLY 600-1000 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 800 words.
+CRITICAL REQUIREMENT: Write EXACTLY 400-550 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 475 words.
 Destaque capacidades técnicas únicas com profundidade.
 - Abordagens metodológicas exclusivas (explicar cada uma)
 - Ferramentas e tecnologias avançadas (listá-las com contexto)
@@ -152,11 +154,13 @@ Destaque capacidades técnicas únicas com profundidade.
 - Primeira pessoa
 - Linguagem técnica mas acessível
 - Incluir métricas e resultados mensuráveis
+- ⚠️ NÃO use clichés: "como mencionado", "é importante notar", "sem dúvida", "de acordo com"
+- Seja original - evite expressões repetidas
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3500, min_words=450, max_words=700)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000, min_words=400, max_words=550)
             word_count = self._count_words(content)
             print(f"    ✓ Block 4 generated: {word_count} words")
             return content
@@ -174,8 +178,8 @@ Você é `Block5_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 5: IMPACTO SETORIAL E ALCANCE
-CRITICAL REQUIREMENT: Write EXACTLY 500-800 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 650 words.
+CRITICAL REQUIREMENT: Write EXACTLY 350-450 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 400 words.
 Demonstre influência além do contexto imediato com exemplos detalhados.
 - Reconhecimento por pares (conferências, publicações, mentorias)
 - Contribuições para o setor (iniciativas, transformações)
@@ -187,11 +191,13 @@ Demonstre influência além do contexto imediato com exemplos detalhados.
 - Primeira pessoa
 - Evidências concretas e quantificáveis
 - Incluir nomes de instituições e projetos
+- ⚠️ NÃO use clichés: "trabalho exemplar", "acredito que", "de todos os tempos", "nunca visto antes"
+- Use fatos específicos em vez de adjetivos genéricos
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000, min_words=350, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=350, max_words=450)
             word_count = self._count_words(content)
             print(f"    ✓ Block 5 generated: {word_count} words")
             return content
@@ -209,8 +215,8 @@ Você é `Block6_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 6: QUALIFICAÇÃO DO RECOMENDADOR
-CRITICAL REQUIREMENT: Write EXACTLY 300-500 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 400 words.
+CRITICAL REQUIREMENT: Write EXACTLY 250-350 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 300 words.
 Estabeleça credibilidade de forma aprofundada.
 - Experiência relevante (anos, setores, especialidades)
 - Posição estratégica para avaliar o trabalho
@@ -222,6 +228,8 @@ Estabeleça credibilidade de forma aprofundada.
 - Primeira pessoa
 - Profissional e convincente
 - Detalhe específico sobre relacionamento e observação
+- ⚠️ NÃO use clichés: "honrado em", "privilégio de", "única oportunidade", "melhor pessoa que conheço"
+- Descreva fatos sobre sua posição e experiência
 - TODO EM PORTUGUÊS
 """
 
