@@ -70,11 +70,13 @@ Testemunho {i+1}:
                 'paragraph_style': f"Use {visual} formatting with {structure}"
             })
         
-        prompt = f"""# CRITICAL MISSION: MAXIMUM HETEROGENEITY (NO TEMPLATES!)
-Você é o `Heterogeneity_Architect`. Sua missão é GARANTIR que CADA carta seja completamente DIFERENTE das outras.
-As cartas devem parecer escritas por pessoas DIFERENTES, com BACKGROUNDS DIFERENTES, OBJETIVOS DIFERENTES e ESTILOS DE ESCRITA RADICALMENTE DISTINTOS.
-
-**REGRA DE OURO**: Se duas cartas ficarem parecidas, você FALHOU na missão. CADA carta deve ter sua própria IDENTIDADE.
+        # Return the dynamically generated style blueprints
+        return {
+            "petitioner_name": organized_data.get('petitioner', {}).get('name', 'Unknown'),
+            "testimony_count": num_testimonies,
+            "heterogeneity_strategy": "Dynamic style blueprint generation with 5 axes of variation (no templates)",
+            "design_structures": style_blueprints
+        }
 
 # CONTEXTO DO PETICIONÁRIO
 OneNet: {json.dumps(organized_data.get('onet', {}), ensure_ascii=False)}

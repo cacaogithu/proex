@@ -531,8 +531,8 @@ class HTMLPDFGenerator:
         # Save DOCX
         doc.save(output_path)
 
-        template_id = design.get('template_id', 'A')
-        print(f"✅ Editable DOCX generated with template {template_id}: {os.path.basename(output_path)}")
+        style_id = design.get('unique_id', 'STYLE_DEFAULT')
+        print(f"✅ Editable DOCX generated with style {style_id}: {os.path.basename(output_path)}")
 
 # Keep backward compatibility
 class DOCXGenerator(HTMLPDFGenerator):
