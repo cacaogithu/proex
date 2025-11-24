@@ -140,51 +140,61 @@ class HTMLPDFGenerator:
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm) -> str:
         """Assemble letter by concatenating all 5 blocks - NO template compression"""
         
-        # Simple HTML concatenation of all blocks - preserves full content
+        # Get block content - strip any markdown code blocks that might have been added
+        def clean_block(text):
+            if not text:
+                return ""
+            if text.startswith("```"):
+                text = text.split("```", 1)[1] if "```" in text else text
+            if text.endswith("```"):
+                text = text.rsplit("```", 1)[0]
+            return text.strip()
+        
+        # Concatenate all blocks - preserve full content
+        block3 = clean_block(blocks.get('block3', ''))
+        block4 = clean_block(blocks.get('block4', ''))
+        block5 = clean_block(blocks.get('block5', ''))
+        block6 = clean_block(blocks.get('block6', ''))
+        block7 = clean_block(blocks.get('block7', ''))
+        
         html_content = f"""
 <p style="margin-bottom: 1.5em;">A quem possa interessar,</p>
 
 <div style="margin-top: 2em; margin-bottom: 2em;">
   <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Validação Empírica de Resultados</h2>
-  {blocks.get('block3', '')}
+  <div>{block3}</div>
 </div>
 
 <div style="margin-top: 2em; margin-bottom: 2em;">
   <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Diferenciação Técnica e Metodológica</h2>
-  {blocks.get('block4', '')}
+  <div>{block4}</div>
 </div>
 
 <div style="margin-top: 2em; margin-bottom: 2em;">
   <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Impacto Setorial e Alcance</h2>
-  {blocks.get('block5', '')}
+  <div>{block5}</div>
 </div>
 
 <div style="margin-top: 2em; margin-bottom: 2em;">
   <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Qualificação do Recomendador</h2>
-  {blocks.get('block6', '')}
+  <div>{block6}</div>
 </div>
 
 <div style="margin-top: 2em; margin-bottom: 3em;">
   <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Conclusão e Recomendação</h2>
-  {blocks.get('block7', '')}
+  <div>{block7}</div>
 </div>
 
 <p style="margin-top: 3em;">Atenciosamente,</p>
 """
         
-        # Validate HTML structure
-        try:
-            cleaned_html = self._validate_and_clean_html(html_content)
-        except ValueError as ve:
-            logger.error(f"HTML validation failed: {ve}")
-            # Return as-is if validation fails (content is still good)
-            cleaned_html = html_content
+        # Count total words
+        import re
+        text = html_content.replace('<div>', ' ').replace('</div>', ' ').replace('<h2>', ' ').replace('</h2>', ' ').replace('<p>', ' ').replace('</p>', ' ')
+        word_count = len(re.findall(r'\w+', text))
+        print(f"✅ Letter assembled: {word_count} words total")
         
-        # Check quality
-        quality = self._validate_html_quality(cleaned_html, blocks)
-        print(f"✅ Letter assembled: {quality['word_count']} words total")
-        
-        return cleaned_html
+        return html_content
     
     def html_to_pdf(
         self, 
