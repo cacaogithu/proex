@@ -6,9 +6,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class BlockGenerator:
-    def __init__(self, llm_processor, prompt_enhancer=None):
+    def __init__(self, llm_processor, prompt_enhancer=None, rag_engine=None):
         self.llm = llm_processor
         self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
+        self.rag = rag_engine  # RAG for context retrieval
 
     def _count_words(self, text: str) -> int:
         """Count words in text"""
@@ -90,8 +91,26 @@ Primeira pessoa. Evidências quantitativas e qualitativas.
 - Remova termos: "imigração", "EB2-NIW", "peticionário"
 """
         
-        # ML-powered prompt enhancement
+        # RAG Enhancement: Retrieve relevant context
         prompt = base_prompt
+        if self.rag and context.get('submission_id'):
+            try:
+                # Build search query from testimony context
+                query = f"Examples of professional accomplishments and technical expertise for {testimony.get('recommender_role', 'professional')} at {testimony.get('recommender_company', 'company')}"
+                
+                context_chunks = self.rag.retrieve_context(
+                    query=query,
+                    submission_id=context['submission_id'],
+                    top_k=3
+                )
+                
+                # Augment prompt with retrieved context
+                if context_chunks:
+                    prompt = self.rag.augment_prompt(base_prompt, context_chunks)
+            except Exception as e:
+                print(f"   ℹ️  RAG context retrieval skipped: {e}")
+        
+        # ML-powered prompt enhancement
         if self.prompt_enhancer:
             try:
                 prompt = self.prompt_enhancer.enhance_block_prompt(
@@ -104,12 +123,7 @@ Primeira pessoa. Evidências quantitativas e qualitativas.
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-<<<<<<< HEAD
-            # Block 3 target: 400-600 words -> reserve sufficient tokens
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
-=======
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
->>>>>>> origin/main
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)

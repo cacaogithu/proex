@@ -6,9 +6,11 @@ from .html_pdf_generator import HTMLPDFGenerator
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
+from .rag_engine import RAGEngine  # NEW
 from ..db.database import Database
 from ..ml.prompt_enhancer import PromptEnhancer
 import os
+import glob
 import logging
 from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -36,13 +38,17 @@ class SubmissionProcessor:
         except Exception as e:
             logger.info(f"ML training skipped (likely first run): {e}")
 
+        # Initialize RAG engine
+        self.rag_engine = RAGEngine(self.llm)
+        logger.info("RAG engine initialized")
+
         # Initialize other components AFTER ML training
         self.heterogeneity = HeterogeneityArchitect(self.llm)
-        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
+        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer, self.rag_engine)  # Pass RAG engine
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
-        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers")
+        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers and RAG enabled")
     
     def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
@@ -132,13 +138,50 @@ class SubmissionProcessor:
             print(f"{'='*60}\n")
             
             self.update_status(submission_id, "extracting")
-            print("PHASE 1: Extracting text from PDFs...")
-            extracted_texts = self.pdf_extractor.extract_all_files(submission_id)
+            print("\nPHASE 1: Extracting text from PDFs...")
+            upload_dir = f"storage/uploads/{submission_id}"
+            extracted_texts = self.pdf_extractor.extract_all(
+                quadro_path=f"{upload_dir}/quadro.pdf",
+                cv_path=f"{upload_dir}/cv.pdf",
+                testimonials_dir=upload_dir,
+                estrategia_path=f"{upload_dir}/estrategia.pdf" if os.path.exists(f"{upload_dir}/estrategia.pdf") else None,
+                onenote_path=f"{upload_dir}/onenote.pdf" if os.path.exists(f"{upload_dir}/onenote.pdf") else None
+            )
             print(f"✓ Extracted {len(extracted_texts.get('testimonials', []))} testimonials")
+            
+            # NEW: PHASE 1.5 - Ingest assets into RAG for context-aware generation
+            print("\nPHASE 1.5: Ingesting assets into RAG for context-aware generation...")
+            asset_files = []
+            
+            # User-uploaded assets
+            if os.path.exists(f"{upload_dir}/estrategia.pdf"):
+                asset_files.append(f"{upload_dir}/estrategia.pdf")
+            if os.path.exists(f"{upload_dir}/onenote.pdf"):
+                asset_files.append(f"{upload_dir}/onenote.pdf")
+            
+            # Other documents uploaded by user (if any)
+            other_docs = glob.glob(f"{upload_dir}/other_*.pdf")
+            asset_files.extend(other_docs)
+            
+            # ALSO: Include reference letters from attached_assets for style examples
+            reference_letters = glob.glob("attached_assets/V1_*.pdf")  # Example letters
+            asset_files.extend(reference_letters)
+            
+            if asset_files:
+                print(f"   Found {len(asset_files)} assets to ingest")
+                try:
+                    self.rag_engine.ingest_documents(submission_id, asset_files)
+                    print("   ✓ Assets ingested into RAG")
+                except Exception as e:
+                    print(f"   ⚠️  RAG ingestion failed (continuing without RAG): {e}")
+            else:
+                print("   No assets found for RAG ingestion")
             
             self.update_status(submission_id, "organizing")
             print("\nPHASE 2: Cleaning and organizing data...")
             organized_data = self.llm.clean_and_organize(extracted_texts)
+            # Add submission_id to context for RAG retrieval
+            organized_data['submission_id'] = submission_id
             print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
             
             # PHASE 2.5: Logo scraping is now integrated into the parallel letter generation function.
