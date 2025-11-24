@@ -82,7 +82,7 @@ class SubmissionProcessor:
             'location': testimony.get('recommender_location', '')
         }
 
-        self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
+        self.pdf_generator.html_to_pdf(letter_html, output_path, {}, logo_path, recommender_info)
         print(f"    ✓ PDF generated for {recommender_name}")
 
         docx_output_path = output_path.replace('.pdf', '.docx')
