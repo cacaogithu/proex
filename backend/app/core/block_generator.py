@@ -1,31 +1,52 @@
 from typing import Dict, Optional
 import json
 import time
+import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class BlockGenerator:
     def __init__(self, llm_processor, prompt_enhancer=None):
         self.llm = llm_processor
         self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
-    
-    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3, max_tokens: Optional[int] = None) -> str:
+
+    def _count_words(self, text: str) -> int:
+        """Count words in text"""
+        return len(re.findall(r'\w+', text))
+
+    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3, max_tokens: int = 2000, min_words: int = 0, max_words: int = 0) -> str:
         for attempt in range(max_retries):
             try:
                 # Using Gemini 2.5 Pro - cost-effective for high-quality content
-                # Pass explicit max_tokens when provided to avoid default truncation
-                call_kwargs = {
-                    "model": self.llm.models["quality"],
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": temperature,
-                }
-                if max_tokens is not None:
-                    call_kwargs["max_tokens"] = max_tokens
+                response = self.llm.client.chat.completions.create(
+                    model=self.llm.models["quality"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                content = response.choices[0].message.content
 
-                response = self.llm.client.chat.completions.create(**call_kwargs)
-                return response.choices[0].message.content
+                # Validate word count if specified
+                if min_words > 0 or max_words > 0:
+                    word_count = self._count_words(content)
+                    if min_words > 0 and word_count < min_words:
+                        print(f"⚠️  Word count too low: {word_count}/{min_words} words (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            # Strengthen prompt for next attempt
+                            prompt = prompt + f"\n\nCRITICAL: Your previous response had only {word_count} words. You MUST write AT LEAST {min_words} words. Count as you write."
+                            continue
+                    if max_words > 0 and word_count > max_words:
+                        print(f"⚠️  Word count too high: {word_count}/{max_words} words (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            # Strengthen prompt for next attempt
+                            prompt = prompt + f"\n\nCRITICAL: Your previous response had {word_count} words. You MUST write NO MORE THAN {max_words} words. Be concise."
+                            continue
+
+                return content
             except Exception as e:
                 if "429" in str(e) and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 3
+                    # Reduced wait times: 1s, 2s (instead of 3s, 6s, 12s)
+                    wait_time = (2 ** attempt)
                     print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
                     time.sleep(wait_time)
                     continue
@@ -53,7 +74,9 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
 {{"block": 3, "markdown_draft": "<rascunho markdown>"}}
 
 # ESTRUTURA — BLOCO 3: VALIDAÇÃO EMPÍRICA DE RESULTADOS
-400–600 palavras. Primeira pessoa. Evidências quantitativas e qualitativas.
+CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 500 words minimum.
+Primeira pessoa. Evidências quantitativas e qualitativas.
 - Pelo menos 3 métricas quantitativas
 - 1-2 observações qualitativas
 - Lista com 4-6 resultados empíricos
@@ -81,12 +104,22 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
+<<<<<<< HEAD
             # Block 3 target: 400-600 words -> reserve sufficient tokens
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
+=======
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+>>>>>>> origin/main
             try:
                 data = json.loads(content)
-                return data.get('markdown_draft', content)
-            except:
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                print(f"    ✓ Block 3 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                # If JSON parsing fails, return raw content
+                word_count = self._count_words(content)
+                print(f"    ✓ Block 3 generated: {word_count} words")
                 return content
         except Exception as e:
             print(f"Error generating block 3: {str(e)}")
@@ -103,7 +136,9 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 
 # BLOCO 4: DIFERENCIAÇÃO TÉCNICA E METODOLÓGICA
-500–700 palavras. Destaque capacidades técnicas únicas.
+CRITICAL REQUIREMENT: Write EXACTLY 500-700 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 600 words minimum.
+Destaque capacidades técnicas únicas.
 - Abordagens metodológicas exclusivas
 - Ferramentas e tecnologias avançadas
 - Processos inovadores
@@ -113,10 +148,17 @@ Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 - Linguagem técnica mas acessível
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
+<<<<<<< HEAD
             # Block 4 target: 500-700 words
             return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000)
+=======
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=700)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 4 generated: {word_count} words")
+            return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
@@ -131,7 +173,9 @@ Você é `Block5_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 5: IMPACTO SETORIAL E ALCANCE
-400–600 palavras. Demonstre influência além do contexto imediato.
+CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 500 words minimum.
+Demonstre influência além do contexto imediato.
 - Reconhecimento por pares
 - Contribuições para o setor
 - Disseminação de conhecimento
@@ -141,10 +185,17 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 - Evidências concretas
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
+<<<<<<< HEAD
             # Block 5 target: 400-600 words
             return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
+=======
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 5 generated: {word_count} words")
+            return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
@@ -159,7 +210,9 @@ Você é `Block6_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 6: QUALIFICAÇÃO DO RECOMENDADOR
-300–400 palavras. Estabeleça credibilidade.
+CRITICAL REQUIREMENT: Write EXACTLY 300-400 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 350 words minimum.
+Estabeleça credibilidade.
 - Experiência relevante
 - Posição para avaliar o trabalho
 - Contexto da colaboração
@@ -169,10 +222,17 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 - Profissional
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
+<<<<<<< HEAD
             # Block 6 target: 300-400 words
             return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000)
+=======
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500, min_words=300, max_words=400)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 6 generated: {word_count} words")
+            return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 6: {str(e)}")
             return "Error generating block 6"
@@ -187,7 +247,9 @@ Você é `Block7_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 7: CONCLUSÃO E RECOMENDAÇÃO
-200–300 palavras. Encerramento forte.
+CRITICAL REQUIREMENT: Write EXACTLY 200-300 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 250 words minimum.
+Encerramento forte.
 - Síntese de valor
 - Recomendação clara
 - Perspectiva futura
@@ -197,20 +259,53 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 - Tom conclusivo
 - TODO EM PORTUGUÊS
 """
-        
+
         try:
+<<<<<<< HEAD
             # Block 7 target: 200-300 words
             return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500)
+=======
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1200, min_words=200, max_words=300)
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 7 generated: {word_count} words")
+            return content
+>>>>>>> origin/main
         except Exception as e:
             print(f"Error generating block 7: {str(e)}")
             return "Error generating block 7"
     
     def generate_all_blocks(self, testimony: Dict, design: Dict, context: Dict) -> Dict[str, str]:
-        print(f"Generating blocks for {testimony.get('recommender_name', 'Unknown')}...")
-        return {
-            "block3": self.generate_block3(testimony, design, context),
-            "block4": self.generate_block4(testimony, design, context),
-            "block5": self.generate_block5(testimony, design, context),
-            "block6": self.generate_block6(testimony, design, context),
-            "block7": self.generate_block7(testimony, design, context)
+        """Generate all 5 blocks in parallel for maximum performance"""
+        recommender_name = testimony.get('recommender_name', 'Unknown')
+        print(f"Generating 5 blocks in parallel for {recommender_name}...")
+
+        blocks = {}
+
+        # Define block generation tasks
+        block_tasks = {
+            "block3": (self.generate_block3, testimony, design, context),
+            "block4": (self.generate_block4, testimony, design, context),
+            "block5": (self.generate_block5, testimony, design, context),
+            "block6": (self.generate_block6, testimony, design, context),
+            "block7": (self.generate_block7, testimony, design, context)
         }
+
+        # Execute all blocks in parallel (5 concurrent API calls)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # Submit all tasks
+            future_to_block = {
+                executor.submit(func, *args): block_name
+                for block_name, (func, *args) in block_tasks.items()
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_block):
+                block_name = future_to_block[future]
+                try:
+                    blocks[block_name] = future.result()
+                except Exception as exc:
+                    print(f"    ✗ {block_name} failed: {exc}")
+                    blocks[block_name] = f"Error generating {block_name}: {exc}"
+
+        print(f"    ✓ All 5 blocks completed for {recommender_name}")
+        return blocks

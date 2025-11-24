@@ -28,6 +28,34 @@ async def create_submission(
 ):
     email = current_user['email']
     
+    # Security: Validate file sizes to prevent memory exhaustion
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB per file
+
+    files_to_check = [quadro, cv] + testimonials
+    if estrategia:
+        files_to_check.append(estrategia)
+    if onenote:
+        files_to_check.append(onenote)
+
+    for file in files_to_check:
+        # Read file size
+        file.file.seek(0, 2)  # Seek to end
+        file_size = file.file.tell()
+        file.file.seek(0)  # Reset to beginning
+
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Arquivo {file.filename} é muito grande ({file_size / 1024 / 1024:.1f}MB). Tamanho máximo: 50MB"
+            )
+
+        # Validate file extension
+        if not file.filename.endswith('.pdf'):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Arquivo {file.filename} deve ser PDF"
+            )
+
     # Validate: number of testimonials uploaded must match numberOfTestimonials
     if len(testimonials) != numberOfTestimonials:
         raise HTTPException(
@@ -109,20 +137,31 @@ async def list_submissions(current_user: dict = Depends(get_current_user)):
 @router.get("/files/{submission_id}/{filename}")
 async def get_file(submission_id: str, filename: str, current_user: dict = Depends(get_current_user)):
     submission = db.get_submission(submission_id)
-    
+
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
     
     if submission['user_email'] != current_user['email']:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    file_path = f"storage/outputs/{submission_id}/{filename}"
-    
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
-    
+    # Security: Validate filename to prevent path traversal attacks
+    if '/' in filename or '\\' in filename or '..' in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido")
+
+    # Security: Validate file extension
     if not (filename.endswith('.pdf') or filename.endswith('.docx')):
         raise HTTPException(status_code=400, detail="Tipo de arquivo inválido")
+
+    file_path = f"storage/outputs/{submission_id}/{filename}"
+
+    # Security: Verify the resolved path is still within expected directory
+    expected_dir = os.path.abspath(f"storage/outputs/{submission_id}")
+    actual_path = os.path.abspath(file_path)
+    if not actual_path.startswith(expected_dir):
+        raise HTTPException(status_code=400, detail="Caminho de arquivo inválido")
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
     
     media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" if filename.endswith('.docx') else "application/pdf"
     

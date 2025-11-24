@@ -63,8 +63,8 @@ class FeedbackAnalyzer:
         insights['success_patterns'] = Counter(insights['maintain'])
         
         # Analisar performance por template
-        insights['template_preferences'] = self.db.get_template_performance()
-        
+        insights['template_preferences'] = self.db.get_template_analytics()
+
         return insights
     
     def _extract_issues(self, comments: List[str]) -> List[str]:
@@ -118,14 +118,14 @@ class FeedbackAnalyzer:
     def get_template_recommendation(self, context: Dict) -> str:
         """
         Recomenda melhor template baseado em contexto do recomendador
-        
+
         Args:
             context: {'position': 'CTO', 'company_type': 'tech', ...}
-        
+
         Returns:
             template_id recomendado ('A', 'B', etc)
         """
-        performance = self.db.get_template_performance()
+        performance = self.db.get_template_analytics()
         
         if not performance:
             return 'A'  # Default
@@ -145,7 +145,7 @@ class FeedbackAnalyzer:
     
     def should_use_template(self, template_id: str, threshold: float = 70.0) -> bool:
         """Verifica se um template tem performance aceitável"""
-        performance = self.db.get_template_performance()
+        performance = self.db.get_template_analytics()
         
         template_stats = performance.get(template_id, {})
         avg_score = template_stats.get('avg_score', 100)  # Default: assumir bom se não há dados
