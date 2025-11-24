@@ -138,184 +138,53 @@ class HTMLPDFGenerator:
         }
 
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm) -> str:
-        """Use Claude 4.5 Sonnet for premium HTML assembly - returns HTML content"""
-        combined_blocks = f"""
-# BLOCO 3
-{blocks.get('block3', '')}
+        """Assemble letter by concatenating all 5 blocks - NO template compression"""
+        
+        # Simple HTML concatenation of all blocks - preserves full content
+        html_content = f"""
+<p style="margin-bottom: 1.5em;">A quem possa interessar,</p>
 
-# BLOCO 4
-{blocks.get('block4', '')}
+<div style="margin-top: 2em; margin-bottom: 2em;">
+  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Validação Empírica de Resultados</h2>
+  {blocks.get('block3', '')}
+</div>
 
-# BLOCO 5
-{blocks.get('block5', '')}
+<div style="margin-top: 2em; margin-bottom: 2em;">
+  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Diferenciação Técnica e Metodológica</h2>
+  {blocks.get('block4', '')}
+</div>
 
-# BLOCO 6
-{blocks.get('block6', '')}
+<div style="margin-top: 2em; margin-bottom: 2em;">
+  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Impacto Setorial e Alcance</h2>
+  {blocks.get('block5', '')}
+</div>
 
-# BLOCO 7
-{blocks.get('block7', '')}
+<div style="margin-top: 2em; margin-bottom: 2em;">
+  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Qualificação do Recomendador</h2>
+  {blocks.get('block6', '')}
+</div>
+
+<div style="margin-top: 2em; margin-bottom: 3em;">
+  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Conclusão e Recomendação</h2>
+  {blocks.get('block7', '')}
+</div>
+
+<p style="margin-top: 3em;">Atenciosamente,</p>
 """
         
-        template_id = design.get('template_id', 'A')
+        # Validate HTML structure
+        try:
+            cleaned_html = self._validate_and_clean_html(html_content)
+        except ValueError as ve:
+            logger.error(f"HTML validation failed: {ve}")
+            # Return as-is if validation fails (content is still good)
+            cleaned_html = html_content
         
-        # Define estilo específico por template
-        style_guidance = {
-            'A': """
-ESTILO TÉCNICO PROFUNDO:
-- Use MUITAS siglas e termos técnicos (PLC, SCADA, ISO, NR10, OEE, MTBF, Six Sigma, Cpk)
-- Inclua tabelas com dados técnicos quando possível
-- Números extremamente precisos (ex: "97.3% de redução", "2.847 horas economizadas")
-- Formatação: Use tags HTML <table>, <strong> para siglas, <em> para métricas
-- Classe CSS especial: `<div class="technical-metrics">` para métricas importantes
-""",
-            'B': """
-ESTILO ACADÊMICO - CASE STUDY:
-- Estruture em SEÇÕES EXPLÍCITAS: INTRODUÇÃO, METODOLOGIA, RESULTADOS, CONCLUSÃO
-- Use framework Six Sigma DMAIC quando relevante (Define, Measure, Analyze, Improve, Control)
-- Inclua tabelas de correlação técnica
-- Formatação: Use <h2> para seções, `<div class="methodology">` para listas metodológicas
-- Classe CSS: `<div class="abstract">` para resumos executivos
-""",
-            'C': """
-ESTILO NARRATIVO - STORYTELLING:
-- Conte uma HISTÓRIA de transformação: problema → jornada → solução → legado
-- Use linguagem pessoal e emotiva (primeira pessoa)
-- Mencione prêmios e reconhecimentos quando aplicável
-- Formatação: Use `<blockquote>` para citações, `<div class="journey">` para momentos-chave
-- Classe CSS: `<span class="impact-highlight">` para highlights importantes
-""",
-            'D': """
-ESTILO BUSINESS PARTNERSHIP:
-- Foco em ROI, parceria estratégica, crescimento de receita
-- Use bullet points com checkmarks para entregas
-- Destaque métricas financeiras e de negócio
-- Formatação: Use `<ul>` para listas, `<div class="roi-highlight">` para ROI
-- Classe CSS: `<div class="key-metrics">` para métricas principais
-""",
-            'E': """
-ESTILO SUPPORT LETTER (USA):
-- Formato americano: cidade, estado (ex: "Boston, MA")
-- Contexto do mercado americano
-- Quadros de resultados visuais
-- Formatação: Use `<table class="results-table">` para resultados
-- Classe CSS: `<div class="us-market-context">` para contexto de mercado
-""",
-            'F': """
-ESTILO TECHNICAL TESTIMONY:
-- Referências a documentação anexa (ex: "conforme Anexo A", "ver documento REF-2024-001")
-- Foco em trabalho em equipe e colaboração
-- Tabelas e quadros explicativos
-- Formatação: Use `<div class="reference-box">` para referências
-- Classe CSS: `<div class="collaboration-details">` para detalhes de colaboração
-"""
-        }
+        # Check quality
+        quality = self._validate_html_quality(cleaned_html, blocks)
+        print(f"✅ Letter assembled: {quality['word_count']} words total")
         
-        style = style_guidance.get(template_id, style_guidance['A'])
-        
-        prompt = f"""# ROLE
-Você é um revisor de classe mundial especializado em cartas de recomendação profissionais. 
-Receba 5 blocos de uma carta e produza o conteúdo HTML COMPLETO E ESTILIZADO.
-
-**TEMPLATE ASSIGNED**: {template_id}
-**PERSONA**: {design.get('tone_instructions', '')}
-**ESTILO VISUAL**: 
-{style}
-
-# INPUTS
-{combined_blocks}
-
-# INSTRUÇÕES CRÍTICAS DE CONTEÚDO
-1. Leia todos os blocos e crie uma narrativa coesa
-2. Verifique transições suaves entre seções
-3. REMOVA palavras problemáticas: "inferência lógica", "inferência técnica", "nexo causal" se mal usadas
-4. NUNCA mencione: "application", "EB2-NIW", "peticionário", "visto", "imigração"
-5. Seja autêntico e pessoal (primeira pessoa)
-6. Adicione assinatura e encerramento apropriado
-
-# INSTRUÇÕES DE FORMATAÇÃO HTML
-1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-2. Use as classes CSS específicas do template conforme indicado acima
-3. Estruture com tags semânticas: <p>, <h2>, <ul>, <li>, <table>, <blockquote>, <div>
-4. Use <strong> para ênfases, <em> para itálico
-5. Aplique as classes CSS especiais para destacar informações importantes
-
-# ESTRUTURA DO CONTEÚDO
-1. Saudação formal ("A quem possa interessar," ou similar)
-2. Blocos integrados em narrativa fluida
-3. Use as divisões <h2> se aplicável ao template
-4. Encerramento formal apropriado ao template
-
-# HETEROGENEIDADE
-- Garanta que este testemunho tenha voz única
-- Siga rigorosamente o estilo visual do template {template_id}
-- Use causalidade direta: "Realizou X, gerando Y resultado"
-- Mantenha tom profissional mas humano
-
-# TODO EM PORTUGUÊS BRASILEIRO
-
-Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-"""
-        
-        import time
-        MIN_QUALITY_SCORE = 90
-        MAX_ATTEMPTS = 5  # Increased from 3 to 5
-
-        for attempt in range(MAX_ATTEMPTS):
-            try:
-                # Use lower temperature for more consistency
-                temperature = 0.1 if attempt == 0 else 0.3
-
-                response = llm.client.chat.completions.create(
-                    model="anthropic/claude-3.5-sonnet",
-                    messages=[{
-                        "role": "user",
-                        "content": prompt
-                    }],
-                    temperature=temperature,
-                    max_tokens=6000
-                )
-
-                html_content = response.choices[0].message.content.strip()
-
-                # Remove markdown code blocks if present
-                if html_content.startswith('```html'):
-                    html_content = html_content.split('```html')[1]
-                if html_content.startswith('```'):
-                    html_content = html_content.split('```')[1]
-                if html_content.endswith('```'):
-                    html_content = html_content.rsplit('```', 1)[0]
-
-                html_content = html_content.strip()
-
-                # CRITICAL: Validate and clean HTML
-                try:
-                    cleaned_html = self._validate_and_clean_html(html_content)
-                except ValueError as ve:
-                    print(f"  ⚠️ Attempt {attempt + 1}/{MAX_ATTEMPTS}: HTML validation failed: {ve}")
-                    continue
-
-                # CRITICAL: Check quality
-                quality = self._validate_html_quality(cleaned_html, blocks)
-
-                if quality['score'] >= MIN_QUALITY_SCORE:
-                    print(f"✅ Letter assembled with quality score {quality['score']} (Template {template_id}, {quality['word_count']} words)")
-                    return cleaned_html
-                else:
-                    print(f"  ⚠️ Attempt {attempt + 1}/{MAX_ATTEMPTS}: Quality score {quality['score']} too low")
-                    print(f"     Issues: {', '.join(quality['issues'])}")
-                    # Continue to next attempt
-
-            except Exception as e:
-                if "429" in str(e) or "rate" in str(e).lower():
-                    wait_time = 2 ** attempt
-                    print(f"⚠️ Rate limit hit, waiting {wait_time}s...")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"Attempt {attempt + 1} failed: {e}")
-                    if attempt == MAX_ATTEMPTS - 1:
-                        raise
-
-        raise Exception(f"Failed to assemble letter after {MAX_ATTEMPTS} attempts with acceptable quality")
+        return cleaned_html
     
     def html_to_pdf(
         self, 
@@ -325,42 +194,75 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
         logo_path: Optional[str] = None,
         recommender_info: Optional[Dict] = None
     ):
-        """Convert HTML to PDF using template with proper styling"""
+        """Convert HTML to PDF with logo and formatting - no templates"""
         
-        template_id = design.get('template_id', 'A')
-        template_file = self.template_mapping.get(template_id, 'template_a_technical.html')
-        
-        template = self.env.get_template(template_file)
-        
-        # Generate document reference for template F
-        document_ref = f"DOC-{uuid.uuid4().hex[:8].upper()}"
-
-        # CRITICAL FIX: Embed logo as base64 instead of file:// URI
-        # This prevents logo loading issues and embeds directly in PDF
+        # Embed logo as base64
         logo_data_uri = self._embed_logo_as_base64(logo_path) if logo_path else None
-
-        # Prepare template variables
-        template_vars = {
-            'content': html_content,
-            'logo_path': logo_data_uri,  # Now using base64 data URI
-            'recommender_name': recommender_info.get('name', 'Professional Recommender') if recommender_info else 'Professional Recommender',
-            'recommender_title': recommender_info.get('title', '') if recommender_info else '',
-            'recommender_company': recommender_info.get('company', '') if recommender_info else '',
-            'recommender_location': recommender_info.get('location', '') if recommender_info else '',
-            'date': datetime.now().strftime('%B %d, %Y'),
-            'document_ref': document_ref
-        }
         
-        # Render template
-        full_html = template.render(**template_vars)
+        # Build full HTML with logo header
+        logo_html = ""
+        if logo_data_uri:
+            logo_html = f'<img src="{logo_data_uri}" style="height: 50px; margin-bottom: 20px;" />'
         
-        # Create output directory if needed
+        full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 0.5in;
+            padding: 0;
+            color: #333;
+        }}
+        h2 {{
+            font-size: 13pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }}
+        p {{
+            margin-bottom: 10px;
+            text-align: justify;
+        }}
+        .header {{
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }}
+        .signature {{
+            margin-top: 30px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        {logo_html}
+        <p><strong>Data:</strong> {datetime.now().strftime('%d de %B de %Y')}</p>
+    </div>
+    
+    {html_content}
+    
+    <div class="signature">
+        <p><strong>{recommender_info.get('name', 'Professional Recommender') if recommender_info else 'Professional Recommender'}</strong></p>
+        <p>{recommender_info.get('title', '') if recommender_info else ''}</p>
+        <p>{recommender_info.get('company', '') if recommender_info else ''}</p>
+        <p>{recommender_info.get('location', '') if recommender_info else ''}</p>
+    </div>
+</body>
+</html>"""
+        
+        # Create output directory
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         # Convert to PDF
-        HTML(string=full_html, base_url=os.path.dirname(template_file)).write_pdf(output_path)
+        HTML(string=full_html).write_pdf(output_path)
         
-        print(f"✅ PDF generated with template {template_id}: {os.path.basename(output_path)}")
+        print(f"✅ PDF generated: {os.path.basename(output_path)}")
     
     def _process_html_element_to_docx(self, element, doc, paragraph=None):
         """Recursively process HTML element and add to DOCX document with formatting preservation"""

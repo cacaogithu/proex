@@ -73,7 +73,7 @@ class SubmissionProcessor:
         output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, f"letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf")
-        print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')}) for {recommender_name}...")
+        print(f"    - Generating PDF for {recommender_name}...")
 
         recommender_info = {
             'name': recommender_name,
@@ -83,15 +83,11 @@ class SubmissionProcessor:
         }
 
         self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
-        print(f"    ✓ Styled PDF generated for {recommender_name}")
+        print(f"    ✓ PDF generated for {recommender_name}")
 
         docx_output_path = output_path.replace('.pdf', '.docx')
         print(f"    - Generating editable DOCX for {recommender_name}...")
         self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
-
-        # 5. Track template usage
-        template_id = design.get('template_id', 'A')
-        self.db.increment_template_usage(template_id)
 
         # 6. Generate embedding for ML/clustering (unsupervised learning)
         print(f"    - Generating semantic embedding for {recommender_name}...")
