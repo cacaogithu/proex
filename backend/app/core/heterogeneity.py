@@ -3,9 +3,19 @@ import json
 import time
 
 
-class HeterogeneityArchitect:
+class StyleBlueprintGenerator:
+    """Generates unique style blueprints dynamically without templates"""
     def __init__(self, llm_processor):
         self.llm = llm_processor
+        
+        # Style dimensions for dynamic generation (no templates!)
+        self.style_axes = {
+            'voice_intensity': ['technical-precise', 'strategic-analytical', 'narrative-conversational', 'formal-academic', 'direct-pragmatic'],
+            'structure_pattern': ['methodical-sections', 'problem-solution-flow', 'chronological-journey', 'evidence-clusters', 'comparison-contrast'],
+            'metric_emphasis': ['hyper-quantitative', 'balanced-quali-quant', 'transformation-focused', 'roi-centered', 'innovation-driven'],
+            'formality_level': ['ultra-formal', 'professional-standard', 'accessible-clear', 'conversational-warm', 'executive-concise'],
+            'visual_density': ['dense-technical', 'structured-readable', 'flowing-narrative', 'bulleted-scannable', 'mixed-dynamic']
+        }
     
     def _format_testimonies(self, testimonies: List[Dict]) -> str:
         formatted = []
@@ -20,14 +30,47 @@ Testemunho {i+1}:
 """)
         return "\n".join(formatted)
     
-    def generate_design_structures(self, organized_data: Dict) -> Dict:
+    def generate_style_blueprints(self, organized_data: Dict) -> Dict:
+        """Generate unique style blueprints dynamically (NO TEMPLATES!)"""
         testimonies = organized_data.get('testimonies', [])
         num_testimonies = len(testimonies)
         
         if num_testimonies == 0:
             raise ValueError("Nenhum testemunho encontrado")
         
-        prompt = f"""# CRITICAL MISSION: MAXIMUM HETEROGENEITY
+        # Generate unique style combinations for each testimony
+        import random
+        style_blueprints = []
+        used_combinations = set()
+        
+        for i, testimony in enumerate(testimonies):
+            # Ensure unique combination for each letter
+            while True:
+                voice = random.choice(self.style_axes['voice_intensity'])
+                structure = random.choice(self.style_axes['structure_pattern'])
+                metrics = random.choice(self.style_axes['metric_emphasis'])
+                formality = random.choice(self.style_axes['formality_level'])
+                visual = random.choice(self.style_axes['visual_density'])
+                
+                combination = f"{voice}-{structure}-{metrics}"
+                if combination not in used_combinations or len(used_combinations) >= 25:
+                    used_combinations.add(combination)
+                    break
+            
+            style_blueprints.append({
+                'index': i,
+                'recommender_name': testimony.get('recommender_name', 'Unknown'),
+                'voice_style': voice,
+                'structure_pattern': structure,
+                'metric_emphasis': metrics,
+                'formality_level': formality,
+                'visual_density': visual,
+                'unique_id': f"STYLE_{i+1}_{voice[:4].upper()}",
+                'tone_instructions': f"Write in {voice} voice with {formality} tone",
+                'paragraph_style': f"Use {visual} formatting with {structure}"
+            })
+        
+        prompt = f"""# CRITICAL MISSION: MAXIMUM HETEROGENEITY (NO TEMPLATES!)
 Você é o `Heterogeneity_Architect`. Sua missão é GARANTIR que CADA carta seja completamente DIFERENTE das outras.
 As cartas devem parecer escritas por pessoas DIFERENTES, com BACKGROUNDS DIFERENTES, OBJETIVOS DIFERENTES e ESTILOS DE ESCRITA RADICALMENTE DISTINTOS.
 
@@ -43,7 +86,7 @@ Petitioner: {json.dumps(organized_data.get('petitioner', {}), ensure_ascii=False
 
 # TEMPLATES ARQUETÍPICOS RADICALMENTE DISTINTOS
 
-## TEMPLATE A: "TECHNICAL DEEP-DIVE" (Engenheiro Técnico Sênior)
+## STYLE BLUEPRINT GENERATION (NO TEMPLATES!)
 - **Persona**: Engenheiro técnico veterano, obcecado por detalhes e especificações
 - **Tom**: Extremamente técnico, rico em siglas, normas e números precisos
 - **Estrutura**: Formato de atestado técnico com seções numeradas

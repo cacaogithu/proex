@@ -1,6 +1,6 @@
 from .pdf_extractor import PDFExtractor
 from .llm_processor import LLMProcessor
-from .heterogeneity import HeterogeneityArchitect
+from .heterogeneity import StyleBlueprintGenerator
 from .block_generator import BlockGenerator
 from .html_pdf_generator import HTMLPDFGenerator
 from .logo_scraper import LogoScraper
@@ -38,7 +38,7 @@ class SubmissionProcessor:
             logger.info(f"ML training skipped (likely first run): {e}")
 
         # Initialize other components AFTER ML training
-        self.heterogeneity = HeterogeneityArchitect(self.llm)
+        self.heterogeneity = StyleBlueprintGenerator(self.llm)
         self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
@@ -136,8 +136,8 @@ class SubmissionProcessor:
             print("\nPHASE 2.5: Logo scraping will run in parallel with letter generation.")
             
             self.update_status(submission_id, "designing")
-            print("\nPHASE 3: Generating design structures (Heterogeneity Architect)...")
-            design_structures = self.heterogeneity.generate_design_structures(organized_data)
+            print("\nPHASE 3: Generating style blueprints (Dynamic Style Generation)...")
+            design_structures = self.heterogeneity.generate_style_blueprints(organized_data)
             print(f"✓ Generated {len(design_structures.get('design_structures', []))} unique designs")
             
             self.update_status(submission_id, "generating")
