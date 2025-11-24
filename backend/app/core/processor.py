@@ -104,13 +104,12 @@ class SubmissionProcessor:
             "recommender": recommender_name,
             "pdf_path": output_path,
             "docx_path": docx_output_path,
-            "template_id": template_id,
             "has_logo": logo_path is not None,
             "blocks": blocks,
             "letter_html": letter_html,
             "design": design,
             "embedding": letter_embedding,
-            "index": index # Include original index for sorting
+            "index": index
         }
     
     def update_status(self, submission_id: str, status: str, error: str | None = None):
