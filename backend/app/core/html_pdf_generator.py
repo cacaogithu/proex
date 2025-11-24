@@ -138,61 +138,109 @@ class HTMLPDFGenerator:
         }
 
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm) -> str:
-        """Assemble letter by concatenating all 5 blocks - NO template compression"""
+        """Assemble letter by concatenating all 5 blocks with professional heterogeneous HTML"""
         
-        # Get block content - strip any markdown code blocks that might have been added
-        def clean_block(text):
+        import re
+        
+        # Strip markdown formatting from block text
+        def strip_markdown(text):
             if not text:
                 return ""
-            if text.startswith("```"):
-                text = text.split("```", 1)[1] if "```" in text else text
-            if text.endswith("```"):
-                text = text.rsplit("```", 1)[0]
+            # Remove code blocks
+            text = re.sub(r'```[\s\S]*?```', '', text)
+            # Remove bold markdown
+            text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+            text = re.sub(r'__(.*?)__', r'\1', text)
+            # Remove italic markdown
+            text = re.sub(r'\*(.*?)\*', r'\1', text)
+            text = re.sub(r'_(.*?)_', r'\1', text)
+            # Remove headers
+            text = re.sub(r'^#+\s+', '', text, flags=re.MULTILINE)
+            # Remove lists markdown
+            text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)
+            text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
             return text.strip()
         
-        # Concatenate all blocks - preserve full content
-        block3 = clean_block(blocks.get('block3', ''))
-        block4 = clean_block(blocks.get('block4', ''))
-        block5 = clean_block(blocks.get('block5', ''))
-        block6 = clean_block(blocks.get('block6', ''))
-        block7 = clean_block(blocks.get('block7', ''))
+        # Convert markdown text to professional HTML paragraphs with heterogeneous formatting
+        def markdown_to_html(text, block_num):
+            text = strip_markdown(text)
+            if not text:
+                return ""
+            
+            # Split into paragraphs
+            paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+            
+            html = ""
+            for i, para in enumerate(paragraphs):
+                # Vary paragraph styling for heterogeneity (different block numbers get different styles)
+                if block_num % 3 == 0:
+                    # Style 1: Normal with slight indent
+                    html += f'<p style="margin-bottom: 1em; text-indent: 0.5em; line-height: 1.7;">{para}</p>\n'
+                elif block_num % 3 == 1:
+                    # Style 2: Justified with letter-spacing
+                    html += f'<p style="margin-bottom: 1em; text-align: justify; line-height: 1.65; letter-spacing: 0.3px;">{para}</p>\n'
+                else:
+                    # Style 3: With subtle background
+                    if i % 2 == 0:
+                        html += f'<p style="margin-bottom: 1em; padding: 0.5em 0; line-height: 1.7;">{para}</p>\n'
+                    else:
+                        html += f'<p style="margin-bottom: 1em; padding: 0.3em 0.5em; background-color: #f9f9f9; line-height: 1.7;">{para}</p>\n'
+            
+            return html
         
+        # Get cleaned block content
+        block3 = strip_markdown(blocks.get('block3', ''))
+        block4 = strip_markdown(blocks.get('block4', ''))
+        block5 = strip_markdown(blocks.get('block5', ''))
+        block6 = strip_markdown(blocks.get('block6', ''))
+        block7 = strip_markdown(blocks.get('block7', ''))
+        
+        # Build heterogeneous HTML
         html_content = f"""
-<p style="margin-bottom: 1.5em;">A quem possa interessar,</p>
+<p style="margin-bottom: 2em;">A quem possa interessar,</p>
 
-<div style="margin-top: 2em; margin-bottom: 2em;">
-  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Validação Empírica de Resultados</h2>
-  <div>{block3}</div>
+<div style="margin-top: 2.5em; margin-bottom: 2em;">
+  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 0.5em;">Validação Empírica de Resultados</h2>
+  <div>
+{markdown_to_html(block3, 3)}
+  </div>
 </div>
 
-<div style="margin-top: 2em; margin-bottom: 2em;">
-  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Diferenciação Técnica e Metodológica</h2>
-  <div>{block4}</div>
+<div style="margin-top: 2.5em; margin-bottom: 2em;">
+  <h2 style="font-size: 12pt; font-weight: 600; margin-bottom: 1.2em; color: #222; border-left: 3px solid #666; padding-left: 0.8em;">Diferenciação Técnica e Metodológica</h2>
+  <div>
+{markdown_to_html(block4, 4)}
+  </div>
 </div>
 
-<div style="margin-top: 2em; margin-bottom: 2em;">
-  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Impacto Setorial e Alcance</h2>
-  <div>{block5}</div>
+<div style="margin-top: 2.5em; margin-bottom: 2em;">
+  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; font-size: 11pt;">Impacto Setorial e Alcance</h2>
+  <div>
+{markdown_to_html(block5, 5)}
+  </div>
 </div>
 
-<div style="margin-top: 2em; margin-bottom: 2em;">
-  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Qualificação do Recomendador</h2>
-  <div>{block6}</div>
+<div style="margin-top: 2.5em; margin-bottom: 2em;">
+  <h2 style="font-size: 12pt; font-weight: 600; margin-bottom: 1.2em; color: #333; border-bottom: 1px solid #999; padding-bottom: 0.3em;">Qualificação do Recomendador</h2>
+  <div>
+{markdown_to_html(block6, 6)}
+  </div>
 </div>
 
-<div style="margin-top: 2em; margin-bottom: 3em;">
-  <h2 style="font-size: 1.1em; font-weight: bold; margin-bottom: 1em;">Conclusão e Recomendação</h2>
-  <div>{block7}</div>
+<div style="margin-top: 2.5em; margin-bottom: 3em;">
+  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; background-color: #f5f5f5; padding: 0.5em 0.8em;">Conclusão e Recomendação</h2>
+  <div>
+{markdown_to_html(block7, 7)}
+  </div>
 </div>
 
-<p style="margin-top: 3em;">Atenciosamente,</p>
+<p style="margin-top: 3em; text-align: left;">Atenciosamente,</p>
 """
         
         # Count total words
-        import re
-        text = html_content.replace('<div>', ' ').replace('</div>', ' ').replace('<h2>', ' ').replace('</h2>', ' ').replace('<p>', ' ').replace('</p>', ' ')
+        text = html_content.replace('<div>', ' ').replace('</div>', ' ').replace('<h2>', ' ').replace('</h2>', ' ').replace('<p>', ' ').replace('</p>', ' ').replace('<span>', ' ').replace('</span>', ' ')
         word_count = len(re.findall(r'\w+', text))
-        print(f"✅ Letter assembled: {word_count} words total")
+        print(f"✅ Letter assembled: {word_count} words total (cleaned markdown)")
         
         return html_content
     

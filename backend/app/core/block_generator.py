@@ -112,7 +112,7 @@ Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3500, min_words=800, max_words=1200)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=600, max_words=900)
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)
@@ -156,7 +156,7 @@ Destaque capacidades técnicas únicas com profundidade.
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000, min_words=600, max_words=1000)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3500, min_words=450, max_words=700)
             word_count = self._count_words(content)
             print(f"    ✓ Block 4 generated: {word_count} words")
             return content
@@ -191,7 +191,7 @@ Demonstre influência além do contexto imediato com exemplos detalhados.
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=800)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000, min_words=350, max_words=600)
             word_count = self._count_words(content)
             print(f"    ✓ Block 5 generated: {word_count} words")
             return content
@@ -226,7 +226,7 @@ Estabeleça credibilidade de forma aprofundada.
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1800, min_words=300, max_words=500)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=250, max_words=400)
             word_count = self._count_words(content)
             print(f"    ✓ Block 6 generated: {word_count} words")
             return content
@@ -261,7 +261,7 @@ Encerramento forte com impacto.
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1800, min_words=300, max_words=500)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=250, max_words=400)
             word_count = self._count_words(content)
             print(f"    ✓ Block 7 generated: {word_count} words")
             return content
