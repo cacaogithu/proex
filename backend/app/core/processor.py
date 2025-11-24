@@ -370,7 +370,6 @@ class SubmissionProcessor:
                 # Assemble letter
                 print("    - Assembling letter...")
                 letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
-                print(f"✅ Letter assembled (Template {design.get('template_id', 'A')})")
                 
                 # Get logo if available
                 logo_path = testimony.get('company_logo_path')
@@ -386,16 +385,11 @@ class SubmissionProcessor:
                 }
                 
                 self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
-                print(f"    ✓ Regenerated PDF with Template {design.get('template_id', 'A')}")
-                
-                # Track template usage
-                template_id = design.get('template_id', 'A')
-                self.db.increment_template_usage(template_id)
+                print(f"    ✓ Regenerated PDF for {testimony.get('recommender_name', 'Unknown')}")
                 
                 # Update letter info
                 existing_letters[letter_idx].update({
                     "pdf_path": output_path,
-                    "template_id": template_id,
                     "regenerated": True
                 })
             
