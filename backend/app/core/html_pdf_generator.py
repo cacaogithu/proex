@@ -297,8 +297,8 @@ class HTMLPDFGenerator:
                 self._process_html_element_to_docx(child, doc, p)
             return p
 
-        elif tag in ['h1', 'h2', 'h3']:
-            level = int(tag[1])
+        elif tag in ['h1', 'h2', 'h3'] and tag:
+            level = int(tag[1]) if tag and len(tag) > 1 else 1
             text = element.get_text()
             p = doc.add_heading(text, level=level)
             return p
@@ -429,7 +429,7 @@ class HTMLPDFGenerator:
 
             # Process top-level elements
             for element in soup.children:
-                if element.name:  # Skip text nodes at root level
+                if hasattr(element, 'name') and element.name:  # Skip text nodes at root level
                     self._process_html_element_to_docx(element, doc)
 
             print(f"✅ HTML converted to DOCX with formatting preservation")
