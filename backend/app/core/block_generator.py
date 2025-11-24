@@ -252,8 +252,8 @@ Você é `Block7_PROMPT`
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 
 # BLOCO 7: CONCLUSÃO E RECOMENDAÇÃO
-CRITICAL REQUIREMENT: Write EXACTLY 300-500 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 400 words.
+CRITICAL REQUIREMENT: Write EXACTLY 250-350 words (Portuguese words). This is MANDATORY.
+Count your words as you write. Current target: 300 words.
 Encerramento forte com impacto.
 - Síntese integrada de todas as contribuições
 - Recomendação clara e sem hesitações
@@ -264,12 +264,13 @@ Encerramento forte com impacto.
 # REGRAS
 - Primeira pessoa
 - Tom conclusivo e persuasivo
-- Reaffirm a excelência demonstrada
+- ⚠️ NÃO use clichés: "em conclusão", "finalmente", "sem dúvida", "recomendo fortemente", "melhor profissional"
+- Reaffirm a excelência demonstrada com fatos, não adjetivos
 - TODO EM PORTUGUÊS
 """
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=250, max_words=400)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=250, max_words=350)
             word_count = self._count_words(content)
             print(f"    ✓ Block 7 generated: {word_count} words")
             return content

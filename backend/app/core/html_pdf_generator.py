@@ -195,9 +195,41 @@ class HTMLPDFGenerator:
         block6 = strip_markdown(blocks.get('block6', ''))
         block7 = strip_markdown(blocks.get('block7', ''))
         
+        # Remove clichés from blocks
+        def remove_cliches(text):
+            """Remove common Portuguese clichés and opening phrases"""
+            cliches = [
+                r'A quem possa interessar[,.]?\s*',
+                r'É com (?:grande )?satisfação que\s+',
+                r'Tenho (?:o |a )?(?:prazer|satisfação) em\s+',
+                r'Gostaria de\s+',
+                r'(?:Como |Qual )?já mencionado[,.]?\s*',
+                r'É importante notar que\s+',
+                r'Sem dúvida[,.]?\s+',
+                r'Sem hesitações[,.]?\s+',
+                r'Posso(?:\s+confirmar)? que\s+',
+                r'Em conclusão[,.]?\s*',
+                r'Finalmente[,.]?\s+',
+                r'De acordo com\s+',
+                r'Recomendo(?:\s+fortemente)? que\s+',
+                r'Com grande prazer\s+',
+                r'Honrado em\s+',
+                r'Privilégio (?:e|é) de\s+',
+            ]
+            for cliche in cliches:
+                text = re.sub(cliche, '', text, flags=re.IGNORECASE)
+            return text.strip()
+        
+        # Apply cliché removal to blocks
+        block3 = remove_cliches(block3)
+        block4 = remove_cliches(block4)
+        block5 = remove_cliches(block5)
+        block6 = remove_cliches(block6)
+        block7 = remove_cliches(block7)
+        
         # Build heterogeneous HTML
         html_content = f"""
-<p style="margin-bottom: 2em;">A quem possa interessar,</p>
+<p style="margin-bottom: 2em;">Prezados Senhores,</p>
 
 <div style="margin-top: 2.5em; margin-bottom: 2em;">
   <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 0.5em;">Validação Empírica de Resultados</h2>

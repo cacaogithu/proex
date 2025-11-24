@@ -44,8 +44,24 @@ class LogoScraper:
 
         print(f"🔍 Searching logo for: {company_name}")
 
+        # Try to extract domain from company name if no website provided
         if not company_website:
-            print(f"⚠️ No website provided for {company_name}")
+            # Clean company name and try common TLDs
+            clean_name = company_name.lower().strip()
+            # Remove common Portuguese words
+            clean_name = clean_name.replace(' s.a.', '').replace(' s/a', '').replace(' ltda', '').replace(' ltda.', '').strip()
+            clean_name = clean_name.replace(' ', '').replace('/', '')
+            
+            # Try common Brazilian domains
+            for tld in ['.com.br', '.com', '.br', '.co']:
+                test_domain = f"{clean_name}{tld}"
+                print(f"  Trying domain: {test_domain}")
+                logo_path = self._try_clearbit(test_domain)
+                if logo_path:
+                    self._logo_cache[cache_key] = logo_path
+                    return logo_path
+            
+            print(f"⚠️ No website provided for {company_name} and domain lookup failed")
             self._logo_cache[cache_key] = None
             return None
 
