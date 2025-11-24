@@ -8,15 +8,20 @@ class BlockGenerator:
         self.llm = llm_processor
         self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
     
-    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3) -> str:
+    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3, max_tokens: Optional[int] = None) -> str:
         for attempt in range(max_retries):
             try:
                 # Using Gemini 2.5 Pro - cost-effective for high-quality content
-                response = self.llm.client.chat.completions.create(
-                    model=self.llm.models["quality"],
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature
-                )
+                # Pass explicit max_tokens when provided to avoid default truncation
+                call_kwargs = {
+                    "model": self.llm.models["quality"],
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": temperature,
+                }
+                if max_tokens is not None:
+                    call_kwargs["max_tokens"] = max_tokens
+
+                response = self.llm.client.chat.completions.create(**call_kwargs)
                 return response.choices[0].message.content
             except Exception as e:
                 if "429" in str(e) and attempt < max_retries - 1:
@@ -76,7 +81,8 @@ Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9)
+            # Block 3 target: 400-600 words -> reserve sufficient tokens
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
             try:
                 data = json.loads(content)
                 return data.get('markdown_draft', content)
@@ -109,7 +115,8 @@ Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
 """
         
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            # Block 4 target: 500-700 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000)
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
@@ -136,7 +143,8 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            # Block 5 target: 400-600 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
@@ -163,7 +171,8 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            # Block 6 target: 300-400 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000)
         except Exception as e:
             print(f"Error generating block 6: {str(e)}")
             return "Error generating block 6"
@@ -190,7 +199,8 @@ Testemunho: {json.dumps(testimony, ensure_ascii=False)}
 """
         
         try:
-            return self._call_llm_with_retry(prompt, temperature=0.9)
+            # Block 7 target: 200-300 words
+            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500)
         except Exception as e:
             print(f"Error generating block 7: {str(e)}")
             return "Error generating block 7"

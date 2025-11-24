@@ -153,6 +153,39 @@ class Database:
         conn.commit()
         conn.close()
     
+    # User Management Methods
+    def create_user(self, email: str, password_hash: str) -> Dict:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        user_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        try:
+            cursor.execute("""
+                INSERT INTO users (id, email, password_hash, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (user_id, email, password_hash, now))
+            conn.commit()
+            return {"id": user_id, "email": email, "created_at": now}
+        except sqlite3.IntegrityError:
+            raise ValueError("User with this email already exists")
+        finally:
+            conn.close()
+
+    def get_user_by_email(self, email: str) -> Optional[Dict]:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return dict(row)
+        return None
+    
     def create_submission(self, email: str, num_testimonials: int) -> Dict:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -241,6 +274,19 @@ class Database:
         cursor.execute(
             "SELECT * FROM submissions WHERE user_email = ? ORDER BY created_at DESC",
             (email,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in rows]
+
+    def get_all_submissions(self) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "SELECT * FROM submissions ORDER BY created_at DESC"
         )
         rows = cursor.fetchall()
         conn.close()

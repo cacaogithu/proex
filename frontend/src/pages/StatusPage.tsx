@@ -23,7 +23,7 @@ export default function StatusPage() {
     try {
       const response = await axios.get(`/api/submissions/${submissionId}`)
       setSubmission(response.data)
-      
+
       if (response.data.status === 'completed') {
         const processedData = JSON.parse(response.data.processed_data || '{}')
         response.data.letters = processedData.letters || []
@@ -42,35 +42,50 @@ export default function StatusPage() {
     }, 2000)
   }
 
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await axios.get(url, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download failed", error);
+      alert("Erro ao baixar arquivo. Verifique se você está logado.");
+    }
+  };
+
   const downloadResults = () => {
-    window.open(`/api/submissions/${submissionId}/download`, '_blank')
+    handleDownload(`/api/submissions/${submissionId}/download`, `cartas_${submissionId}.zip`);
   }
 
+  // Helper functions for status display (assuming they exist elsewhere or need to be added)
   const getStatusColor = (status: string) => {
-    const colors: any = {
-      received: 'bg-blue-100 text-blue-800',
-      extracting: 'bg-yellow-100 text-yellow-800',
-      organizing: 'bg-yellow-100 text-yellow-800',
-      designing: 'bg-yellow-100 text-yellow-800',
-      generating: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-green-100 text-green-800',
-      error: 'bg-red-100 text-red-800'
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-blue-100 text-blue-800';
     }
-    return colors[status] || 'bg-gray-100 text-gray-800'
-  }
+  };
 
   const getStatusLabel = (status: string) => {
-    const labels: any = {
-      received: 'Recebido',
-      extracting: 'Extraindo PDFs',
-      organizing: 'Organizando Dados',
-      designing: 'Gerando Designs',
-      generating: 'Gerando Cartas',
-      completed: 'Concluído',
-      error: 'Erro'
+    switch (status) {
+      case 'pending': return 'Pendente';
+      case 'extracting': return 'Extraindo Dados';
+      case 'organizing': return 'Organizando Dados';
+      case 'designing': return 'Gerando Design';
+      case 'generating': return 'Gerando Cartas';
+      case 'completed': return 'Concluído';
+      case 'failed': return 'Falhou';
+      default: return status;
     }
-    return labels[status] || status
-  }
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
@@ -146,12 +161,10 @@ export default function StatusPage() {
                 <h4 className="font-semibold text-gray-900 mb-3">Cartas de Recomendação Geradas:</h4>
                 <div className="space-y-2">
                   {submission.files?.map((file: string, index: number) => (
-                    <a
+                    <button
                       key={index}
-                      href={`/api/files/${submission.id}/${file}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors"
+                      onClick={() => handleDownload(`/api/files/${submission.id}/${file}`, file)}
+                      className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
                         <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
@@ -160,16 +173,14 @@ export default function StatusPage() {
                         <span className="text-sm font-medium text-gray-900">{file}</span>
                       </div>
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
-                    </a>
+                    </button>
                   )) || Array.from({ length: submission.number_of_testimonials }).map((_, i) => (
-                    <a
+                    <button
                       key={i}
-                      href={`/api/files/${submission.id}/letter_${i + 1}.pdf`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors"
+                      onClick={() => handleDownload(`/api/files/${submission.id}/letter_${i + 1}.pdf`, `letter_${i + 1}.pdf`)}
+                      className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
                         <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
@@ -178,13 +189,13 @@ export default function StatusPage() {
                         <span className="text-sm font-medium text-gray-900">Carta {i + 1}</span>
                       </div>
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   onClick={downloadResults}
@@ -216,9 +227,9 @@ export default function StatusPage() {
                   Avalie o conjunto de cartas e cada carta individualmente
                 </span>
               </div>
-              
+
               <OverallFeedback submissionId={submission.id} />
-              
+
               <div className="border-t pt-4">
                 <h5 className="font-semibold text-gray-800 mb-3">Avaliação Individual de Cartas</h5>
                 <p className="text-sm text-gray-600 mb-3">

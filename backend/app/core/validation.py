@@ -4,7 +4,7 @@ Does NOT rewrite - only logs warnings for monitoring
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from collections import Counter
 
 
@@ -98,7 +98,7 @@ def jaccard_4gram(text_a: str, text_b: str) -> float:
     return intersection / union if union > 0 else 0.0
 
 
-def find_forbidden_phrases(text: str, categories: List[str] | None = None) -> List[str]:
+def find_forbidden_phrases(text: str, categories: Optional[List[str]] = None) -> List[str]:
     """
     Find forbidden phrases in text
 

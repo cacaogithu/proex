@@ -13,18 +13,12 @@ echo "Starting Email Service on port 3001..."
 cd backend && npm start &
 EMAIL_PID=$!
 
-# Start frontend on port 5000 (serves static files + proxies to backend)
-echo "Starting Frontend on port 5000..."
-cd frontend && npm run dev -- --host 0.0.0.0 &
-FRONTEND_PID=$!
-
 echo ""
 echo "✅ All services started!"
-echo "   - Backend API: http://0.0.0.0:8000"
+echo "   - Backend API + Frontend: http://0.0.0.0:8000"
 echo "   - Email Service: http://0.0.0.0:3001"
-echo "   - Frontend: http://0.0.0.0:5000"
 echo ""
 echo "Waiting for services..."
 
 # Wait for all background processes
-wait $BACKEND_PID $EMAIL_PID $FRONTEND_PID
+wait $BACKEND_PID $EMAIL_PID

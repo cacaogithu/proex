@@ -120,7 +120,7 @@ class SubmissionProcessor:
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
     
-    def update_status(self, submission_id: str, status: str, error: str | None = None):
+    def update_status(self, submission_id: str, status: str, error: Optional[str] = None):
         self.db.update_submission_status(submission_id, status, error)
         print(f"Submission {submission_id}: {status}")
     
@@ -255,7 +255,7 @@ class SubmissionProcessor:
         self, 
         submission_id: str, 
         letter_indices: list[int],
-        custom_instructions: str | None = None
+        custom_instructions: Optional[str] = None
     ):
         """Regenerate only specific letters from a completed submission"""
         try:
@@ -330,11 +330,10 @@ class SubmissionProcessor:
                 
                 # Assemble letter with Claude
                 print("    - Assembling letter with Claude 4.5 Sonnet...")
-                letter_html = self.llm.assemble_letter_with_claude(
+                letter_html = self.pdf_generator.assemble_letter(
                     blocks=blocks,
                     design=design,
-                    testimony=testimony,
-                    petitioner=organized_data.get('petitioner', {}),
+                    llm=self.llm,
                     custom_instructions=custom_instructions
                 )
                 print(f"✅ Letter assembled with Claude 4.5 Sonnet (Template {design.get('template_id', 'A')})")

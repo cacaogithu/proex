@@ -8,6 +8,7 @@ export default function SubmitPage() {
   const [cv, setCv] = useState<File | null>(null)
   const [estrategia, setEstrategia] = useState<File | null>(null)
   const [onenote, setOnenote] = useState<File | null>(null)
+  const [otherDocs, setOtherDocs] = useState<File[]>([])
   const [testimonials, setTestimonials] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -41,6 +42,10 @@ export default function SubmitPage() {
 
       testimonials.forEach((file) => {
         formDataToSend.append('testimonials', file)
+      })
+
+      otherDocs.forEach((file) => {
+        formDataToSend.append('other_documents', file)
       })
 
       const response = await axios.post('/api/submissions', formDataToSend, {
@@ -157,7 +162,7 @@ export default function SubmitPage() {
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-2">CVs dos Recomendadores *</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Envie os CVs ou perfis LinkedIn (em PDF) dos profissionais que farão as recomendações. 
+            Envie os CVs ou perfis LinkedIn (em PDF) dos profissionais que farão as recomendações.
             O sistema gerará automaticamente cartas de recomendação únicas baseadas nestes documentos.
           </p>
           <div className="space-y-3">
@@ -204,6 +209,29 @@ export default function SubmitPage() {
                 onChange={(e) => setOnenote(e.target.files?.[0] || null)}
                 className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Outros Documentos (Opcional)
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Adicione outros documentos relevantes (ex: Prêmios, Artigos, Mídia)
+              </p>
+              <input
+                type="file"
+                accept=".pdf"
+                multiple
+                onChange={(e) => setOtherDocs(Array.from(e.target.files || []))}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+              />
+              {otherDocs.length > 0 && (
+                <ul className="mt-2 text-sm text-gray-600">
+                  {otherDocs.map((file, index) => (
+                    <li key={index}>• {file.name}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
