@@ -161,30 +161,45 @@ class HTMLPDFGenerator:
             text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
             return text.strip()
         
-        # Convert markdown text to professional HTML paragraphs with heterogeneous formatting
+        # Convert markdown text to professional HTML paragraphs with DYNAMIC heterogeneous formatting
         def markdown_to_html(text, block_num):
             text = strip_markdown(text)
             if not text:
                 return ""
+            
+            # Get dynamic style attributes from design blueprint
+            voice = design.get('voice_style', 'professional')
+            formality = design.get('formality_level', 'standard')
+            visual = design.get('visual_density', 'readable')
+            structure = design.get('structure_pattern', 'sections')
             
             # Split into paragraphs
             paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
             
             html = ""
             for i, para in enumerate(paragraphs):
-                # Vary paragraph styling for heterogeneity (different block numbers get different styles)
-                if block_num % 3 == 0:
-                    # Style 1: Normal with slight indent
-                    html += f'<p style="margin-bottom: 1em; text-indent: 0.5em; line-height: 1.7;">{para}</p>\n'
-                elif block_num % 3 == 1:
-                    # Style 2: Justified with letter-spacing
-                    html += f'<p style="margin-bottom: 1em; text-align: justify; line-height: 1.65; letter-spacing: 0.3px;">{para}</p>\n'
-                else:
-                    # Style 3: With subtle background
-                    if i % 2 == 0:
-                        html += f'<p style="margin-bottom: 1em; padding: 0.5em 0; line-height: 1.7;">{para}</p>\n'
+                # Dynamic paragraph styling based on style blueprint
+                if 'technical' in voice and 'dense' in visual:
+                    # Technical dense style: compact with monospace elements
+                    html += f'<p style="margin-bottom: 0.8em; line-height: 1.5; font-size: 10.5pt;">{para}</p>\n'
+                elif 'narrative' in voice and 'flowing' in visual:
+                    # Narrative flowing style: more spacing and readability
+                    html += f'<p style="margin-bottom: 1.3em; line-height: 1.8; text-indent: 1.5em; text-align: justify;">{para}</p>\n'
+                elif 'formal' in formality and 'structured' in visual:
+                    # Formal structured style: clear sections with borders
+                    if i == 0:
+                        html += f'<p style="margin-bottom: 1em; padding-left: 0.5em; border-left: 3px solid #444; line-height: 1.65;">{para}</p>\n'
                     else:
-                        html += f'<p style="margin-bottom: 1em; padding: 0.3em 0.5em; background-color: #f9f9f9; line-height: 1.7;">{para}</p>\n'
+                        html += f'<p style="margin-bottom: 1em; padding-left: 0.8em; line-height: 1.65;">{para}</p>\n'
+                elif 'analytical' in voice:
+                    # Analytical style: numbered points and data focus
+                    html += f'<p style="margin-bottom: 1em; background: linear-gradient(to right, #f5f5f5, white); padding: 0.5em; line-height: 1.7;">{para}</p>\n'
+                elif 'pragmatic' in voice:
+                    # Direct pragmatic style: no-nonsense formatting
+                    html += f'<p style="margin-bottom: 0.9em; line-height: 1.6;">{para}</p>\n'
+                else:
+                    # Default professional style
+                    html += f'<p style="margin-bottom: 1em; line-height: 1.7;">{para}</p>\n'
             
             return html
         
@@ -227,40 +242,79 @@ class HTMLPDFGenerator:
         block6 = remove_cliches(block6)
         block7 = remove_cliches(block7)
         
-        # Build heterogeneous HTML
+        # Build DYNAMIC heterogeneous HTML based on style blueprint
+        voice = design.get('voice_style', 'professional')
+        formality = design.get('formality_level', 'standard')
+        visual = design.get('visual_density', 'readable')
+        
+        # Dynamic heading styles based on blueprint
+        heading_styles = []
+        if 'technical' in voice:
+            heading_styles = [
+                'font-size: 11pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #000;',
+                'font-size: 11pt; font-weight: 600; background: #f0f0f0; padding: 0.5em;',
+                'font-size: 11pt; font-weight: bold; border-left: 4px solid #333; padding-left: 0.8em;',
+                'font-size: 11pt; font-weight: 600; border-bottom: 1px dashed #666;',
+                'font-size: 11pt; font-weight: bold; color: #222; text-decoration: underline;'
+            ]
+        elif 'narrative' in voice:
+            heading_styles = [
+                'font-size: 13pt; font-weight: 500; color: #444; margin-top: 1em;',
+                'font-size: 12pt; font-style: italic; color: #555; border-bottom: 1px solid #ccc;',
+                'font-size: 12pt; font-weight: 600; color: #333;',
+                'font-size: 12pt; font-weight: normal; text-transform: capitalize;',
+                'font-size: 13pt; font-weight: 500; color: #222;'
+            ]
+        elif 'formal' in formality:
+            heading_styles = [
+                'font-size: 12pt; font-weight: bold; border-bottom: 3px double #333; padding-bottom: 0.5em;',
+                'font-size: 12pt; font-weight: 700; background: linear-gradient(to right, #e0e0e0, white); padding: 0.4em;',
+                'font-size: 12pt; font-weight: bold; text-align: center; text-transform: uppercase;',
+                'font-size: 12pt; font-weight: 600; border: 1px solid #888; padding: 0.3em;',
+                'font-size: 12pt; font-weight: bold; color: #111;'
+            ]
+        else:
+            heading_styles = [
+                'font-size: 12pt; font-weight: bold; margin-bottom: 1em;',
+                'font-size: 12pt; font-weight: 600; color: #333;',
+                'font-size: 12pt; font-weight: bold; border-bottom: 1px solid #aaa;',
+                'font-size: 12pt; font-weight: 500; padding-left: 0.5em;',
+                'font-size: 12pt; font-weight: bold; color: #222;'
+            ]
+        
         html_content = f"""
 <p style="margin-bottom: 2em;">Prezados Senhores,</p>
 
 <div style="margin-top: 2.5em; margin-bottom: 2em;">
-  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 0.5em;">Validação Empírica de Resultados</h2>
+  <h2 style="{heading_styles[0]} margin-bottom: 1.2em;">Validação Empírica de Resultados</h2>
   <div>
 {markdown_to_html(block3, 3)}
   </div>
 </div>
 
 <div style="margin-top: 2.5em; margin-bottom: 2em;">
-  <h2 style="font-size: 12pt; font-weight: 600; margin-bottom: 1.2em; color: #222; border-left: 3px solid #666; padding-left: 0.8em;">Diferenciação Técnica e Metodológica</h2>
+  <h2 style="{heading_styles[1]} margin-bottom: 1.2em;">Diferenciação Técnica e Metodológica</h2>
   <div>
 {markdown_to_html(block4, 4)}
   </div>
 </div>
 
 <div style="margin-top: 2.5em; margin-bottom: 2em;">
-  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; font-size: 11pt;">Impacto Setorial e Alcance</h2>
+  <h2 style="{heading_styles[2]} margin-bottom: 1.2em;">Impacto Setorial e Alcance</h2>
   <div>
 {markdown_to_html(block5, 5)}
   </div>
 </div>
 
 <div style="margin-top: 2.5em; margin-bottom: 2em;">
-  <h2 style="font-size: 12pt; font-weight: 600; margin-bottom: 1.2em; color: #333; border-bottom: 1px solid #999; padding-bottom: 0.3em;">Qualificação do Recomendador</h2>
+  <h2 style="{heading_styles[3]} margin-bottom: 1.2em;">Qualificação do Recomendador</h2>
   <div>
 {markdown_to_html(block6, 6)}
   </div>
 </div>
 
 <div style="margin-top: 2.5em; margin-bottom: 3em;">
-  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; color: #1a1a1a; background-color: #f5f5f5; padding: 0.5em 0.8em;">Conclusão e Recomendação</h2>
+  <h2 style="{heading_styles[4]} margin-bottom: 1.2em;">Conclusão e Recomendação</h2>
   <div>
 {markdown_to_html(block7, 7)}
   </div>
