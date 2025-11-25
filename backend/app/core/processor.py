@@ -1,17 +1,19 @@
 from .pdf_extractor import PDFExtractor
 from .llm_processor import LLMProcessor
-from .heterogeneity import StyleBlueprintGenerator
+from .heterogeneity import HeterogeneityArchitect
 from .block_generator import BlockGenerator
 from .html_pdf_generator import HTMLPDFGenerator
+from .html_designer import HTMLDesigner  # NEW: AI-powered design generator
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
 from .rag_engine import RAGEngine  # NEW
 from ..db.database import Database
+from ..ml.prompt_enhancer import PromptEnhancer
 import os
 import glob
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
@@ -19,6 +21,7 @@ logger = logging.getLogger(__name__)
 # Configuration constants
 MAX_PARALLEL_WORKERS = 10  # Maximum concurrent letter generation tasks (increased from 5)
 MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
 
 
 class SubmissionProcessor:
@@ -27,7 +30,10 @@ class SubmissionProcessor:
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
         self.db = Database()
-        
+
+        # Initialize PromptEnhancer (ML system)
+        self.prompt_enhancer = PromptEnhancer(self.db)
+
         # Try to train ML models with existing data
         try:
             # Silently attempt training - will only log if there's enough data
@@ -44,10 +50,11 @@ class SubmissionProcessor:
         # Initialize other components AFTER ML training
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer, self.rag_engine)  # Pass RAG engine
+        self.html_designer = HTMLDesigner(self.llm)  # NEW: AI-powered HTML designer
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
-        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers and RAG enabled")
+        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers, RAG enabled, and AI HTML Designer")
     
     def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
@@ -68,30 +75,36 @@ class SubmissionProcessor:
         blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
         print(f"    ✓ Blocks generated for {recommender_name}")
 
-        # 3. Assemble letter
-        print(f"    - Assembling letter for {recommender_name}...")
-        letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
-        print(f"    ✓ Letter assembled for {recommender_name}")
-
-        # 4. Generate PDF and DOCX
-        output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f"letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf")
-        print(f"    - Generating PDF for {recommender_name}...")
-
+        # 3. DESIGN custom HTML (AI-powered, no templates!)
+        print(f"    - Designing custom HTML for {recommender_name}...")
         recommender_info = {
             'name': recommender_name,
             'title': testimony.get('recommender_position', ''),
             'company': testimony.get('recommender_company', ''),
             'location': testimony.get('recommender_location', '')
         }
+        letter_html = self.html_designer.generate_html_design(
+            blocks=blocks,
+            design=design,
+            recommender_info=recommender_info,
+            logo_path=logo_path
+        )
+        print(f"    ✓ Custom HTML design generated for {recommender_name}")
 
-        self.pdf_generator.html_to_pdf(letter_html, output_path, {}, logo_path, recommender_info)
+        # 4. Generate PDF and DOCX from complete HTML
+        output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf")
+        print(f"    - Converting HTML to PDF for {recommender_name}...")
+
+        # Since letter_html is now a complete document, convert directly to PDF
+        self.pdf_generator.html_to_pdf_direct(letter_html, output_path)
         print(f"    ✓ PDF generated for {recommender_name}")
 
         docx_output_path = output_path.replace('.pdf', '.docx')
         print(f"    - Generating editable DOCX for {recommender_name}...")
-        self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
+        self.pdf_generator.html_to_docx_direct(letter_html, docx_output_path)
+        print(f"    ✓ DOCX generated for {recommender_name}")
 
         # 5. Track template usage
         template_id = design.get('template_id', 'A')
@@ -182,8 +195,8 @@ class SubmissionProcessor:
             print("\nPHASE 2.5: Logo scraping will run in parallel with letter generation.")
             
             self.update_status(submission_id, "designing")
-            print("\nPHASE 3: Generating style blueprints (Dynamic Style Generation)...")
-            design_structures = self.heterogeneity.generate_style_blueprints(organized_data)
+            print("\nPHASE 3: Generating design structures (Dynamic Style Generation)...")
+            design_structures = self.heterogeneity.generate_design_structures(organized_data)
             print(f"✓ Generated {len(design_structures.get('design_structures', []))} unique designs")
             
             self.update_status(submission_id, "generating")
