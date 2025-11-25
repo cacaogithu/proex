@@ -225,7 +225,7 @@ class SubmissionProcessor:
             
             # PHASE 5: Send email with Google Drive links (both PDF and DOCX)
             submission = self.db.get_submission(submission_id)
-            recipient_email = submission.get('email') if submission else None
+            recipient_email = submission.get('user_email') if submission else None
             
             if recipient_email and check_email_service_health() and len(successful_letters) > 0:
                 print("\nPHASE 5: Sending results via email and Google Drive...")
