@@ -31,16 +31,15 @@ class SubmissionProcessor:
         self.block_generator = BlockGenerator(self.llm)
         self.html_designer = HTMLDesigner(self.llm)
 
-        # Initialize RAG engine
-        self.rag_engine = RAGEngine(self.llm)
-        logger.info("RAG engine initialized")
+
 
         # Initialize other components
         self.heterogeneity = HeterogeneityArchitect(self.llm)
+        self.block_generator = BlockGenerator(self.llm) # Removed prompt_enhancer and rag_engine args
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
-        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers, RAG enabled, and AI HTML Designer")
+        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers (ML/RAG disabled)")
     
     def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
@@ -132,34 +131,9 @@ class SubmissionProcessor:
             organized_data['submission_id'] = submission_id
             print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
             
-            # PHASE 2.5: RAG Ingestion (AFTER data is organized)
-            print("\nPHASE 2.5: Ingesting assets into RAG for context-aware generation...")
-            upload_dir = f"storage/uploads/{submission_id}"
-            asset_files = []
-            
-            # User-uploaded assets
-            if os.path.exists(f"{upload_dir}/estrategia.pdf"):
-                asset_files.append(f"{upload_dir}/estrategia.pdf")
-            if os.path.exists(f"{upload_dir}/onenote.pdf"):
-                asset_files.append(f"{upload_dir}/onenote.pdf")
-            
-            # Other documents uploaded by user (if any)
-            other_docs = glob.glob(f"{upload_dir}/other_*.pdf")
-            asset_files.extend(other_docs)
-            
-            # ALSO: Include reference letters from attached_assets for style examples
-            reference_letters = glob.glob("attached_assets/V1_*.pdf")  # Example letters
-            asset_files.extend(reference_letters)
-            
-            if asset_files:
-                print(f"   Found {len(asset_files)} assets to ingest")
-                try:
-                    self.rag_engine.ingest_documents(submission_id, asset_files)
-                    print("   ✓ Assets ingested into RAG")
-                except Exception as e:
-                    print(f"   ⚠️  RAG ingestion failed (continuing without RAG): {e}")
-            else:
-                print("   No assets found for RAG ingestion")
+            # PHASE 2.5: RAG Ingestion - DISABLED
+            # print("\nPHASE 2.5: Ingesting assets into RAG for context-aware generation...")
+            # ... (RAG logic removed)
             
             # PHASE 2.5: Logo scraping is now integrated into the parallel letter generation function.
             print("\nPHASE 2.5: Logo scraping will run in parallel with letter generation.")
@@ -262,6 +236,22 @@ class SubmissionProcessor:
                 "success_count": len(successful_letters)
             })
             
+            # ML Retraining - DISABLED
+            # total_submissions = self.db.get_total_submissions_count()
+            # if total_submissions % 10 == 0:
+            #     logger.info(f"Triggering ML model retraining")
+            #     print("\n🧠 Re-training ML models with new data...")
+            #     try:
+            #         # ML training disabled
+            #         # self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
+            #         # logger.info("ML models retrained successfully")
+            #         logger.info("ML model retraining skipped: ML components are disabled.")
+            #         print("   ℹ️  ML training skipped: ML components are disabled.")
+            #     except Exception as e:
+            #         logger.warning(f"ML training failed: {e}")
+            #         print(f"   ℹ️  ML training skipped: {e}")
+            # else:
+            #     logger.debug(f"Skipping ML retraining (will retrain at next multiple of 10)")
             print(f"\n{'='*60}")
             print(f"✓ COMPLETED! Generated {len(letters)} PDF + DOCX letters")
             print(f"{'='*60}\n")

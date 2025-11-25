@@ -1,5 +1,7 @@
 import sqlite3
-from .supabase_db import SupabaseDB
+import sqlite3
+# from .supabase_db import SupabaseDB # Removed
+import json
 import json
 import os
 from datetime import datetime
@@ -15,11 +17,8 @@ class Database:
             os.makedirs(db_dir, exist_ok=True)
         self.init_db()
 
-        # Configuration: Supabase project ID from environment variable
-        # Note: Supabase integration is currently disabled by default
-        if supabase_project_id is None:
-            supabase_project_id = os.getenv("SUPABASE_PROJECT_ID", "xlbrcrbngyrkwtcqgmbe")
-        self.supabase_db = SupabaseDB(supabase_project_id)
+        # Supabase integration removed as per user request for standard Replit database (SQLite)
+        self.supabase_db = None
     
     def _migrate_schema_if_needed(self, cursor):
         """Auto-migrate old schema to new schema (rating→score, etc)"""
@@ -335,6 +334,10 @@ class Database:
         comment: Optional[str] = None
     ) -> str:
         """Save score (0-100) for a specific letter and update template performance"""
+        # 1. Supabase call removed
+        # self.supabase_db.save_letter_score(submission_id, letter_index, template_id, score, comment)
+        
+        # 2. Update local template performance (this logic remains local)
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -494,54 +497,17 @@ class Database:
         embedding: List[float],
         cluster_id: Optional[int] = None
     ):
-        """Save letter embedding for ML/clustering in Supabase Vector DB"""
-        try:
-            self.supabase_db.save_letter_embedding(submission_id, letter_index, embedding, cluster_id)
-        except Exception as e:
-            # Gracefully handle Supabase failures (it's optional)
-            print(f"⚠️  Embedding save failed (non-critical): {e}")
+        """Save letter embedding - DISABLED (SQLite only)"""
+        pass
+        # try:
+        #     self.supabase_db.save_letter_embedding(submission_id, letter_index, embedding, cluster_id)
+        # except Exception as e:
+        #     print(f"⚠️  Embedding save failed (non-critical): {e}")
     
     def get_all_embeddings(self) -> List[Dict]:
-        """Get all letter embeddings and their associated scores for ML training"""
-        # First try Supabase (if enabled)
-        try:
-            supabase_data = self.supabase_db.get_all_embeddings()
-            if supabase_data:
-                return supabase_data
-        except Exception:
-            pass  # Fall through to SQLite
-
-        # Use local SQLite data
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT
-                e.id,
-                e.embedding,
-                r.score
-            FROM letter_embeddings e
-            LEFT JOIN letter_ratings r
-            ON e.submission_id = r.submission_id AND e.letter_index = r.letter_index
-        """)
-
-        rows = cursor.fetchall()
-        conn.close()
-
-        result = []
-        for row in rows:
-            try:
-                embedding = json.loads(row['embedding'])
-                result.append({
-                    'id': row['id'],
-                    'embedding': embedding,
-                    'score': row['score']
-                })
-            except Exception:
-                continue
-
-        return result
+        """Get all letter embeddings - DISABLED (SQLite only)"""
+        return []
+        # return self.supabase_db.get_all_embeddings()
     
     def update_cluster_assignments(self, embedding_updates: List[tuple]):
         """
@@ -621,22 +587,6 @@ class Database:
         return results
     
     def get_all_letter_ratings(self) -> List[Dict]:
-        """Get all letter ratings for ML training"""
-        # First try Supabase (if enabled)
-        try:
-            supabase_data = self.supabase_db.get_all_letter_ratings()
-            if supabase_data:
-                return supabase_data
-        except Exception:
-            pass  # Fall through to SQLite
-
-        # Use local SQLite data
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM letter_ratings ORDER BY created_at DESC")
-        rows = cursor.fetchall()
-        conn.close()
-
-        return [dict(row) for row in rows]
+        """Get all letter ratings - DISABLED (SQLite only)"""
+        return []
+        # return self.supabase_db.get_all_letter_ratings()
