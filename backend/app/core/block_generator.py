@@ -3,22 +3,28 @@ import json
 import time
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from .llm_processor import LLMProcessor
+from .openai_vector_search import OpenAIVectorSearch
 from .block_prompts import (
-    BLOCK1_PROMPT, BLOCK2_PROMPT, BLOCK3_PROMPT, 
-    BLOCK4_PROMPT, BLOCK5_PROMPT
+    BLOCK1_PROMPT,
+    BLOCK2_PROMPT,
+    BLOCK3_PROMPT,
+    BLOCK4_PROMPT,
+    BLOCK5_PROMPT
 )
 
 
 class BlockGenerator:
-    def __init__(self, llm_processor, prompt_enhancer=None, rag_engine=None):
+    def __init__(self, llm_processor: LLMProcessor, prompt_enhancer=None, rag_engine=None):
         self.llm = llm_processor
         self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
         self.rag = rag_engine  # RAG for context retrieval
+        self.vector_search = OpenAIVectorSearch()
 
     def _count_words(self, text: str) -> int:
         """Count words in text"""
         return len(re.findall(r'\w+', text))
-    
+
     def _prepare_prompt_data(self, testimony: Dict, design: Dict, context: Dict) -> Dict:
         """
         Prepare data dictionary for n8n prompt templates.
@@ -27,28 +33,28 @@ class BlockGenerator:
         onet = context.get('onet', {})
         strategy = context.get('strategy', {})
         petitioner = context.get('petitioner', {})
-        
+
         return {
             # Design structure parameters (n8n schema)
             'tone_variable': design.get('tone_variable', ''),
             'tone_instructions': design.get('tone_instructions', ''),
             'narrative_framework': design.get('narrative_framework', ''),
             'paragraph_density_rule': design.get('paragraph_density_rule', ''),
-            
+
             # O*NET parameters
             'onet_tasks': onet.get('representative_tasks', ''),
             'onet_tools': onet.get('tools_and_technologies', ''),
             'onet_activities': onet.get('work_activities_and_skills', ''),
-            
+
             # Strategy parameters
             'strategy_services': strategy.get('services_offered', ''),
             'strategy_clients': strategy.get('target_clients', ''),
-            
+
             # Petitioner parameters
             'petitioner_name': petitioner.get('name', ''),
             'petitioner_education': petitioner.get('education', ''),
             'petitioner_experience': petitioner.get('experience', ''),
-            
+
             # Testimony parameters
             'testimony_id': testimony.get('testimony_id', ''),
             'recommender_name': testimony.get('recommender_name', ''),
@@ -185,12 +191,12 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             best_content = self._expand_content(best_content, min_words, context_hint)
 
         return best_content
-    
+
     def generate_block1(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 1 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK1_PROMPT.format(**prompt_data)
-        
+
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
             # Clean any accidental markdown fences
@@ -202,19 +208,19 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             if content.endswith('```'):
                 content = content.rsplit('```', 1)[0]
             content = content.strip()
-            
+
             word_count = self._count_words(content)
             print(f"    ✓ Block 1 generated: {word_count} words")
             return content
         except Exception as e:
             print(f"Error generating block 1: {str(e)}")
             return "Error generating block 1"
-    
+
     def generate_block2(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 2 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK2_PROMPT.format(**prompt_data)
-        
+
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
             # Clean any accidental markdown fences
@@ -226,30 +232,36 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             if content.endswith('```'):
                 content = content.rsplit('```', 1)[0]
             content = content.strip()
-            
+
             word_count = self._count_words(content)
             print(f"    ✓ Block 2 generated: {word_count} words")
             return content
         except Exception as e:
             print(f"Error generating block 2: {str(e)}")
             return "Error generating block 2"
-    
+
     def generate_block3(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 3 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         base_prompt = BLOCK3_PROMPT.format(**prompt_data)
-        
-        # RAG Enhancement - DISABLED
-        # prompt = base_prompt
+
+        # Build prompt with context
+        prompt = base_prompt
+
+        # Add compliance context from OpenAI vector store
+        compliance_context = self.vector_search.get_compliance_context(self.block_name if hasattr(self, 'block_name') else 'block3') # Default to 'block3' if block_name is not set
+        if compliance_context:
+            prompt = f"{base_prompt}\n\n{compliance_context}"
+
+        # RAG Enhancement - User documents (DISABLED)
         # if self.rag and context.get('submission_id'):
-        #     ... (RAG logic removed)
-        
-        # ML-powered prompt enhancement - DISABLED
-        # if self.prompt_enhancer:
-        #     ... (ML logic removed)
-        
-        prompt = base_prompt # Use base prompt only
-        
+        #     rag_context = self.rag.get_context_for_block(
+        #         context['submission_id'],
+        #         block_name
+        #     )
+        #     if rag_context:
+        #         prompt = f"{prompt}\n\n## ADDITIONAL CONTEXT FROM DOCUMENTS\n\n{rag_context}"
+
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)
             try:
@@ -278,7 +290,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 4 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK4_PROMPT.format(**prompt_data)
-        
+
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=350, max_words=600)
             # Clean any accidental markdown fences
@@ -290,7 +302,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             if content.endswith('```'):
                 content = content.rsplit('```', 1)[0]
             content = content.strip()
-            
+
             word_count = self._count_words(content)
             print(f"    ✓ Block 4 generated: {word_count} words")
             return content
@@ -302,7 +314,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 5 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK5_PROMPT.format(**prompt_data)
-        
+
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
             # Clean any accidental markdown fences
@@ -314,14 +326,14 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             if content.endswith('```'):
                 content = content.rsplit('```', 1)[0]
             content = content.strip()
-            
+
             word_count = self._count_words(content)
             print(f"    ✓ Block 5 generated: {word_count} words")
             return content
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
-    
+
     def generate_all_blocks(self, testimony: Dict, design: Dict, context: Dict) -> Dict[str, str]:
         """Generate all 5 blocks in parallel for maximum performance"""
         recommender_name = testimony.get('recommender_name', 'Unknown')
