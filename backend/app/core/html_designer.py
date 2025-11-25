@@ -107,8 +107,9 @@ class HTMLDesigner:
             response = self.llm.client.chat.completions.create(
                 model=self.llm.models["quality"],  # Use best model for design
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.8,  # Higher temperature for creativity
-                max_tokens=16000
+                temperature=1.0,  # MAXIMUM creativity - we want unique designs!
+                max_tokens=16000,
+                top_p=0.95  # Allow diverse token selection
             )
 
             html_output = response.choices[0].message.content.strip()
@@ -188,133 +189,158 @@ Place the logo strategically in the header. Example:
 ```
 """
 
-        prompt = f"""# ROLE
-You are the world's best HTML Document Designer for professional letters of recommendation.
+        prompt = f"""# YOU ARE A WORLD-CLASS HTML/CSS DESIGNER - NOT A TEMPLATE USER
 
-Your job is to **DESIGN** - not assemble from templates, but CREATE a completely unique HTML document with custom CSS that brings this letter to life visually.
+Your mission: Generate a COMPLETELY UNIQUE, VISUALLY STRIKING HTML document for this letter.
 
-# CRITICAL INSTRUCTIONS
+## 🚨 NON-NEGOTIABLE RULES
 
-🚨 **OUTPUT ONLY THE RAW HTML CODE**
-- Start with `<!DOCTYPE html>`
-- Include complete `<html>`, `<head>`, `<style>`, and `<body>` tags
-- DO NOT wrap in JSON, do NOT escape newlines, do NOT add markdown code fences
-- Just pure, clean, valid HTML ready for PDF conversion
+1. **OUTPUT RAW HTML ONLY** - Start with `<!DOCTYPE html>`, end with `</html>`. NO markdown wrappers, NO explanations.
+2. **ZERO BLAND DESIGNS** - If this looks like a default Word doc, you FAILED.
+3. **PRESERVE ALL CONTENT** - Don't summarize. Include every word from the blocks.
 
-🎨 **DESIGN PARAMETERS TO IMPLEMENT**
-You have been given a 23-parameter design structure. Your job is to INTERPRET these creatively:
+---
 
-**Visual Design:**
-- Template Style: {template_id}
-- Layout Pattern: {layout_pattern}
-- Font Primary: {font_primary}
-- Font Secondary: {font_secondary}
-- Color Primary: {color_primary}
-- Color Accent: {color_accent}
-- Layout Density: {layout_density}
-- Line Height: {line_height}
-- Header Alignment: {header_alignment}
-- Footer Style: {footer_style}
-- Contrast Mode: {contrast_mode}
-- Whitespace: {whitespace_profile}
-- Body Font Size: {font_size_body}
-- Header Font Sizes: {font_size_headers}
+## 🎨 YOUR DESIGN MANDATE (23 Parameters)
 
-**Content Structure:**
-- Tone: {tone_variable}
-- Tone Instructions: {tone_instructions}
-- Narrative Framework: {narrative_framework}
-- Paragraph Density: {paragraph_density}
-- Emphasis Pattern: {emphasis_pattern}
-- Semantic Elements: {', '.join(semantic_elements)}
-- Readability Target: {readability_target}
-- Bonus Trait: {bonus_trait}
+**Typography:**
+- Primary Font: **{font_primary}** (body text)
+- Secondary Font: **{font_secondary}** (headers, accents)
+- Body Size: **{font_size_body}**
+- Header Sizes: **{font_size_headers}**
+- Line Height: **{line_height}**
+
+**Color Palette:**
+- Primary: **{color_primary}** ← Use this for headers, borders, section backgrounds
+- Accent: **{color_accent}** ← Use this for highlights, important metrics, call-outs
+- Contrast: **{contrast_mode}** mode
+
+**Layout:**
+- Pattern: **{layout_pattern}**
+- Density: **{layout_density}**
+- Whitespace: **{whitespace_profile}**
+- Header Position: **{header_alignment}**
+
+**Content Style:**
+- Tone: **{tone_variable}**
+- Framework: **{narrative_framework}**
+- Elements: **{', '.join(semantic_elements)}**
+- Bonus Trait: **{bonus_trait}**
+
+---
+
+## 🔥 MANDATORY CREATIVE ELEMENTS (Pick 4-6)
+
+YOU MUST INCLUDE at least 4 of these visual elements:
+
+1. **Colored Header Bar** - Full-width banner with {color_primary} gradient
+2. **Metric Highlight Boxes** - Float key numbers/achievements in colored boxes with shadows
+3. **Section Dividers** - Creative borders using {color_accent} (not just lines - try dots, dashes, gradients)
+4. **Pull Quote** - Extract a powerful statement, style it with large font + {color_accent} left border
+5. **Timeline Visualization** - If chronological content exists, show it with dots/lines
+6. **Icon-Style Bullets** - Use Unicode symbols (→, ●, ✓, ◆) styled with {color_accent}
+7. **Two-Tone Sections** - Alternate between white and light {color_primary} backgrounds
+8. **Sidebar Elements** - Float a box with key info (dates, metrics) to the right
+9. **Colored Text Blocks** - Wrap important paragraphs in subtle {color_primary} background (10-15% opacity)
+10. **Custom Header Styling** - Make the recommender's name STAND OUT (size, color, weight)
+
+---
+
+## 📐 LAYOUT INTERPRETATION GUIDE
+
+Based on `{layout_pattern}`:
+
+- **formal-traditional** → Classic serif fonts, centered headers, border-based sections, conservative colors
+- **modern-clean** → Sans-serif, asymmetric header, lots of whitespace, bold accent colors, minimalist dividers
+- **executive-bold** → Large headers, strong colors, metric callouts, confidence-focused design
+- **academic-detailed** → Dense text, numbered sections, table of contents feel, footnote style
+- **narrative-flowing** → Story-like flow, pull quotes, conversational spacing, human touch
+
+INTERPRET THIS CREATIVELY. Don't just change fonts - REDESIGN THE ENTIRE VISUAL STRUCTURE.
+
+---
+
+## 🎯 CONCRETE CSS EXAMPLES (Use These as Inspiration)
+
+```css
+/* Colored section with shadow */
+.highlight-section {{
+    background: linear-gradient(135deg, {color_primary} 0%, {color_primary.replace('30%', '40%') if 'hsl' in color_primary else color_primary} 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin: 30px 0;
+}}
+
+/* Metric callout box */
+.metric-box {{
+    display: inline-block;
+    background: {color_accent};
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 14pt;
+    margin: 10px 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}}
+
+/* Creative section divider */
+.section-divider {{
+    height: 3px;
+    background: linear-gradient(to right, transparent, {color_accent}, transparent);
+    margin: 40px 0;
+}}
+
+/* Pull quote styling */
+.pull-quote {{
+    font-size: 14pt;
+    font-style: italic;
+    color: {color_primary};
+    border-left: 5px solid {color_accent};
+    padding-left: 20px;
+    margin: 30px 0 30px 40px;
+    background: rgba(0,0,0,0.02);
+    padding: 20px;
+}}
+```
+
+**YOU MUST CREATE YOUR OWN VERSIONS** - Don't copy these exactly, but use this level of creativity.
+
+---
+
+## 📄 CONTENT & STRUCTURE
 
 {logo_instruction}
 
-## RECOMMENDER INFORMATION
-- Name: {recommender_name}
-- Title: {recommender_title}
-- Company: {recommender_company}
-- Location: {recommender_location}
+**Recommender:** {recommender_name}
+**Title:** {recommender_title}
+**Company:** {recommender_company}
+**Location:** {recommender_location}
 
-# CONTENT TO FORMAT
-
+**Letter Content (Format this with your creative design):**
 {content}
 
-# DESIGN REQUIREMENTS
+---
 
-1. **Be Creative with Layout**
-   - Interpret {layout_pattern} to create visual interest
-   - Use colored sections, borders, subtle backgrounds
-   - Consider sidebars, highlight boxes, pull quotes
-   - Add visual hierarchy with spacing and typography
+## ✅ FINAL CHECKLIST
 
-2. **Typography Excellence**
-   - Use {font_primary} for body and {font_secondary} for accents
-   - Implement the header sizes: {font_size_headers}
-   - Body text at {font_size_body}
-   - Create clear hierarchy (h1, h2, h3 styles)
+Before you output, verify:
+- [ ] Used {color_primary} and {color_accent} in AT LEAST 5 places
+- [ ] Included AT LEAST 4 creative visual elements from the list above
+- [ ] Typography uses both {font_primary} AND {font_secondary}
+- [ ] Has visual variety (not just paragraphs of text)
+- [ ] Prints well on 8.5" × 11" paper (@page CSS included)
+- [ ] Logo embedded (if provided)
+- [ ] ALL content from blocks is preserved
+- [ ] Starts with `<!DOCTYPE html>` and ends with `</html>`
+- [ ] NO markdown code fences
 
-3. **Color & Visual Appeal**
-   - Primary color: {color_primary} (use for headers, borders, accents)
-   - Accent color: {color_accent} (use sparingly for highlights)
-   - Implement {contrast_mode} contrast
-   - Consider subtle gradients or background tints
+---
 
-4. **Printability**
-   - This MUST print beautifully on 8.5" × 11" paper
-   - Use @page CSS for proper margins
-   - Ensure content flows across pages if needed
-   - No elements that break printing
+## 🚀 OUTPUT YOUR COMPLETE HTML NOW
 
-5. **Semantic Structure**
-   - Use requested elements: {', '.join(semantic_elements)}
-   - Format metrics/data prominently
-   - Create visual breaks between sections
-   - Add a professional header with logo (if provided)
-   - Add a signature block at the end
-
-6. **Unique Visual Elements**
-   - Consider adding: timeline elements, metric callout boxes, testimonial-style quotes
-   - Use borders, box-shadows, or subtle backgrounds strategically
-   - Make it look like a DESIGNED document, not just text
-
-7. **NO ERRORS**
-   - All content must be preserved (don't summarize!)
-   - Valid HTML5
-   - Clean, organized CSS
-   - Professional polish
-
-# FORMATTING STYLE GUIDE
-
-Follow the tone: **{tone_variable}**
-{tone_instructions}
-
-Structure paragraphs according to: {paragraph_density}
-Use emphasis pattern: {emphasis_pattern}
-
-# STRUCTURE TEMPLATE
-
-Your HTML should include:
-1. DOCTYPE and full html structure
-2. <head> with meta charset, title, and comprehensive <style> block
-3. <body> with:
-   - Header section (logo if available, recommender info, date)
-   - Greeting ("To Whom It May Concern:" or appropriate)
-   - Content sections with ALL blocks formatted beautifully
-   - Signature block with recommender details
-4. Proper closing tags
-
-# CRITICAL REMINDERS
-
-- Output ONLY HTML (no explanations, no markdown wrappers)
-- Start with `<!DOCTYPE html>`
-- Include ALL content from the blocks
-- Make it UNIQUE - this is a custom design
-- It must be PRINTABLE and beautiful on paper
-- Use the design parameters to create visual differentiation
-
-Generate the complete HTML document now:"""
+Remember: This should look DESIGNED, not typed. Make it VISUALLY UNIQUE."""
 
         return prompt
