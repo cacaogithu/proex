@@ -139,18 +139,19 @@ class SubmissionProcessor:
             
             self.update_status(submission_id, "extracting")
             print("\nPHASE 1: Extracting text from PDFs...")
-            upload_dir = f"storage/uploads/{submission_id}"
-            extracted_texts = self.pdf_extractor.extract_all(
-                quadro_path=f"{upload_dir}/quadro.pdf",
-                cv_path=f"{upload_dir}/cv.pdf",
-                testimonials_dir=upload_dir,
-                estrategia_path=f"{upload_dir}/estrategia.pdf" if os.path.exists(f"{upload_dir}/estrategia.pdf") else None,
-                onenote_path=f"{upload_dir}/onenote.pdf" if os.path.exists(f"{upload_dir}/onenote.pdf") else None
-            )
+            extracted_texts = self.pdf_extractor.extract_all_files(submission_id)
             print(f"✓ Extracted {len(extracted_texts.get('testimonials', []))} testimonials")
             
-            # NEW: PHASE 1.5 - Ingest assets into RAG for context-aware generation
-            print("\nPHASE 1.5: Ingesting assets into RAG for context-aware generation...")
+            self.update_status(submission_id, "organizing")
+            print("\nPHASE 2: Cleaning and organizing data...")
+            organized_data = self.llm.clean_and_organize(extracted_texts)
+            # Add submission_id to context for RAG retrieval
+            organized_data['submission_id'] = submission_id
+            print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
+            
+            # PHASE 2.5: RAG Ingestion (AFTER data is organized)
+            print("\nPHASE 2.5: Ingesting assets into RAG for context-aware generation...")
+            upload_dir = f"storage/uploads/{submission_id}"
             asset_files = []
             
             # User-uploaded assets
@@ -176,13 +177,6 @@ class SubmissionProcessor:
                     print(f"   ⚠️  RAG ingestion failed (continuing without RAG): {e}")
             else:
                 print("   No assets found for RAG ingestion")
-            
-            self.update_status(submission_id, "organizing")
-            print("\nPHASE 2: Cleaning and organizing data...")
-            organized_data = self.llm.clean_and_organize(extracted_texts)
-            # Add submission_id to context for RAG retrieval
-            organized_data['submission_id'] = submission_id
-            print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
             
             # PHASE 2.5: Logo scraping is now integrated into the parallel letter generation function.
             print("\nPHASE 2.5: Logo scraping will run in parallel with letter generation.")
@@ -308,13 +302,20 @@ class SubmissionProcessor:
                 if email_result.get('success'):
                     print(f"✅ Email sent to {recipient_email}")
                     print(f"✅ {email_result.get('files_uploaded', 0)} files uploaded to Google Drive")
+                    
+                    # Clean up RAG vectors to prevent memory leak
+                    try:
+                        self.rag_engine.vector_store.clear_submission(submission_id)
+                        logger.info(f"Cleared RAG vectors for submission {submission_id}")
+                    except Exception as e:
+                        logger.warning(f"Failed to clear RAG vectors: {e}")
                 else:
-                    print(f"⚠️ Email sending failed: {email_result.get('error', 'Unknown error')}")
+                    print(f"⚠️  Email sending failed: {email_result.get('error', 'Unknown error')}")
             else:
                 if not recipient_email:
-                    print("⚠️ No email address provided, skipping email notification")
+                    print("⚠️  No email address provided, skipping email notification")
                 else:
-                    print("⚠️ Email service not available, skipping email notification")
+                    print("⚠️  Email service not available, skipping email notification")
             
             return {"success": True, "letters": letters}
             
