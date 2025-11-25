@@ -106,7 +106,6 @@ class SubmissionProcessor:
             "blocks": blocks,
             "letter_html": letter_html,
             "design": design,
-            "embedding": letter_embedding,
             "index": index
         }
     
