@@ -353,11 +353,11 @@ class LogoScraper:
         # Create logos directory (use centralized configuration)
         logos_dir = os.path.join(STORAGE_BASE_DIR, "logos")
         os.makedirs(logos_dir, exist_ok=True)
-        
+
         # Clean company name for filename
         safe_name = "".join(c for c in company_identifier if c.isalnum() or c in (' ', '-', '_')).strip()
         safe_name = safe_name.replace(' ', '_')
-        
+
         # Detect image format from content
         if image_data.startswith(b'\x89PNG'):
             ext = '.png'
@@ -369,10 +369,72 @@ class LogoScraper:
             ext = '.svg'
         else:
             ext = '.png'  # default
-        
+
         logo_path = f"{logos_dir}/{safe_name}{ext}"
-        
+
         with open(logo_path, 'wb') as f:
             f.write(image_data)
-        
+
         return logo_path
+
+    def _generate_placeholder_logo(self, company_name: str) -> Optional[str]:
+        """Generate a placeholder logo with company initials using SVG"""
+        try:
+            # Create logos directory
+            logos_dir = "backend/storage/logos"
+            os.makedirs(logos_dir, exist_ok=True)
+
+            # Get initials (up to 2-3 characters)
+            words = company_name.split()
+            if len(words) >= 2:
+                initials = ''.join(word[0].upper() for word in words[:3] if word)
+            else:
+                initials = company_name[:3].upper()
+
+            # Clean for filename
+            safe_name = "".join(c for c in company_name if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_name = safe_name.replace(' ', '_')
+
+            # Generate a color based on company name (deterministic)
+            hash_value = sum(ord(c) for c in company_name)
+            colors = [
+                ('#1976d2', '#0d47a1'),  # Blue
+                ('#388e3c', '#1b5e20'),  # Green
+                ('#7b1fa2', '#4a148c'),  # Purple
+                ('#d32f2f', '#b71c1c'),  # Red
+                ('#f57c00', '#e65100'),  # Orange
+                ('#0097a7', '#006064'),  # Teal
+                ('#5d4037', '#3e2723'),  # Brown
+                ('#455a64', '#263238'),  # Blue Grey
+            ]
+            color_pair = colors[hash_value % len(colors)]
+
+            # Calculate font size based on initials length
+            font_size = 48 if len(initials) <= 2 else 36 if len(initials) == 3 else 28
+
+            # Create SVG placeholder
+            svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:{color_pair[0]};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:{color_pair[1]};stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <rect width="200" height="100" rx="10" fill="url(#grad)"/>
+    <text x="100" y="58" font-family="Arial, Helvetica, sans-serif" font-size="{font_size}"
+          font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+        {initials}
+    </text>
+</svg>'''
+
+            logo_path = f"{logos_dir}/{safe_name}_placeholder.svg"
+
+            with open(logo_path, 'w', encoding='utf-8') as f:
+                f.write(svg_content)
+
+            return logo_path
+
+        except Exception as e:
+            print(f"Error generating placeholder logo: {str(e)}")
+            return None
