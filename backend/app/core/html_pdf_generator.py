@@ -39,10 +39,31 @@ class HTMLPDFGenerator:
         }
     
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm, custom_instructions: Optional[str] = None) -> str:
-        """Use Claude 4.5 Sonnet for premium HTML assembly - returns HTML content"""
-        combined_blocks = f"""
-# BLOCO 3
-{blocks.get('block3', '')}
+        """Assemble letter by combining all blocks into formatted HTML"""
+        
+        block3 = blocks.get('block3', '')
+        block4 = blocks.get('block4', '')
+        block5 = blocks.get('block5', '')
+        
+        combined_content = f"""
+<div class="letter-content">
+    <div class="block block-3">
+        {block3}
+    </div>
+    <div class="block block-4">
+        {block4}
+    </div>
+    <div class="block block-5">
+        {block5}
+    </div>
+</div>
+"""
+        
+        text = combined_content.replace('<div>', ' ').replace('</div>', ' ').replace('<p>', ' ').replace('</p>', ' ')
+        word_count = len(re.findall(r'\w+', text))
+        print(f"Letter assembled: {word_count} words total")
+        
+        return combined_content
 
     def _embed_logo_as_base64(self, logo_path: str) -> Optional[str]:
         """Convert logo to base64 data URI for embedding in PDF/HTML
@@ -152,71 +173,6 @@ class HTMLPDFGenerator:
             'word_count': word_count
         }
 
-    def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm) -> str:
-        """Assemble letter by concatenating all 5 blocks with professional heterogeneous HTML"""
-        
-        import re
-        
-        custom_instr_text = ""
-        if custom_instructions:
-            custom_instr_text = f"""
-# CUSTOM INSTRUCTIONS FROM USER
-The user has requested specific changes for this letter. You MUST follow these instructions while maintaining the "NO SUMMARIZATION" rule:
-{custom_instructions}
-"""
-
-        prompt = f"""# ROLE
-Você é um FORMATADOR DE HTML EXPERT. Sua única função é formatar o texto fornecido para HTML, aplicando o estilo visual solicitado.
-
-🚨 **CRITICAL INSTRUCTION: DO NOT SUMMARIZE OR REWRITE** 🚨
-- Você DEVE MANTER 100% do conteúdo original dos blocos.
-- NÃO remova parágrafos.
-- NÃO encurte frases.
-- NÃO tente "melhorar" a fluidez se isso significar cortar conteúdo.
-- O objetivo é ter uma carta LONGA e DETALHADA (2000+ palavras). Se você resumir, FALHARÁ.
-
-<div style="margin-top: 2.5em; margin-bottom: 2em;">
-  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; border-bottom: 1px solid #999; padding-bottom: 0.5em;">Validação Empírica de Resultados</h2>
-  <div>
-{markdown_to_html(block3, 3)}
-  </div>
-</div>
-
-{custom_instr_text}
-
-# INPUTS
-{combined_blocks}
-
-# INSTRUÇÕES DE FORMATAÇÃO HTML
-1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-2. Use as classes CSS específicas do template conforme indicado acima
-3. Estruture com tags semânticas: <p>, <h2>, <ul>, <li>, <table>, <blockquote>, <div>
-4. Use <strong> para ênfases, <em> para itálico
-5. Aplique as classes CSS especiais para destacar informações importantes
-
-# ESTRUTURA DO CONTEÚDO
-1. Saudação formal ("A quem possa interessar," ou similar)
-2. INSERIR TODO O CONTEÚDO DOS BLOCOS 3, 4, 5, 6, 7 NA ÍNTEGRA.
-3. Use as divisões <h2> se aplicável ao template
-4. Encerramento formal apropriado ao template
-
-# HETEROGENEIDADE
-- Garanta que este testemunho tenha voz única
-- Siga rigorosamente o estilo visual do template {template_id}
-- Mantenha tom profissional mas humano
-
-# TODO EM PORTUGUÊS BRASILEIRO
-
-Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-"""
-        
-        # Count total words
-        text = html_content.replace('<div>', ' ').replace('</div>', ' ').replace('<h2>', ' ').replace('</h2>', ' ').replace('<p>', ' ').replace('</p>', ' ').replace('<span>', ' ').replace('</span>', ' ')
-        word_count = len(re.findall(r'\w+', text))
-        print(f"✅ Letter assembled: {word_count} words total (cleaned markdown)")
-        
-        return html_content
-    
     def html_to_pdf(
         self, 
         html_content: str, 

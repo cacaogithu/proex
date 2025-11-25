@@ -1,4 +1,4 @@
-modules = ["python-3.11", "nodejs-20"]
+modules = ["python-3.11", "nodejs-20", "postgresql-16"]
 [agent]
 expertMode = true
 integrations = ["python_openai_ai_integrations:1.0.0", "google-mail:1.0.0", "google-drive:1.0.0"]
@@ -78,6 +78,10 @@ externalPort = 3000
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[[ports]]
+localPort = 34637
+externalPort = 3002
 
 [[ports]]
 localPort = 34973

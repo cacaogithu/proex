@@ -148,8 +148,10 @@ Return ONLY the search query text, nothing else."""
                 temperature=0.7,
                 max_tokens=200
             )
-            query = response.choices[0].message.content.strip()
-            return query
+            content = response.choices[0].message.content
+            if content:
+                return content.strip()
+            raise ValueError("Empty response from LLM")
         except Exception as e:
             # Fallback to a more intelligent static query if AI fails
             role = testimony.get('recommender_role', 'professional')

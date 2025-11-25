@@ -1,17 +1,18 @@
 from .pdf_extractor import PDFExtractor
 from .llm_processor import LLMProcessor
-from .heterogeneity import StyleBlueprintGenerator
+from .heterogeneity import HeterogeneityArchitect
 from .block_generator import BlockGenerator
 from .html_pdf_generator import HTMLPDFGenerator
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
-from .rag_engine import RAGEngine  # NEW
+from .rag_engine import RAGEngine
 from ..db.database import Database
+from ..ml.prompt_enhancer import PromptEnhancer
 import os
 import glob
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Configuration constants
 MAX_PARALLEL_WORKERS = 10  # Maximum concurrent letter generation tasks (increased from 5)
 MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')
 
 
 class SubmissionProcessor:
@@ -28,9 +30,11 @@ class SubmissionProcessor:
         self.llm = LLMProcessor()
         self.db = Database()
         
+        # Initialize prompt enhancer for ML capabilities
+        self.prompt_enhancer = PromptEnhancer(self.db)
+        
         # Try to train ML models with existing data
         try:
-            # Silently attempt training - will only log if there's enough data
             trained = self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
             if trained:
                 logger.info("ML models trained successfully")
@@ -43,7 +47,7 @@ class SubmissionProcessor:
 
         # Initialize other components AFTER ML training
         self.heterogeneity = HeterogeneityArchitect(self.llm)
-        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer, self.rag_engine)  # Pass RAG engine
+        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer, self.rag_engine)
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
@@ -183,7 +187,7 @@ class SubmissionProcessor:
             
             self.update_status(submission_id, "designing")
             print("\nPHASE 3: Generating style blueprints (Dynamic Style Generation)...")
-            design_structures = self.heterogeneity.generate_style_blueprints(organized_data)
+            design_structures = self.heterogeneity.generate_design_structures(organized_data)
             print(f"✓ Generated {len(design_structures.get('design_structures', []))} unique designs")
             
             self.update_status(submission_id, "generating")
