@@ -3,7 +3,7 @@ from typing import Dict, Any
 import os
 
 # Configuration
-STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
 
 
 class PDFExtractor:
