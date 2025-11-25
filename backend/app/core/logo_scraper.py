@@ -21,7 +21,10 @@ class LogoScraper:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
         self._logo_cache = {}
+        self._domain_cache = {}
         self.brandfetch_key = os.environ.get('BRANDFETCH_API_KEY', '')
+        self.logodev_secret_key = os.environ.get('LOGODEV_SECRET_KEY', '')
+        self.logodev_public_key = os.environ.get('LOGODEV_API_KEY', 'pk_X-1ZO13CRYuAq5BIwG4BQA')
         self.max_parallel_methods = 4
     
     def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
@@ -44,15 +47,22 @@ class LogoScraper:
 
         print(f"🔍 Searching logo for: {company_name}")
 
-        # Try to extract domain from company name if no website provided
+        # If no website provided, try Logo.dev Brand Search first (most reliable)
         if not company_website:
-            # Clean company name and try common TLDs
+            print(f"  No website provided, using Brand Search for: {company_name}")
+            
+            if self.logodev_secret_key:
+                searched_domain = self._search_logodev_domain(company_name, strategy="match")
+                if searched_domain:
+                    logo_path = self._try_logodev(searched_domain, company_name)
+                    if logo_path:
+                        self._logo_cache[cache_key] = logo_path
+                        return logo_path
+            
             clean_name = company_name.lower().strip()
-            # Remove common Portuguese words
             clean_name = clean_name.replace(' s.a.', '').replace(' s/a', '').replace(' ltda', '').replace(' ltda.', '').strip()
             clean_name = clean_name.replace(' ', '').replace('/', '')
             
-            # Try common Brazilian domains
             for tld in ['.com.br', '.com', '.br', '.co']:
                 test_domain = f"{clean_name}{tld}"
                 print(f"  Trying domain: {test_domain}")
@@ -67,7 +77,7 @@ class LogoScraper:
 
         methods = [
             ('Clearbit', lambda: self._try_clearbit(company_website)),
-            ('Logo.dev', lambda: self._try_logodev(company_website)),
+            ('Logo.dev', lambda: self._try_logodev(company_website, company_name)),
             ('Favicon', lambda: self._try_favicon(company_website)),
         ]
 
@@ -162,22 +172,86 @@ class LogoScraper:
         
         return None
     
-    def _try_logodev(self, website: str) -> Optional[str]:
-        """Use Logo.dev API - alternative to Clearbit"""
+    def _search_logodev_domain(self, company_name: str, strategy: str = "match") -> Optional[str]:
+        """
+        Use Logo.dev Brand Search API to find the correct domain for a company.
+        
+        Args:
+            company_name: The company/brand name to search for
+            strategy: 'typeahead' for autocomplete, 'match' for exact/near-exact matches
+            
+        Returns:
+            The best matching domain, or None if not found
+        """
+        if not self.logodev_secret_key:
+            print("⚠️ LOGODEV_SECRET_KEY not set, skipping Brand Search")
+            return None
+            
+        cache_key = f"domain_{company_name.lower()}"
+        if cache_key in self._domain_cache:
+            return self._domain_cache[cache_key]
+            
         try:
-            import os
-            domain = urlparse(website).netloc or website
-            domain = domain.replace('www.', '')
+            import urllib.parse
+            encoded_query = urllib.parse.quote(company_name)
+            search_url = f"https://api.logo.dev/search?q={encoded_query}&strategy={strategy}"
+            
+            headers = {
+                **self.headers,
+                'Authorization': f'Bearer {self.logodev_secret_key}'
+            }
+            
+            response = requests.get(search_url, headers=headers, timeout=DEFAULT_REQUEST_TIMEOUT)
+            
+            if response.status_code == 200:
+                results = response.json()
+                if results and len(results) > 0:
+                    domain = results[0].get('domain')
+                    if domain:
+                        print(f"✓ Logo.dev Brand Search found domain: {domain} for '{company_name}'")
+                        self._domain_cache[cache_key] = domain
+                        return domain
+            elif response.status_code == 401:
+                print(f"⚠️ Logo.dev Brand Search auth failed - check LOGODEV_SECRET_KEY")
+            else:
+                print(f"⚠️ Logo.dev Brand Search returned status {response.status_code}")
+                
+        except Exception as e:
+            print(f"Logo.dev Brand Search failed: {str(e)}")
+        
+        self._domain_cache[cache_key] = None
+        return None
+    
+    def _try_logodev(self, website: str, company_name: Optional[str] = None) -> Optional[str]:
+        """
+        Use Logo.dev API - with Brand Search fallback for better accuracy.
+        
+        This method now uses two approaches:
+        1. Direct domain lookup if website URL is provided
+        2. Brand Search API to find the correct domain from company name
+        """
+        try:
+            domain = None
+            
+            if website:
+                domain = urlparse(website).netloc or website
+                domain = domain.replace('www.', '')
+            
+            if not domain and company_name:
+                domain = self._search_logodev_domain(company_name, strategy="match")
+            
+            if not domain:
+                return None
 
-            # Security: Get API key from environment variable
-            logodev_token = os.getenv('LOGODEV_API_KEY', 'pk_X-1ZO13CRYuAq5BIwG4BQA')  # Fallback for backward compatibility
-            logodev_url = f"https://img.logo.dev/{domain}?token={logodev_token}"
+            logodev_url = f"https://img.logo.dev/{domain}?token={self.logodev_public_key}&size=256&format=png"
 
             response = requests.get(logodev_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
-            if response.status_code == 200 and len(response.content) > 1000:  # Ensure it's not an error placeholder
+            if response.status_code == 200 and len(response.content) > 1000:
                 logo_path = self._save_logo(domain, response.content)
                 print(f"✓ Logo found via Logo.dev: {domain}")
                 return logo_path
+            elif response.status_code == 200:
+                print(f"⚠️ Logo.dev returned small/placeholder image for {domain}")
         except Exception as e:
             print(f"Logo.dev failed: {str(e)}")
         
