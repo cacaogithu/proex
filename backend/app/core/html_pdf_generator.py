@@ -39,31 +39,7 @@ class HTMLPDFGenerator:
         }
     
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm, custom_instructions: Optional[str] = None) -> str:
-        """Assemble letter by combining all blocks into formatted HTML"""
-        
-        block3 = blocks.get('block3', '')
-        block4 = blocks.get('block4', '')
-        block5 = blocks.get('block5', '')
-        
-        combined_content = f"""
-<div class="letter-content">
-    <div class="block block-3">
-        {block3}
-    </div>
-    <div class="block block-4">
-        {block4}
-    </div>
-    <div class="block block-5">
-        {block5}
-    </div>
-</div>
-"""
-        
-        text = combined_content.replace('<div>', ' ').replace('</div>', ' ').replace('<p>', ' ').replace('</p>', ' ')
-        word_count = len(re.findall(r'\w+', text))
-        print(f"Letter assembled: {word_count} words total")
-        
-        return combined_content
+
 
     def _embed_logo_as_base64(self, logo_path: str) -> Optional[str]:
         """Convert logo to base64 data URI for embedding in PDF/HTML
@@ -173,6 +149,7 @@ class HTMLPDFGenerator:
             'word_count': word_count
         }
 
+
     def html_to_pdf(
         self, 
         html_content: str, 
@@ -250,7 +227,31 @@ class HTMLPDFGenerator:
         HTML(string=full_html).write_pdf(output_path)
         
         print(f"✅ PDF generated: {os.path.basename(output_path)}")
-    
+
+    def html_to_pdf_direct(self, complete_html: str, output_path: str):
+        """
+        Convert complete HTML document to PDF (no additional wrapping).
+        Used when HTML is already a full document from HTMLDesigner.
+
+        Args:
+            complete_html: Complete HTML document string (DOCTYPE to </html>)
+            output_path: Path for output PDF file
+        """
+        if HTML is None:
+            raise RuntimeError("WeasyPrint not available - cannot generate PDF")
+
+        # Create output directory
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Convert to PDF directly
+        try:
+            HTML(string=complete_html).write_pdf(output_path)
+            logger.info(f"PDF generated: {os.path.basename(output_path)}")
+            print(f"✅ PDF generated: {os.path.basename(output_path)}")
+        except Exception as e:
+            logger.error(f"PDF generation failed: {e}")
+            raise ValueError(f"Failed to generate PDF: {e}")
+
     def _process_html_element_to_docx(self, element, doc, paragraph=None):
         """Recursively process HTML element and add to DOCX document with formatting preservation"""
         from docx.oxml.ns import qn
@@ -430,6 +431,52 @@ class HTMLPDFGenerator:
 
         style_id = design.get('unique_id', 'STYLE_DEFAULT')
         print(f"✅ Editable DOCX generated with style {style_id}: {os.path.basename(output_path)}")
+
+    def html_to_docx_direct(self, complete_html: str, output_path: str):
+        """
+        Convert complete HTML document to DOCX (extracts body content).
+        Used when HTML is already a full document from HTMLDesigner.
+
+        Args:
+            complete_html: Complete HTML document string (DOCTYPE to </html>)
+            output_path: Path for output DOCX file
+        """
+        try:
+            # Parse HTML to extract body content
+            soup = BeautifulSoup(complete_html, 'html.parser')
+            body = soup.find('body')
+
+            if not body:
+                raise ValueError("No <body> tag found in HTML")
+
+            # Create new DOCX document
+            doc = Document()
+
+            # Set margins
+            sections = doc.sections
+            for section in sections:
+                section.top_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+
+            # Process all elements in body
+            for element in body.children:
+                if hasattr(element, 'name') and element.name:
+                    self._process_html_element_to_docx(element, doc)
+
+            # Create output directory if needed
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+            # Save DOCX
+            doc.save(output_path)
+
+            logger.info(f"DOCX generated: {os.path.basename(output_path)}")
+            print(f"✅ Editable DOCX generated: {os.path.basename(output_path)}")
+
+        except Exception as e:
+            logger.error(f"DOCX generation failed: {e}")
+            raise ValueError(f"Failed to generate DOCX: {e}")
 
 # Keep backward compatibility
 class DOCXGenerator(HTMLPDFGenerator):
