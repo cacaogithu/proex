@@ -60,45 +60,131 @@ class BlockGenerator:
             'key_achievements': testimony.get('key_achievements', ''),
         }
 
-    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3, max_tokens: int = 2000, min_words: int = 0, max_words: int = 0) -> str:
-        for attempt in range(max_retries):
+    def _call_llm_simple(self, prompt: str, temperature: float = 0.9, max_tokens: int = 4000) -> str:
+        """Simple LLM call without word count validation"""
+        for attempt in range(3):
             try:
-                # Using Gemini 2.5 Pro - cost-effective for high-quality content
                 response = self.llm.client.chat.completions.create(
                     model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature,
                     max_tokens=max_tokens
                 )
+                return response.choices[0].message.content
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                if attempt == 2:
+                    raise e
+        return ""
+
+    def _expand_content(self, content: str, min_words: int, context_hint: str = "") -> str:
+        """Expand content until it reaches minimum word count"""
+        word_count = self._count_words(content)
+
+        if word_count >= min_words:
+            return content
+
+        words_needed = min_words - word_count
+        print(f"   📝 Expanding content: {word_count} → {min_words} words (+{words_needed} needed)")
+
+        expansion_prompt = f"""# TAREFA: EXPANDIR TEXTO
+
+Você recebeu um texto que precisa ser EXPANDIDO. O texto atual tem {word_count} palavras mas precisa ter NO MÍNIMO {min_words} palavras.
+
+## TEXTO ATUAL:
+{content}
+
+## INSTRUÇÕES DE EXPANSÃO:
+1. MANTENHA todo o conteúdo original
+2. ADICIONE mais {words_needed + 200} palavras de conteúdo NOVO e RELEVANTE
+3. Expanda cada parágrafo com mais detalhes, exemplos e contexto
+4. Adicione novos parágrafos entre os existentes com informações complementares
+5. Use transições suaves entre os parágrafos
+6. Mantenha o tom e estilo do texto original
+7. NÃO repita informações - adicione NOVOS detalhes
+
+{context_hint}
+
+## REGRAS CRÍTICAS:
+- O texto final DEVE ter NO MÍNIMO {min_words} palavras
+- Mantenha a primeira pessoa
+- TODO EM PORTUGUÊS BRASILEIRO
+- Seja EXTENSIVO e DETALHADO
+
+## OUTPUT:
+Retorne APENAS o texto expandido completo, sem comentários ou explicações."""
+
+        try:
+            expanded = self._call_llm_simple(expansion_prompt, temperature=0.8, max_tokens=6000)
+            new_count = self._count_words(expanded)
+            print(f"   ✓ Expanded: {word_count} → {new_count} words")
+
+            # Se ainda não atingiu, tenta mais uma vez
+            if new_count < min_words:
+                print(f"   📝 Second expansion needed: {new_count} → {min_words}")
+                return self._expand_content(expanded, min_words, context_hint)
+
+            return expanded
+        except Exception as e:
+            print(f"   ⚠️ Expansion failed: {e}")
+            return content
+
+    def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 5, max_tokens: int = 4000, min_words: int = 0, max_words: int = 0, context_hint: str = "") -> str:
+        """Generate content with guaranteed minimum word count"""
+        best_content = ""
+        best_word_count = 0
+
+        for attempt in range(max_retries):
+            try:
+                response = self.llm.client.chat.completions.create(
+                    model=self.llm.models["quality"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature + (attempt * 0.05),  # Slightly increase temperature each attempt
+                    max_tokens=max_tokens
+                )
                 content = response.choices[0].message.content
+                word_count = self._count_words(content)
 
-                # Validate word count if specified
-                if min_words > 0 or max_words > 0:
-                    word_count = self._count_words(content)
-                    if min_words > 0 and word_count < min_words:
-                        print(f"⚠️  Word count too low: {word_count}/{min_words} words (attempt {attempt + 1}/{max_retries})")
-                        if attempt < max_retries - 1:
-                            # Strengthen prompt for next attempt
-                            prompt = prompt + f"\n\nCRITICAL: Your previous response had only {word_count} words. You MUST write AT LEAST {min_words} words. Count as you write."
-                            continue
-                    if max_words > 0 and word_count > max_words:
-                        print(f"⚠️  Word count too high: {word_count}/{max_words} words (attempt {attempt + 1}/{max_retries})")
-                        if attempt < max_retries - 1:
-                            # Strengthen prompt for next attempt
-                            prompt = prompt + f"\n\nCRITICAL: Your previous response had {word_count} words. You MUST write NO MORE THAN {max_words} words. Be concise."
-                            continue
+                # Keep track of best attempt
+                if word_count > best_word_count:
+                    best_content = content
+                    best_word_count = word_count
 
-                return content
+                print(f"   Attempt {attempt + 1}: {word_count} words (target: {min_words})")
+
+                # If we hit the target, return immediately
+                if min_words > 0 and word_count >= min_words:
+                    return content
+
+                # If this is not the last attempt, strengthen the prompt
+                if attempt < max_retries - 1:
+                    prompt = prompt + f"""
+
+⚠️⚠️⚠️ ATENÇÃO CRÍTICA ⚠️⚠️⚠️
+Sua resposta anterior teve APENAS {word_count} palavras.
+VOCÊ DEVE ESCREVER NO MÍNIMO {min_words} PALAVRAS.
+Faltam {min_words - word_count} palavras para atingir o mínimo.
+ESCREVA MUITO MAIS CONTEÚDO. SEJA EXTREMAMENTE DETALHADO.
+Cada seção deve ter MÚLTIPLOS parágrafos longos.
+NÃO SEJA BREVE. SEJA EXTENSIVO."""
+
             except Exception as e:
                 if "429" in str(e) and attempt < max_retries - 1:
-                    # Reduced wait times: 1s, 2s (instead of 3s, 6s, 12s)
                     wait_time = (2 ** attempt)
-                    print(f"⏳ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                    print(f"⏳ Rate limit, waiting {wait_time}s...")
                     time.sleep(wait_time)
                     continue
                 if attempt == max_retries - 1:
                     raise e
-        return ""
+
+        # If we exhausted retries but still under minimum, expand the content
+        if min_words > 0 and best_word_count < min_words:
+            print(f"   ⚠️ All {max_retries} attempts below minimum. Expanding content...")
+            best_content = self._expand_content(best_content, min_words, context_hint)
+
+        return best_content
     
     def generate_block1(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 1 using original n8n prompt template"""
@@ -185,24 +271,29 @@ class BlockGenerator:
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
-            # Clean any accidental markdown fences
-            content = content.strip()
-            if content.startswith('```markdown'):
-                content = content.split('```markdown', 1)[1]
-            if content.startswith('```'):
-                content = content.split('```', 1)[1]
-            if content.endswith('```'):
-                content = content.rsplit('```', 1)[0]
-            content = content.strip()
-            
-            word_count = self._count_words(content)
-            print(f"    ✓ Block 3 generated: {word_count} words")
-            return content
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)
+            try:
+                data = json.loads(content)
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                # Apply expansion if still under minimum
+                if word_count < 800:
+                    draft = self._expand_content(draft, 800, context_hint)
+                    word_count = self._count_words(draft)
+                print(f"    ✓ Block 3 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                word_count = self._count_words(content)
+                # Apply expansion if still under minimum
+                if word_count < 800:
+                    content = self._expand_content(content, 800, context_hint)
+                    word_count = self._count_words(content)
+                print(f"    ✓ Block 3 generated: {word_count} words")
+                return content
         except Exception as e:
             print(f"Error generating block 3: {str(e)}")
             return "Error generating block 3"
-    
+
     def generate_block4(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 4 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
@@ -226,7 +317,7 @@ class BlockGenerator:
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
-    
+
     def generate_block5(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 5 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)

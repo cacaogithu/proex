@@ -1,0 +1,155 @@
+INFO:     10.82.3.161:0 - "GET /api/submissions/41cdb7c0-3fd3-4936-8255-921fff1dc6ac HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'app/core/processor.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [258]
+WARNING:  StatReload detected changes in 'app/core/processor.py'. Reloading...
+
+🧠 Training ML models...
+   ✓ Loaded 0 ratings from database
+   ✓ Analyzed 0 comments with text
+   ✓ Extracted 0 issues to avoid
+   ✓ Extracted 0 qualities to maintain
+INFO:     Started server process [1738]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+
+🧠 Training ML models...
+   ✓ Loaded 0 ratings from database
+   ✓ Analyzed 0 comments with text
+   ✓ Extracted 0 issues to avoid
+   ✓ Extracted 0 qualities to maintain
+INFO:     Started server process [2086]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/core/processor.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2086]
+
+🧠 Training ML models...
+   ✓ Loaded 0 ratings from database
+   ✓ Analyzed 0 comments with text
+   ✓ Extracted 0 issues to avoid
+   ✓ Extracted 0 qualities to maintain
+INFO:     Started server process [2423]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2423]
+INFO:     Started server process [3242]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+
+🧠 Training ML models...
+   ✓ Extracted 0 issues to avoid
+   ✓ Extracted 0 qualities to maintain
+INFO:     10.82.3.161:0 - "POST /api/submissions HTTP/1.1" 200 OK
+
+============================================================
+Starting processing for submission: 49212ce4-3e5d-4bc1-a89a-b1d9b31ae41c
+============================================================
+
+Submission 49212ce4-3e5d-4bc1-a89a-b1d9b31ae41c: extracting
+PHASE 1: Extracting text from PDFs...
+✓ Extracted 5 testimonials
+Submission 49212ce4-3e5d-4bc1-a89a-b1d9b31ae41c: organizing
+
+PHASE 2: Cleaning and organizing data...
+✓ Organized data for Ketlin Giani Fernandes Kenauth
+
+PHASE 2.5: Logo scraping will run in parallel with letter generation.
+Submission 49212ce4-3e5d-4bc1-a89a-b1d9b31ae41c: designing
+
+PHASE 3: Generating design structures (Heterogeneity Architect)...
+❌ Error in generate_design_structures after 3 attempts: Error code: 400 - {'error': {'message': 'google/gemini-exp-1206:free is not a valid model ID', 'code': 400}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+✗ ERROR: Error code: 400 - {'error': {'message': 'google/gemini-exp-1206:free is not a valid model ID', 'code': 400}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+Submission 49212ce4-3e5d-4bc1-a89a-b1d9b31ae41c: error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/applications.py", line 1133, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/fastapi/routing.py", line 110, in app
+    await response(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/responses.py", line 168, in __call__
+    await self.background()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/background.py", line 42, in __call__
+    await task()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/background.py", line 29, in __call__
+    await run_in_threadpool(self.func, *self.args, **self.kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/starlette/concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2485, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 976, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/backend/app/core/processor.py", line 145, in process_submission
+    design_structures = self.heterogeneity.generate_design_structures(organized_data)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/backend/app/core/heterogeneity.py", line 210, in generate_design_structures
+    response = self.llm.client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_utils/_utils.py", line 286, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 1156, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1259, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1047, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'google/gemini-exp-1206:free is not a valid model ID', 'code': 400}, 'user_id': 'user_33CvvIGEbAiUhJoZy28t2wCgYzO'}
+
+
+analyze the current console logs. What are the mistakes that need fixing?

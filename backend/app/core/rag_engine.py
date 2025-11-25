@@ -126,12 +126,13 @@ class RAGEngine:
             context_chunks = [r['text'] for r in results]
             
             if context_chunks:
-                print(f"🔍 Retrieved {len(context_chunks)} relevant chunks (scores: {[f'{r['score']:.2f}' for r in results]})")
+                scores = [f"{r['score']:.2f}" for r in results]
+                print(f"Retrieved {len(context_chunks)} relevant chunks (scores: {scores})")
             
             return context_chunks
             
         except Exception as e:
-            print(f"❌ Error retrieving context: {str(e)}")
+            print(f"Error retrieving context: {str(e)}")
             return []
     
     def augment_prompt(self, base_prompt: str, context_chunks: List[str]) -> str:

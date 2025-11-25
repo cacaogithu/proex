@@ -30,18 +30,19 @@ class PromptEnhancer:
     def train_models(self, min_samples: int = 10):
         """
         Treina modelos de ML com dados históricos
-        
+
         Args:
             min_samples: Mínimo de cartas necessárias para treinar
         """
-        print("\n🧠 Training ML models...")
-        
-        # 1. Carregar embeddings e scores históricos
+        # 1. Carregar embeddings e scores históricos (quick check first)
         all_embeddings = self.db.get_all_embeddings()
-        
+
         if len(all_embeddings) < min_samples:
-            print(f"   ⚠️  Insufficient data for training: {len(all_embeddings)}/{min_samples} letters")
+            # Skip silently to avoid log noise during development reloads
             return False
+
+        # Only print if we actually have enough data to train
+        print(f"\n🧠 Training ML models with {len(all_embeddings)} samples...")
         
         # 2. Extrair insights de feedback (supervised)
         self.current_insights = self.feedback_analyzer.extract_insights()
