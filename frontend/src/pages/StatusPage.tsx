@@ -149,9 +149,18 @@ export default function StatusPage() {
           </div>
 
           {submission.error_message && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500 mb-1">Mensagem de Erro</p>
-              <p className="text-red-800">{submission.error_message}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Mensagem de Erro</p>
+                <p className="text-red-800">{submission.error_message}</p>
+              </div>
+              <button
+                onClick={retrySubmission}
+                disabled={loading}
+                className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+              >
+                {loading ? 'Tentando novamente...' : 'Tentar Novamente'}
+              </button>
             </div>
           )}
 

@@ -1,3 +1,7 @@
+"""
+HeterogeneityArchitect - LLM-powered design diversity generator
+Uses the original n8n prompt to generate truly heterogeneous design structures
+"""
 from typing import Dict, List
 import json
 import time
@@ -12,16 +16,19 @@ class HeterogeneityArchitect:
     def __init__(self, llm_processor):
         self.llm = llm_processor
     
-    def _format_testimonies(self, testimonies: List[Dict]) -> str:
+    def _format_testimonies_for_prompt(self, testimonies: List[Dict]) -> str:
+        """Format testimonies for the heterogeneity prompt"""
         formatted = []
         for i, t in enumerate(testimonies):
-            formatted.append(f"""
-Testemunho {i+1}:
-- Recomendador: {t.get('recommender_name', 'N/A')}
-- Empresa: {t.get('recommender_company', 'N/A')}
-- Cargo: {t.get('recommender_role', 'N/A')}
-- Período: {t.get('collaboration_period', 'N/A')}
-- Texto: {t.get('testimony_text', '')[:200]}...
+            formatted.append(f"""#### Testimony {i+1}
+- testimony_id: {t.get('testimony_id', f'T{i+1}')}
+- recommender_name: {t.get('recommender_name', 'N/A')}
+- recommender_company: {t.get('recommender_company', 'N/A')}
+- recommender_role: {t.get('recommender_role', 'N/A')}
+- collaboration_period: {t.get('collaboration_period', 'N/A')}
+- applicant_role: {t.get('applicant_role', 'N/A')}
+- testimony_text: {t.get('testimony_text', 'N/A')[:500]}...
+- key_achievements: {t.get('key_achievements', 'N/A')}
 """)
         return "\n".join(formatted)
     
@@ -34,7 +41,7 @@ Testemunho {i+1}:
         num_testimonies = len(testimonies)
         
         if num_testimonies == 0:
-            raise ValueError("Nenhum testemunho encontrado")
+            raise ValueError("No testimonies found")
         
         # Shuffle to ensure randomness
         random.seed(time.time())
@@ -50,8 +57,7 @@ OneNet: {json.dumps(organized_data.get('onet', {}), ensure_ascii=False)[:500]}..
 Strategy: {json.dumps(organized_data.get('strategy', {}), ensure_ascii=False)[:500]}...
 Petitioner: {json.dumps(organized_data.get('petitioner', {}), ensure_ascii=False)[:500]}...
 
-# TESTEMUNHOS DISPONÍVEIS
-{self._format_testimonies(testimonies)}
+# CONTEXT INPUTS  
 
 # SUA TAREFA
 
@@ -107,7 +113,13 @@ Exemplo 2 (Narrative Mentor):
 
 # OUTPUT FINAL
 
-Retorne APENAS JSON válido (sem markdown, sem ```json):
+Do NOT shuffle or reorder. The downstream nodes expect this exact sequence.
+
+---
+
+# OUTPUT FORMAT
+
+Return ONLY valid JSON with this structure:
 
 {{
   "petitioner_name": "{organized_data.get('petitioner', {}).get('name', 'Unknown')}",

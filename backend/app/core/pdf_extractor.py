@@ -2,6 +2,9 @@ import pdfplumber
 from typing import Dict, Any
 import os
 
+# Configuration
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')
+
 
 class PDFExtractor:
     def extract_text(self, pdf_path: str) -> str:
@@ -16,9 +19,9 @@ class PDFExtractor:
         except Exception as e:
             print(f"Error extracting PDF {pdf_path}: {str(e)}")
             return ""
-    
+
     def extract_all_files(self, submission_id: str) -> Dict[str, Any]:
-        base_path = f"storage/uploads/{submission_id}"
+        base_path = os.path.join(STORAGE_BASE_DIR, "uploads", submission_id)
         
         extracted = {}
         
