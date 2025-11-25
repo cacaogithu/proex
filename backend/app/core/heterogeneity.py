@@ -37,9 +37,9 @@ class StyleBlueprintGenerator:
         if num_testimonies == 0:
             raise ValueError("No testimonies found")
         
-        petitioner = organized_data.get('petitioner', {})
-        strategy = organized_data.get('strategy', {})
-        onet = organized_data.get('onet', {})
+        petitioner = organized_data.get('petitioner') or {}
+        strategy = organized_data.get('strategy') or {}
+        onet = organized_data.get('onet') or {}
         
         prompt = f"""# ROLE  
 You are `Heterogeneity_Architect`, the design-diversity intelligence layer for PROEX.  
@@ -53,18 +53,18 @@ Each blueprint will guide one downstream generator to ensure **maximum heterogen
 # CONTEXT INPUTS  
 
 ### 📘 OneNet Recommendations  
-Representative Tasks: {json.dumps(onet.get('representative_tasks', []), ensure_ascii=False)}
-Tools and Technologies: {json.dumps(onet.get('tools_and_technologies', []), ensure_ascii=False)}
-Work Activities and Skills: {json.dumps(onet.get('work_activities_and_skills', []), ensure_ascii=False)}
+Representative Tasks: {json.dumps((onet or {}).get('representative_tasks', []), ensure_ascii=False)}
+Tools and Technologies: {json.dumps((onet or {}).get('tools_and_technologies', []), ensure_ascii=False)}
+Work Activities and Skills: {json.dumps((onet or {}).get('work_activities_and_skills', []), ensure_ascii=False)}
 
 ### 🧭 Strategy (Applicant's Endeavor)  
-Services Offered: {json.dumps(strategy.get('services_offered', []), ensure_ascii=False)}
-Target Clients: {json.dumps(strategy.get('target_clients', []), ensure_ascii=False)}
+Services Offered: {json.dumps((strategy or {}).get('services_offered', []), ensure_ascii=False)}
+Target Clients: {json.dumps((strategy or {}).get('target_clients', []), ensure_ascii=False)}
 
 ### 👤 Petitioner CV  
-Name: {petitioner.get('name', 'Unknown')}
-Education: {json.dumps(petitioner.get('education', []), ensure_ascii=False)}
-Experience: {json.dumps(petitioner.get('experience', []), ensure_ascii=False)}
+Name: {(petitioner or {}).get('name', 'Unknown')}
+Education: {json.dumps((petitioner or {}).get('education', []), ensure_ascii=False)}
+Experience: {json.dumps((petitioner or {}).get('experience', []), ensure_ascii=False)}
 
 ### 🧩 Testimonies Snapshot  
 {self._format_testimonies_for_prompt(testimonies)}
