@@ -35,6 +35,19 @@ export default function StatusPage() {
     }
   }
 
+  const retrySubmission = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.post(`/api/submissions/${submission.id}/retry`)
+      setSubmission(response.data)
+      setError('')
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Erro ao tentar novamente')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleRegenerateComplete = () => {
     setShowFeedback(false)
     setTimeout(() => {

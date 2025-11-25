@@ -278,7 +278,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
                 word_count = self._count_words(draft)
                 # Apply expansion if still under minimum
                 if word_count < 800:
-                    draft = self._expand_content(draft, 800, context_hint)
+                    draft = self._expand_content(draft, 800, "")
                     word_count = self._count_words(draft)
                 print(f"    ✓ Block 3 generated: {word_count} words")
                 return draft
@@ -286,7 +286,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
                 word_count = self._count_words(content)
                 # Apply expansion if still under minimum
                 if word_count < 800:
-                    content = self._expand_content(content, 800, context_hint)
+                    content = self._expand_content(content, 800, "")
                     word_count = self._count_words(content)
                 print(f"    ✓ Block 3 generated: {word_count} words")
                 return content

@@ -24,6 +24,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Configuration
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
+
 class HTMLPDFGenerator:
     def __init__(self):
         template_dir = os.path.join(os.path.dirname(__file__), '../templates')
