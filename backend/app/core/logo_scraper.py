@@ -374,9 +374,10 @@ class LogoScraper:
                     for elem in elements:
                         if elem.name == 'img':
                             src = elem.get('src') or elem.get('data-src')
-                            alt = elem.get('alt', '').lower()
+                            alt_attr = elem.get('alt', '')
+                            alt = str(alt_attr).lower() if alt_attr else ''
                             if src and ('logo' in alt or 'brand' in alt or not alt):
-                                logo_url = urljoin(website, src)
+                                logo_url = urljoin(website, str(src))
                                 found_logos.append((logo_url, elem))
                         elif elem.name == 'svg':
                             found_logos.append((None, elem))  # SVG case
