@@ -22,12 +22,19 @@ export default function StatusPage() {
 
     try {
       const response = await axios.get(`/api/submissions/${submissionId}`)
-      setSubmission(response.data)
+      const submissionData = response.data
 
-      if (response.data.status === 'completed') {
-        const processedData = JSON.parse(response.data.processed_data || '{}')
-        response.data.letters = processedData.letters || []
+      if (submissionData.status === 'completed' && submissionData.processed_data) {
+        try {
+          const processedData = JSON.parse(submissionData.processed_data)
+          submissionData.letters = processedData.letters || []
+        } catch (e) {
+          console.error('Failed to parse processed_data:', e)
+          submissionData.letters = []
+        }
       }
+
+      setSubmission(submissionData)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Erro ao consultar status')
     } finally {
@@ -182,39 +189,42 @@ export default function StatusPage() {
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-900 mb-3">Cartas de Recomendação Geradas:</h4>
                 <div className="space-y-2">
-                  {submission.files?.map((file: string, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => handleDownload(`/api/files/${submission.id}/${file}`, file)}
-                      className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-900">{file}</span>
+                  {submission.letters?.map((letter: any, index: number) => {
+                    const pdfFileName = letter.pdf_path ? letter.pdf_path.split('/').pop() : null
+                    const docxFileName = letter.docx_path ? letter.docx_path.split('/').pop() : null
+                    
+                    return (
+                      <div key={index} className="bg-white border border-gray-200 rounded-md p-3">
+                        <div className="font-medium text-gray-900 mb-2">
+                          Carta {index + 1}: {letter.recommender || 'Unknown'}
+                        </div>
+                        <div className="flex gap-2">
+                          {pdfFileName && (
+                            <button
+                              onClick={() => handleDownload(`/api/files/${submission.id}/${pdfFileName}`, pdfFileName)}
+                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors text-sm"
+                            >
+                              <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                              </svg>
+                              <span className="font-medium text-red-600">PDF</span>
+                            </button>
+                          )}
+                          {docxFileName && (
+                            <button
+                              onClick={() => handleDownload(`/api/files/${submission.id}/${docxFileName}`, docxFileName)}
+                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors text-sm"
+                            >
+                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                              </svg>
+                              <span className="font-medium text-blue-600">DOCX</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                  )) || Array.from({ length: submission.number_of_testimonials }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleDownload(`/api/files/${submission.id}/letter_${i + 1}.pdf`, `letter_${i + 1}.pdf`)}
-                      className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-blue-300 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-900">Carta {i + 1}</span>
-                      </div>
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
