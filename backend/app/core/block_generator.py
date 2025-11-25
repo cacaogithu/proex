@@ -3,6 +3,10 @@ import json
 import time
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from .block_prompts import (
+    BLOCK1_PROMPT, BLOCK2_PROMPT, BLOCK3_PROMPT, 
+    BLOCK4_PROMPT, BLOCK5_PROMPT
+)
 
 
 class BlockGenerator:
@@ -14,6 +18,47 @@ class BlockGenerator:
     def _count_words(self, text: str) -> int:
         """Count words in text"""
         return len(re.findall(r'\w+', text))
+    
+    def _prepare_prompt_data(self, testimony: Dict, design: Dict, context: Dict) -> Dict:
+        """
+        Prepare data dictionary for n8n prompt templates.
+        Maps all required fields from design structure and testimony.
+        """
+        onet = context.get('onet', {})
+        strategy = context.get('strategy', {})
+        petitioner = context.get('petitioner', {})
+        
+        return {
+            # Design structure parameters (n8n schema)
+            'tone_variable': design.get('tone_variable', ''),
+            'tone_instructions': design.get('tone_instructions', ''),
+            'narrative_framework': design.get('narrative_framework', ''),
+            'paragraph_density_rule': design.get('paragraph_density_rule', ''),
+            
+            # O*NET parameters
+            'onet_tasks': onet.get('representative_tasks', ''),
+            'onet_tools': onet.get('tools_and_technologies', ''),
+            'onet_activities': onet.get('work_activities_and_skills', ''),
+            
+            # Strategy parameters
+            'strategy_services': strategy.get('services_offered', ''),
+            'strategy_clients': strategy.get('target_clients', ''),
+            
+            # Petitioner parameters
+            'petitioner_name': petitioner.get('name', ''),
+            'petitioner_education': petitioner.get('education', ''),
+            'petitioner_experience': petitioner.get('experience', ''),
+            
+            # Testimony parameters
+            'testimony_id': testimony.get('testimony_id', ''),
+            'recommender_name': testimony.get('recommender_name', ''),
+            'recommender_company': testimony.get('recommender_company', ''),
+            'recommender_role': testimony.get('recommender_role', ''),
+            'collaboration_period': testimony.get('collaboration_period', ''),
+            'applicant_role': testimony.get('applicant_role', ''),
+            'testimony_text': testimony.get('testimony_text', ''),
+            'key_achievements': testimony.get('key_achievements', ''),
+        }
 
     def _call_llm_with_retry(self, prompt: str, temperature: float = 0.9, max_retries: int = 3, max_tokens: int = 2000, min_words: int = 0, max_words: int = 0) -> str:
         for attempt in range(max_retries):
@@ -55,41 +100,52 @@ class BlockGenerator:
                     raise e
         return ""
     
+    def generate_block1(self, testimony: Dict, design: Dict, context: Dict) -> str:
+        """Generate Block 1 using original n8n prompt template"""
+        prompt_data = self._prepare_prompt_data(testimony, design, context)
+        prompt = BLOCK1_PROMPT.format(**prompt_data)
+        
+        try:
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
+            try:
+                data = json.loads(content)
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                print(f"    ✓ Block 1 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                word_count = self._count_words(content)
+                print(f"    ✓ Block 1 generated: {word_count} words")
+                return content
+        except Exception as e:
+            print(f"Error generating block 1: {str(e)}")
+            return "Error generating block 1"
+    
+    def generate_block2(self, testimony: Dict, design: Dict, context: Dict) -> str:
+        """Generate Block 2 using original n8n prompt template"""
+        prompt_data = self._prepare_prompt_data(testimony, design, context)
+        prompt = BLOCK2_PROMPT.format(**prompt_data)
+        
+        try:
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
+            try:
+                data = json.loads(content)
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                print(f"    ✓ Block 2 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                word_count = self._count_words(content)
+                print(f"    ✓ Block 2 generated: {word_count} words")
+                return content
+        except Exception as e:
+            print(f"Error generating block 2: {str(e)}")
+            return "Error generating block 2"
+    
     def generate_block3(self, testimony: Dict, design: Dict, context: Dict, letter_embedding: Optional[list] = None) -> str:
-        base_prompt = f"""# ROLE
-Você é `Block3_PROMPT`
-
-**PERSONA DE ESCRITA**:
-{design.get('tone_instructions', '')}
-
-**ESTRUTURA NARRATIVA**:
-{design.get('narrative_framework', '')}
-
-# INPUTS
-OneNet: {json.dumps(context.get('onet', {}), ensure_ascii=False)}
-Strategy: {json.dumps(context.get('strategy', {}), ensure_ascii=False)}
-Petitioner: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
-Testemunho atual: {json.dumps(testimony, ensure_ascii=False)}
-
-# OUTPUT
-{{"block": 3, "markdown_draft": "<rascunho markdown>"}}
-
-# ESTRUTURA — BLOCO 3: VALIDAÇÃO EMPÍRICA DE RESULTADOS
-CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 500 words minimum.
-Primeira pessoa. Evidências quantitativas e qualitativas.
-- Pelo menos 3 métricas quantitativas
-- 1-2 observações qualitativas
-- Lista com 4-6 resultados empíricos
-
-# REGRAS
-- Voz: primeira pessoa (recomendador falando)
-- Foco: resultados apenas
-- Estilo: profissional, preciso, executivo
-- Output: Markdown apenas, sem HTML
-- TODO EM PORTUGUÊS
-- Remova termos: "imigração", "EB2-NIW", "peticionário"
-"""
+        """Generate Block 3 using original n8n prompt template"""
+        prompt_data = self._prepare_prompt_data(testimony, design, context)
+        base_prompt = BLOCK3_PROMPT.format(**prompt_data)
         
         # RAG Enhancement: Retrieve relevant context
         prompt = base_prompt
@@ -140,153 +196,46 @@ Primeira pessoa. Evidências quantitativas e qualitativas.
             return "Error generating block 3"
     
     def generate_block4(self, testimony: Dict, design: Dict, context: Dict) -> str:
-        prompt = f"""# ROLE
-Você é `Block4_PROMPT`
-
-**PERSONA**: {design.get('tone_instructions', '')}
-
-# INPUTS
-Testemunho: {json.dumps(testimony, ensure_ascii=False)}
-Contexto: {json.dumps(context.get('petitioner', {}), ensure_ascii=False)}
-
-# BLOCO 4: DIFERENCIAÇÃO TÉCNICA E METODOLÓGICA
-CRITICAL REQUIREMENT: Write EXACTLY 500-700 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 600 words minimum.
-Destaque capacidades técnicas únicas.
-- Abordagens metodológicas exclusivas
-- Ferramentas e tecnologias avançadas
-- Processos inovadores
-
-# REGRAS
-- Primeira pessoa
-- Linguagem técnica mas acessível
-- TODO EM PORTUGUÊS
-"""
-
+        """Generate Block 4 using original n8n prompt template"""
+        prompt_data = self._prepare_prompt_data(testimony, design, context)
+        prompt = BLOCK4_PROMPT.format(**prompt_data)
+        
         try:
-<<<<<<< HEAD
-            # Block 4 target: 500-700 words
-            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=3000)
-=======
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=500, max_words=700)
-            word_count = self._count_words(content)
-            print(f"    ✓ Block 4 generated: {word_count} words")
-            return content
->>>>>>> origin/main
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=350, max_words=600)
+            try:
+                data = json.loads(content)
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                print(f"    ✓ Block 4 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                word_count = self._count_words(content)
+                print(f"    ✓ Block 4 generated: {word_count} words")
+                return content
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
     
     def generate_block5(self, testimony: Dict, design: Dict, context: Dict) -> str:
-        prompt = f"""# ROLE
-Você é `Block5_PROMPT`
-
-**PERSONA**: {design.get('tone_instructions', '')}
-
-# INPUTS
-Testemunho: {json.dumps(testimony, ensure_ascii=False)}
-
-# BLOCO 5: IMPACTO SETORIAL E ALCANCE
-CRITICAL REQUIREMENT: Write EXACTLY 400-600 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 500 words minimum.
-Demonstre influência além do contexto imediato.
-- Reconhecimento por pares
-- Contribuições para o setor
-- Disseminação de conhecimento
-
-# REGRAS
-- Primeira pessoa
-- Evidências concretas
-- TODO EM PORTUGUÊS
-"""
-
+        """Generate Block 5 using original n8n prompt template"""
+        prompt_data = self._prepare_prompt_data(testimony, design, context)
+        prompt = BLOCK5_PROMPT.format(**prompt_data)
+        
         try:
-<<<<<<< HEAD
-            # Block 5 target: 400-600 words
-            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500)
-=======
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
-            word_count = self._count_words(content)
-            print(f"    ✓ Block 5 generated: {word_count} words")
-            return content
->>>>>>> origin/main
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
+            try:
+                data = json.loads(content)
+                draft = data.get('markdown_draft', content)
+                word_count = self._count_words(draft)
+                print(f"    ✓ Block 5 generated: {word_count} words")
+                return draft
+            except (json.JSONDecodeError, KeyError, TypeError):
+                word_count = self._count_words(content)
+                print(f"    ✓ Block 5 generated: {word_count} words")
+                return content
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
-    
-    def generate_block6(self, testimony: Dict, design: Dict, context: Dict) -> str:
-        prompt = f"""# ROLE
-Você é `Block6_PROMPT`
-
-**PERSONA**: {design.get('tone_instructions', '')}
-
-# INPUTS
-Testemunho: {json.dumps(testimony, ensure_ascii=False)}
-
-# BLOCO 6: QUALIFICAÇÃO DO RECOMENDADOR
-CRITICAL REQUIREMENT: Write EXACTLY 300-400 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 350 words minimum.
-Estabeleça credibilidade.
-- Experiência relevante
-- Posição para avaliar o trabalho
-- Contexto da colaboração
-
-# REGRAS
-- Primeira pessoa
-- Profissional
-- TODO EM PORTUGUÊS
-"""
-
-        try:
-<<<<<<< HEAD
-            # Block 6 target: 300-400 words
-            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000)
-=======
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500, min_words=300, max_words=400)
-            word_count = self._count_words(content)
-            print(f"    ✓ Block 6 generated: {word_count} words")
-            return content
->>>>>>> origin/main
-        except Exception as e:
-            print(f"Error generating block 6: {str(e)}")
-            return "Error generating block 6"
-    
-    def generate_block7(self, testimony: Dict, design: Dict, context: Dict) -> str:
-        prompt = f"""# ROLE
-Você é `Block7_PROMPT`
-
-**PERSONA**: {design.get('tone_instructions', '')}
-
-# INPUTS
-Testemunho: {json.dumps(testimony, ensure_ascii=False)}
-
-# BLOCO 7: CONCLUSÃO E RECOMENDAÇÃO
-CRITICAL REQUIREMENT: Write EXACTLY 200-300 words (Portuguese words). This is MANDATORY.
-Count your words as you write. Current target: 250 words minimum.
-Encerramento forte.
-- Síntese de valor
-- Recomendação clara
-- Perspectiva futura
-
-# REGRAS
-- Primeira pessoa
-- Tom conclusivo
-- TODO EM PORTUGUÊS
-"""
-
-        try:
-<<<<<<< HEAD
-            # Block 7 target: 200-300 words
-            return self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1500)
-=======
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=1200, min_words=200, max_words=300)
-            word_count = self._count_words(content)
-            print(f"    ✓ Block 7 generated: {word_count} words")
-            return content
->>>>>>> origin/main
-        except Exception as e:
-            print(f"Error generating block 7: {str(e)}")
-            return "Error generating block 7"
     
     def generate_all_blocks(self, testimony: Dict, design: Dict, context: Dict) -> Dict[str, str]:
         """Generate all 5 blocks in parallel for maximum performance"""
@@ -295,13 +244,13 @@ Encerramento forte.
 
         blocks = {}
 
-        # Define block generation tasks
+        # Define block generation tasks (Blocks 1-5 matching n8n)
         block_tasks = {
+            "block1": (self.generate_block1, testimony, design, context),
+            "block2": (self.generate_block2, testimony, design, context),
             "block3": (self.generate_block3, testimony, design, context),
             "block4": (self.generate_block4, testimony, design, context),
-            "block5": (self.generate_block5, testimony, design, context),
-            "block6": (self.generate_block6, testimony, design, context),
-            "block7": (self.generate_block7, testimony, design, context)
+            "block5": (self.generate_block5, testimony, design, context)
         }
 
         # Execute all blocks in parallel (5 concurrent API calls)
