@@ -41,13 +41,28 @@ class PDFExtractor:
         if os.path.exists(estrategia_path):
             extracted["estrategia"] = self.extract_text(estrategia_path)
         else:
-            extracted["estrategia"] = None
+            extracted["estrategia"] = ""
         
         onenote_path = f"{base_path}/onenote.pdf"
         if os.path.exists(onenote_path):
             extracted["onenote"] = self.extract_text(onenote_path)
         else:
-            extracted["onenote"] = None
+            extracted["onenote"] = ""
+        
+        # Extract additional attached documents
+        additional_docs = []
+        i = 0
+        while True:
+            doc_path = f"{base_path}/attached_{i}.pdf"
+            if os.path.exists(doc_path):
+                additional_docs.append({
+                    'filename': f'attached_{i}.pdf',
+                    'text': self.extract_text(doc_path)
+                })
+                i += 1
+            else:
+                break
+        extracted["additional_documents"] = additional_docs
         
         testimonials = []
         i = 0

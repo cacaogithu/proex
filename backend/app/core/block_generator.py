@@ -85,6 +85,31 @@ class BlockGenerator:
                     raise e
         return ""
 
+    def _get_additional_documents_context(self, context: Dict) -> str:
+        """Extract relevant sections from estrategia, onenote, and additional documents"""
+        context_parts = []
+        
+        # Strategy document
+        strategy = context.get('strategy', {})
+        if strategy:
+            services = strategy.get('services_offered', [])
+            if services:
+                context_parts.append(f"**Services Offered**: {', '.join(services)}")
+            
+            clients = strategy.get('target_clients', '')
+            if clients:
+                context_parts.append(f"**Target Clients**: {clients}")
+        
+        # Additional documents (attachments)
+        additional_docs = context.get('additional_documents', [])
+        for doc in additional_docs[:3]:  # Limit to first 3 to avoid token bloat
+            doc_text = doc.get('text', '')
+            if doc_text and len(doc_text) > 100:
+                # Take first 500 chars from each document
+                context_parts.append(f"**From {doc.get('filename', 'attachment')}**: {doc_text[:500]}...")
+        
+        return "\n\n".join(context_parts) if context_parts else ""
+    
     def _expand_content(self, content: str, min_words: int, context_hint: str = "") -> str:
         """Expand content until it reaches minimum word count"""
         word_count = self._count_words(content)
@@ -249,18 +274,14 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         prompt = base_prompt
 
         # Add compliance context from OpenAI vector store
-        compliance_context = self.vector_search.get_compliance_context(self.block_name if hasattr(self, 'block_name') else 'block3') # Default to 'block3' if block_name is not set
+        compliance_context = self.vector_search.get_compliance_context('block3')
         if compliance_context:
             prompt = f"{base_prompt}\n\n{compliance_context}"
 
-        # RAG Enhancement - User documents (DISABLED)
-        # if self.rag and context.get('submission_id'):
-        #     rag_context = self.rag.get_context_for_block(
-        #         context['submission_id'],
-        #         block_name
-        #     )
-        #     if rag_context:
-        #         prompt = f"{prompt}\n\n## ADDITIONAL CONTEXT FROM DOCUMENTS\n\n{rag_context}"
+        # Add context from additional documents (estrategia, onenote, attachments)
+        additional_context = self._get_additional_documents_context(context)
+        if additional_context:
+            prompt = f"{prompt}\n\n## ADDITIONAL CONTEXT FROM CLIENT DOCUMENTS\n\n{additional_context}"
 
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)

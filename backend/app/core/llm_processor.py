@@ -56,6 +56,12 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
     "services_offered": ["..."],
     "target_clients": "..."
   }},
+  "additional_documents": [
+    {{
+      "filename": "...",
+      "text": "..."
+    }}
+  ],
   "onet": {{
     "representative_tasks": ["..."],
     "tools_and_technologies": ["..."],
