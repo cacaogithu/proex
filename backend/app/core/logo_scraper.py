@@ -23,8 +23,8 @@ class LogoScraper:
         self._logo_cache = {}
         self._domain_cache = {}
         self.brandfetch_key = os.environ.get('BRANDFETCH_API_KEY', '')
-        self.logodev_secret_key = os.environ.get('LOGODEV_SECRET_KEY', '')
-        self.logodev_public_key = os.environ.get('LOGODEV_API_KEY', 'pk_X-1ZO13CRYuAq5BIwG4BQA')
+        self.logodev_secret_key = os.environ.get('LOGO_DEV_API_KEY', '')
+        self.logodev_public_key = os.environ.get('LOGO_DEV_API_KEY', '')
         self.max_parallel_methods = 4
     
     def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
