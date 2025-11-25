@@ -1,0 +1,87 @@
+# Brand Search API - Find company domains by name
+
+> Search for company domains by brand name. Get autocomplete results with typeahead or exact matching. Coverage for millions of companies.
+
+Need to go from a brand name to a domain? Brand Search API finds company domains with autocomplete support and flexible matching strategies.
+
+```bash  theme={null}
+curl --header "Authorization: Bearer LOGO_DEV_SECRET_KEY" "https://api.logo.dev/search?q=:query"
+```
+
+All you need to provide is a query and your secret key, which can be found on the [dashboard](https://www.logo.dev/dashboard) and is formatted like `sk_...`.
+
+***
+
+## In example, looking up “sweetgreen”
+
+Using `curl` to test this from the command line, but obviously call the API anywhere that supports headers.
+
+```bash  theme={null}
+curl --header "Authorization: Bearer LOGO_DEV_SECRET_KEY" "https://api.logo.dev/search?q=sweetgreen"
+```
+
+### Results
+
+Expect an array of objects in the following format. Currently, there is a max of 10 results returned that are sorted by general popularity metrics.
+
+```json  theme={null}
+[
+	{
+		"name":"sweetgreen"
+		"domain":"sweetgreen.com"
+	},
+	{
+		"name":"Sweet Greens Healthy Restaurant"
+		"domain":"sweetgreens.ae"
+	},
+	{
+		"name":"Sweet Green Hotel",
+		"domain":"sweetgreenhotel.com"
+		},
+	{
+		"name":"Sweet Green Apothecary",
+		"domain":"sweetgreenapothecary.com"
+	}
+]
+```
+
+***
+
+## Search strategies
+
+By default, Brand Search uses `typeahead`, which favors popular prefix matches for autocomplete.
+
+You can switch to exact matching with the optional `strategy` parameter:
+
+* `typeahead` (default): Best for autosuggest and exploratory typing.
+* `match`: Best when you want exact/near-exact name matches to rank first.
+
+### Parameters
+
+* `q` (required): The brand name query.
+* `strategy` (optional): `typeahead` | `match` (default: `typeahead`).
+
+### Examples
+
+```bash  theme={null}
+# Default typeahead (prefix-forward)
+curl --header "Authorization: Bearer LOGO_DEV_SECRET_KEY" \
+  "https://api.logo.dev/search?q=fa"
+
+# Prefer exact matches
+curl --header "Authorization: Bearer LOGO_DEV_SECRET_KEY" \
+  "https://api.logo.dev/search?q=fa&strategy=match"
+```
+
+<Tip>
+  Use `strategy=match` when you have near-complete names and need exactness;
+  keep `typeahead` for live search UX.
+</Tip>
+
+***
+
+### Keep your secret a secret, keep it safe
+
+Unlike the publishable key, it's your responsibility to keep your secret key safe and away from public eyes. Even during testing, please never publish to Github or allow it to be seen from front-end code.
+
+If you’re secret key is ever leaked, please get in touch immediately so we can regenerate a new one for you.
