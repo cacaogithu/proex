@@ -14,7 +14,7 @@ router = APIRouter()
 db = Database()
 
 # Configuration
-STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
 
 
 @router.post("/submissions")
