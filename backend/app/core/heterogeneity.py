@@ -38,9 +38,9 @@ class HeterogeneityArchitect:
         Returns schema exactly matching original n8n heterogeneity architect.
         """
         testimonies = organized_data.get('testimonies', [])
-        num_testimonies = len(testimonies)
+        num_testimonios = len(testimonies)
         
-        if num_testimonies == 0:
+        if num_testimonios == 0:
             raise ValueError("No testimonies found")
         
         # Shuffle to ensure randomness
@@ -48,7 +48,7 @@ class HeterogeneityArchitect:
         
         prompt = f"""# CRITICAL MISSION: MAXIMUM HETEROGENEITY - n8n Schema Generation
 
-Você é o `Heterogeneity_Architect`. Sua missão é criar {num_testimonies} DESIGN STRUCTURES COMPLETAMENTE ÚNICOS.
+Você é o `Heterogeneity_Architect`. Sua missão é criar {num_testimonios} DESIGN STRUCTURES COMPLETAMENTE ÚNICOS.
 
 🚨 REGRA DE OURO: CADA carta deve ter parâmetros visuais E de conteúdo radicalmente distintos.
 
