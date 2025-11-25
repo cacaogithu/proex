@@ -129,17 +129,33 @@ class Database:
                 last_updated TEXT NOT NULL
             )
         """)
-        
-        # letter_ratings and letter_embeddings are now in Supabase Vector DB.
-        # We keep the local tables for backward compatibility and to avoid breaking 
-        # the schema migration logic, but the new methods will use Supabase.
-        # I will remove the creation of these tables to ensure they are not used.
-        # However, since the migration logic relies on them, I will keep the migration logic
-        # but remove the table creation here.
-        # I will remove the creation of letter_ratings and letter_embeddings tables.
-        # The migration logic will be updated to handle the new Supabase-first approach.
-        # For now, I will just remove the table creation to avoid confusion.
-        pass
+
+        # Create letter_ratings table (local SQLite since Supabase is disabled)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS letter_ratings (
+                id TEXT PRIMARY KEY,
+                submission_id TEXT NOT NULL,
+                letter_index INTEGER NOT NULL,
+                template_id TEXT NOT NULL,
+                score INTEGER CHECK(score >= 0 AND score <= 100),
+                comment TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(submission_id) REFERENCES submissions(id)
+            )
+        """)
+
+        # Create letter_embeddings table (local SQLite since Supabase is disabled)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS letter_embeddings (
+                id TEXT PRIMARY KEY,
+                submission_id TEXT NOT NULL,
+                letter_index INTEGER NOT NULL,
+                embedding TEXT NOT NULL,
+                cluster_id INTEGER,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(submission_id) REFERENCES submissions(id)
+            )
+        """)
         
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS ml_insights (
@@ -319,22 +335,30 @@ class Database:
         comment: Optional[str] = None
     ) -> str:
         """Save score (0-100) for a specific letter and update template performance"""
-        # 1. Save score to Supabase Vector DB
-        self.supabase_db.save_letter_score(submission_id, letter_index, template_id, score, comment)
-        
-        # 2. Update local template performance (this logic remains local)
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
-        rating_id = str(uuid.uuid4()) # Keep for return value, though not used for local storage
+
+        rating_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
-        
-        # Update template performance
+
+        # 1. Save to local SQLite letter_ratings table
+        cursor.execute("""
+            INSERT INTO letter_ratings (id, submission_id, letter_index, template_id, score, comment, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (rating_id, submission_id, letter_index, template_id, score, comment, now))
+
+        # 2. Try to save to Supabase (will be skipped if disabled)
+        try:
+            self.supabase_db.save_letter_score(submission_id, letter_index, template_id, score, comment)
+        except Exception:
+            pass  # Supabase is optional
+
+        # 3. Update template performance
         self._update_template_performance(cursor, template_id, score, now)
-        
+
         conn.commit()
         conn.close()
-        
+
         return rating_id
     
     def _update_template_performance(self, cursor, template_id: str, score: int, now: str):
@@ -478,8 +502,46 @@ class Database:
             print(f"⚠️  Embedding save failed (non-critical): {e}")
     
     def get_all_embeddings(self) -> List[Dict]:
-        """Get all letter embeddings and their associated scores for ML training from Supabase Vector DB"""
-        return self.supabase_db.get_all_embeddings()
+        """Get all letter embeddings and their associated scores for ML training"""
+        # First try Supabase (if enabled)
+        try:
+            supabase_data = self.supabase_db.get_all_embeddings()
+            if supabase_data:
+                return supabase_data
+        except Exception:
+            pass  # Fall through to SQLite
+
+        # Use local SQLite data
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                e.id,
+                e.embedding,
+                r.score
+            FROM letter_embeddings e
+            LEFT JOIN letter_ratings r
+            ON e.submission_id = r.submission_id AND e.letter_index = r.letter_index
+        """)
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        result = []
+        for row in rows:
+            try:
+                embedding = json.loads(row['embedding'])
+                result.append({
+                    'id': row['id'],
+                    'embedding': embedding,
+                    'score': row['score']
+                })
+            except Exception:
+                continue
+
+        return result
     
     def update_cluster_assignments(self, embedding_updates: List[tuple]):
         """
@@ -559,5 +621,22 @@ class Database:
         return results
     
     def get_all_letter_ratings(self) -> List[Dict]:
-        """Get all letter ratings for ML training from Supabase Vector DB"""
-        return self.supabase_db.get_all_letter_ratings()
+        """Get all letter ratings for ML training"""
+        # First try Supabase (if enabled)
+        try:
+            supabase_data = self.supabase_db.get_all_letter_ratings()
+            if supabase_data:
+                return supabase_data
+        except Exception:
+            pass  # Fall through to SQLite
+
+        # Use local SQLite data
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM letter_ratings ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [dict(row) for row in rows]

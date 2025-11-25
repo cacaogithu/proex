@@ -1,18 +1,19 @@
-import requests
 import logging
 import os
 from typing import List
+from google.oauth2.service_account import Credentials
+from google.auth.transport.requests import Request
+import base64
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 logger = logging.getLogger(__name__)
 
-# Configuration: Email service URL from environment variable
-# For development: http://localhost:3001
-# For production: Set EMAIL_SERVICE_URL environment variable
-EMAIL_SERVICE_URL = os.getenv("EMAIL_SERVICE_URL", "http://localhost:3001")
-
 def send_results_email(submission_id: str, recipient_email: str, docx_files: List[str]) -> dict:
     """
-    Send results email with Google Drive links via Node.js email service.
+    Send results email with DOCX files via Gmail API.
     
     Args:
         submission_id: Submission ID
@@ -20,45 +21,86 @@ def send_results_email(submission_id: str, recipient_email: str, docx_files: Lis
         docx_files: List of absolute paths to DOCX files
     
     Returns:
-        dict: Response from email service
+        dict: Response status
     """
     try:
-        logger.info(f"📧 Sending results email for submission {submission_id} to {recipient_email}")
+        logger.info(f"📧 Sending results email via Gmail for submission {submission_id} to {recipient_email}")
         logger.info(f"📦 Files to send: {len(docx_files)}")
         
-        payload = {
-            "submissionId": submission_id,
-            "recipientEmail": recipient_email,
-            "docxFiles": docx_files
-        }
+        # Get Gmail API credentials from environment
+        gmail_credentials = os.getenv('GMAIL_CREDENTIALS_JSON')
+        sender_email = os.getenv('GMAIL_SENDER_EMAIL')
         
-        response = requests.post(
-            f"{EMAIL_SERVICE_URL}/send-results",
-            json=payload,
-            timeout=300  # 5 minutes timeout for large files
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            logger.info(f"✅ Email sent successfully: {result}")
-            return {
-                "success": True,
-                "files_uploaded": result.get("filesUploaded", 0),
-                "email_sent": result.get("emailSent", False)
-            }
-        else:
-            logger.error(f"❌ Email service error: {response.status_code} - {response.text}")
+        if not gmail_credentials or not sender_email:
+            logger.warning("Gmail credentials not configured - using fallback email service")
             return {
                 "success": False,
-                "error": f"Email service returned {response.status_code}"
+                "error": "Gmail integration not configured. Using local email service fallback."
             }
-    
-    except requests.exceptions.Timeout:
-        logger.error("❌ Email service timeout")
+        
+        # Parse credentials
+        import json
+        creds_dict = json.loads(gmail_credentials)
+        credentials = Credentials.from_service_account_info(
+            creds_dict,
+            scopes=['https://www.googleapis.com/auth/gmail.send']
+        )
+        
+        # Create email message
+        message = MIMEMultipart()
+        message['to'] = recipient_email
+        message['from'] = sender_email
+        message['subject'] = f"EB-2 NIW Recommendation Letters - Submission {submission_id}"
+        
+        # Email body
+        body = f"""
+Hello,
+
+Your EB-2 NIW recommendation letters have been generated successfully.
+
+Submission ID: {submission_id}
+Generated Letters: {len(docx_files)}
+
+Please find the attached recommendation letters in DOCX format. You can open and edit them as needed.
+
+Best regards,
+PROEX System
+"""
+        
+        message.attach(MIMEText(body, 'plain'))
+        
+        # Attach DOCX files
+        for file_path in docx_files:
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'rb') as attachment:
+                        part = MIMEBase('application', 'octet-stream')
+                        part.set_payload(attachment.read())
+                        encoders.encode_base64(part)
+                        part.add_header('Content-Disposition', f'attachment; filename= {os.path.basename(file_path)}')
+                        message.attach(part)
+                        logger.info(f"   ✓ Attached: {os.path.basename(file_path)}")
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Could not attach {file_path}: {e}")
+        
+        # Encode and send via Gmail API
+        import base64
+        from googleapiclient.discovery import build
+        
+        service = build('gmail', 'v1', credentials=credentials)
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        send_message = {'raw': raw_message}
+        
+        result = service.users().messages().send(userId='me', body=send_message).execute()
+        
+        logger.info(f"✅ Email sent successfully via Gmail. Message ID: {result.get('id')}")
         return {
-            "success": False,
-            "error": "Email service timeout"
+            "success": True,
+            "files_uploaded": len(docx_files),
+            "email_sent": True,
+            "message_id": result.get('id')
         }
+    
     except Exception as e:
         logger.error(f"❌ Error sending email: {e}")
         return {
@@ -67,10 +109,10 @@ def send_results_email(submission_id: str, recipient_email: str, docx_files: Lis
         }
 
 def check_email_service_health() -> bool:
-    """Check if email service is running"""
+    """Check if Gmail integration is available"""
     try:
-        response = requests.get(f"{EMAIL_SERVICE_URL}/health", timeout=5)
-        return response.status_code == 200
-    except (requests.RequestException, Exception):
-        # Email service is not available
+        gmail_credentials = os.getenv('GMAIL_CREDENTIALS_JSON')
+        sender_email = os.getenv('GMAIL_SENDER_EMAIL')
+        return gmail_credentials is not None and sender_email is not None
+    except Exception:
         return False

@@ -179,7 +179,7 @@ class BlockGenerator:
                 print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2000, min_words=400, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)

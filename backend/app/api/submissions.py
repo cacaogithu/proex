@@ -13,6 +13,9 @@ from .auth import get_current_user
 router = APIRouter()
 db = Database()
 
+# Configuration
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')
+
 
 @router.post("/submissions")
 async def create_submission(
@@ -30,6 +33,7 @@ async def create_submission(
     
     # Security: Validate file sizes to prevent memory exhaustion
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB per file
+    MIN_FILE_SIZE = 100  # 100 bytes minimum (empty files are suspicious)
 
     files_to_check = [quadro, cv] + testimonials
     if estrategia:
@@ -38,10 +42,23 @@ async def create_submission(
         files_to_check.append(onenote)
 
     for file in files_to_check:
+        # Validate filename is present
+        if not file.filename or file.filename.strip() == "":
+            raise HTTPException(
+                status_code=400,
+                detail="Um ou mais arquivos têm nome inválido"
+            )
+
         # Read file size
         file.file.seek(0, 2)  # Seek to end
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to beginning
+
+        if file_size < MIN_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Arquivo {file.filename} está vazio ou é muito pequeno"
+            )
 
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
@@ -50,23 +67,16 @@ async def create_submission(
             )
 
         # Validate file extension
-        if not file.filename.endswith('.pdf'):
+        if not file.filename.lower().endswith('.pdf'):
             raise HTTPException(
                 status_code=400,
                 detail=f"Arquivo {file.filename} deve ser PDF"
             )
-
-    # Validate: number of testimonials uploaded must match numberOfTestimonials
-    if len(testimonials) != numberOfTestimonials:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Número de CVs enviados ({len(testimonials)}) não corresponde ao número solicitado ({numberOfTestimonials})"
-        )
     
     submission = db.create_submission(email, numberOfTestimonials)
     submission_id = submission['id']
-    
-    upload_dir = f"storage/uploads/{submission_id}"
+
+    upload_dir = os.path.join(STORAGE_BASE_DIR, "uploads", submission_id)
     os.makedirs(upload_dir, exist_ok=True)
     
     with open(f"{upload_dir}/quadro.pdf", "wb") as f:
@@ -115,7 +125,7 @@ async def get_submission(submission_id: str, current_user: dict = Depends(get_cu
     
     # Add list of generated files if completed
     if submission['status'] == 'completed':
-        output_dir = f"storage/outputs/{submission_id}"
+        output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
         if os.path.exists(output_dir):
             files = [
                 f for f in os.listdir(output_dir) 
@@ -152,10 +162,10 @@ async def get_file(submission_id: str, filename: str, current_user: dict = Depen
     if not (filename.endswith('.pdf') or filename.endswith('.docx')):
         raise HTTPException(status_code=400, detail="Tipo de arquivo inválido")
 
-    file_path = f"storage/outputs/{submission_id}/{filename}"
+    file_path = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id, filename)
 
     # Security: Verify the resolved path is still within expected directory
-    expected_dir = os.path.abspath(f"storage/outputs/{submission_id}")
+    expected_dir = os.path.abspath(os.path.join(STORAGE_BASE_DIR, "outputs", submission_id))
     actual_path = os.path.abspath(file_path)
     if not actual_path.startswith(expected_dir):
         raise HTTPException(status_code=400, detail="Caminho de arquivo inválido")
@@ -174,6 +184,22 @@ async def get_file(submission_id: str, filename: str, current_user: dict = Depen
     )
 
 
+@router.post("/submissions/{submission_id}/retry")
+async def retry_submission(submission_id: str, background_tasks: BackgroundTasks):
+    submission = db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submissão não encontrada")
+    
+    db.update_submission_status(submission_id, "received", None)
+    processor = SubmissionProcessor()
+    background_tasks.add_task(processor.process_submission, submission_id)
+    
+    return {
+        "status": "received",
+        "message": "Processamento reiniciado"
+    }
+
+
 @router.get("/submissions/{submission_id}/download")
 async def download_results(submission_id: str, current_user: dict = Depends(get_current_user)):
     submission = db.get_submission(submission_id)
@@ -186,11 +212,11 @@ async def download_results(submission_id: str, current_user: dict = Depends(get_
     
     if submission['status'] != 'completed':
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Processamento ainda não completo. Status: {submission['status']}"
         )
-    
-    output_dir = f"storage/outputs/{submission_id}"
+
+    output_dir = os.path.join(STORAGE_BASE_DIR, "outputs", submission_id)
     
     if not os.path.exists(output_dir):
         raise HTTPException(status_code=404, detail="Arquivos não encontrados")
