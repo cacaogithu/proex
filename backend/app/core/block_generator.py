@@ -5,9 +5,8 @@ import re
 
 
 class BlockGenerator:
-    def __init__(self, llm_processor, prompt_enhancer=None):
+    def __init__(self, llm_processor):
         self.llm = llm_processor
-        self.prompt_enhancer = prompt_enhancer  # ML-powered prompt improvement
 
     def _count_words(self, text: str) -> int:
         """Count words in text"""
@@ -116,18 +115,8 @@ Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
 - SIGA RIGOROSAMENTE as instruções de estilo acima (PERSONA, ESTRUTURA, ÊNFASE, ELEMENTOS VISUAIS)
 """
         
-        # ML-powered prompt enhancement
+        # No ML enhancement - use base prompt directly
         prompt = base_prompt
-        if self.prompt_enhancer:
-            try:
-                prompt = self.prompt_enhancer.enhance_block_prompt(
-                    base_prompt, 
-                    block_number=3,
-                    letter_context=testimony,
-                    letter_embedding=letter_embedding
-                )
-            except Exception as e:
-                print(f"   ℹ️  ML prompt enhancement skipped: {e}")
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)

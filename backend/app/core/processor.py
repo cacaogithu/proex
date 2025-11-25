@@ -7,7 +7,6 @@ from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
 from ..db.database import Database
-from ..ml.prompt_enhancer import PromptEnhancer
 import os
 import logging
 from typing import Dict, List
@@ -17,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants
 MAX_PARALLEL_WORKERS = 5  # Maximum concurrent letter generation tasks
-MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
 STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'storage')  # Base storage directory
 
 
@@ -27,19 +25,10 @@ class SubmissionProcessor:
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
         self.db = Database()
-        self.prompt_enhancer = PromptEnhancer(self.db)
         
-        # Try to train ML models with existing data
-        try:
-            logger.info(f"Attempting to train ML models with min {MIN_ML_TRAINING_SAMPLES} samples")
-            self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
-            logger.info("ML models trained successfully")
-        except Exception as e:
-            logger.info(f"ML training skipped (likely first run): {e}")
-
-        # Initialize other components AFTER ML training
+        # Initialize components without ML
         self.heterogeneity = StyleBlueprintGenerator(self.llm)
-        self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer)  # Pass ML enhancer
+        self.block_generator = BlockGenerator(self.llm)
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
