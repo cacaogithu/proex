@@ -3,6 +3,7 @@ from .llm_processor import LLMProcessor
 from .heterogeneity import HeterogeneityArchitect
 from .block_generator import BlockGenerator
 from .html_pdf_generator import HTMLPDFGenerator
+from .html_designer import HTMLDesigner
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
@@ -46,6 +47,7 @@ class SubmissionProcessor:
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.block_generator = BlockGenerator(self.llm, self.prompt_enhancer, self.rag_engine)  # Pass RAG engine
         self.pdf_generator = HTMLPDFGenerator()
+        self.html_designer = HTMLDesigner(self.llm)  # NEW: AI-powered HTML designer
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
         logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers and RAG enabled")
@@ -69,15 +71,9 @@ class SubmissionProcessor:
         blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
         print(f"    ✓ Blocks generated for {recommender_name}")
 
-        # 3. Assemble letter
-        print(f"    - Assembling letter for {recommender_name}...")
-        letter_html = self.pdf_generator.assemble_letter(blocks, design, self.llm)
-        print(f"    ✓ Letter assembled for {recommender_name}")
-
-        # 4. Generate PDF and DOCX
-        output_path = f"storage/outputs/{submission_id}/letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf"
-        print(f"    - Generating styled PDF with dynamic CSS for {recommender_name}...")
-
+        # 3. DESIGN custom HTML (AI-powered, Authentic Heterogeneity)
+        print(f"    - Designing custom HTML for {recommender_name}...")
+        
         recommender_info = {
             'name': recommender_name,
             'title': testimony.get('recommender_position', ''),
@@ -85,12 +81,26 @@ class SubmissionProcessor:
             'location': testimony.get('recommender_location', '')
         }
 
-        self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
-        print(f"    ✓ Styled PDF generated for {recommender_name}")
+        # Generate COMPLETE HTML document using the new Designer
+        letter_html = self.html_designer.generate_html_design(
+            blocks=blocks,
+            design=design,
+            recommender_info=recommender_info,
+            logo_path=logo_path
+        )
+        print(f"    ✓ Custom HTML design generated for {recommender_name}")
+
+        # 4. Generate PDF and DOCX
+        output_path = f"storage/outputs/{submission_id}/letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf"
+        print(f"    - Generating PDF for {recommender_name}...")
+
+        # Use DIRECT conversion since we have a full HTML doc now
+        self.pdf_generator.html_to_pdf_direct(letter_html, output_path)
+        print(f"    ✓ PDF generated for {recommender_name}")
 
         docx_output_path = output_path.replace('.pdf', '.docx')
         print(f"    - Generating editable DOCX for {recommender_name}...")
-        self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
+        self.pdf_generator.html_to_docx_direct(letter_html, docx_output_path)
 
 
         # 6. Generate embedding for ML/clustering (optional - can be slow)
@@ -388,7 +398,9 @@ class SubmissionProcessor:
                 testimony = testimonials[letter_idx]
                 design = new_designs[i]
                 
-                print(f"\n  Letter {letter_idx + 1}/{len(testimonials)}: {testimony.get('recommender_name', 'Unknown')}")
+                recommender_name = testimony.get('recommender_name', 'Unknown')
+                
+                print(f"\n  Letter {letter_idx + 1}/{len(testimonials)}: {recommender_name}")
                 
                 # Generate blocks (with ML enhancement)
                 context = {
@@ -398,36 +410,47 @@ class SubmissionProcessor:
                 }
                 blocks = self.block_generator.generate_all_blocks(testimony, design, context)
                 
-                # Assemble letter with Claude
-                print("    - Assembling letter with Claude 4.5 Sonnet...")
-                letter_html = self.pdf_generator.assemble_letter(
-                    blocks=blocks,
-                    design=design,
-                    llm=self.llm,
-                    custom_instructions=custom_instructions
-                )
-                print(f"✅ Letter assembled with dynamic styling")
-                
-                # Get logo if available
-                logo_path = testimony.get('company_logo_path')
-                
-                # Generate PDF (use same naming as process_submission)
-                output_path = f"{output_dir}/letter_{letter_idx + 1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.pdf"
+                # 3. DESIGN custom HTML (AI-powered, Authentic Heterogeneity)
+                print(f"    - Designing custom HTML for {recommender_name}...")
                 
                 recommender_info = {
-                    'name': testimony.get('recommender_name', ''),
+                    'name': recommender_name,
                     'title': testimony.get('recommender_title', ''),
                     'company': testimony.get('recommender_company', ''),
                     'location': testimony.get('recommender_location', '')
                 }
                 
-                
-                self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
-                print(f"    ✓ Regenerated PDF withدynamic styling")
+                # Get logo if available
+                logo_path = testimony.get('company_logo_path')
+                if logo_path and not os.path.exists(logo_path):
+                    logo_path = None
+
+                # Generate COMPLETE HTML document using the new Designer
+                letter_html = self.html_designer.generate_html_design(
+                    blocks=blocks,
+                    design=design,
+                    recommender_info=recommender_info,
+                    logo_path=logo_path
+                )
+                print(f"    ✓ Custom HTML design generated for {recommender_name}")
+
+                # 4. Generate PDF and DOCX
+                output_path = f"{output_dir}/letter_{letter_idx+1}_{recommender_name.replace(' ', '_')}.pdf"
+                print(f"    - Generating PDF for {recommender_name}...")
+
+                # Use DIRECT conversion since we have a full HTML doc now
+                self.pdf_generator.html_to_pdf_direct(letter_html, output_path)
+                print(f"    ✓ PDF generated for {recommender_name}")
+
+                docx_output_path = output_path.replace('.pdf', '.docx')
+                print(f"    - Generating editable DOCX for {recommender_name}...")
+                self.pdf_generator.html_to_docx_direct(letter_html, docx_output_path)
+                print(f"    ✓ DOCX generated for {recommender_name}")
                 
                 # Update letter info
                 existing_letters[letter_idx].update({
                     "pdf_path": output_path,
+                    "docx_path": docx_output_path,
                     "regenerated": True
                 })
             

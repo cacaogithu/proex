@@ -280,6 +280,88 @@ class HTMLPDFGenerator:
                 
         print(f"✅ Editable DOCX generated with dynamic styling: {os.path.basename(output_path)}")
 
+    def html_to_pdf_direct(self, complete_html: str, output_path: str):
+        """
+        Convert complete HTML document to PDF (no additional wrapping).
+        Used when HTML is already a full document from HTMLDesigner.
+        """
+        # Create output directory
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Convert to PDF directly
+        try:
+            HTML(string=complete_html).write_pdf(output_path)
+            print(f"✅ PDF generated directly: {os.path.basename(output_path)}")
+        except Exception as e:
+            print(f"❌ PDF generation failed: {e}")
+            raise
+
+    def html_to_docx_direct(self, complete_html: str, output_path: str):
+        """
+        Convert complete HTML document to DOCX.
+        Attempts to preserve the 'document feel' by parsing the HTML structure.
+        """
+        try:
+            from docx import Document
+            from docx.shared import Pt, Inches, RGBColor
+            from bs4 import BeautifulSoup
+            import re
+
+            doc = Document()
+            soup = BeautifulSoup(complete_html, 'html.parser')
+            
+            # Try to extract page margins from CSS if possible, otherwise default
+            # (Simplification: just use standard margins)
+            for section in doc.sections:
+                section.top_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+
+            # Extract Body Content
+            body = soup.find('body')
+            if not body:
+                raise ValueError("No body tag found")
+
+            # Simple recursive parser to handle basic formatting
+            def process_element(element, paragraph=None):
+                if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                    p = doc.add_paragraph(style=f'Heading {element.name[1]}')
+                    p.add_run(element.get_text().strip())
+                elif element.name == 'p':
+                    p = doc.add_paragraph()
+                    # Process children for bold/italic
+                    for child in element.children:
+                        if child.name == 'strong' or child.name == 'b':
+                            p.add_run(child.get_text()).bold = True
+                        elif child.name == 'em' or child.name == 'i':
+                            p.add_run(child.get_text()).italic = True
+                        elif isinstance(child, str):
+                            p.add_run(child)
+                elif element.name == 'ul':
+                    for li in element.find_all('li', recursive=False):
+                        doc.add_paragraph(li.get_text().strip(), style='List Bullet')
+                elif element.name == 'ol':
+                    for li in element.find_all('li', recursive=False):
+                        doc.add_paragraph(li.get_text().strip(), style='List Number')
+                elif element.name == 'div':
+                    for child in element.children:
+                        if child.name: process_element(child)
+                # Handle other block elements...
+
+            # Start processing
+            for child in body.children:
+                if child.name:
+                    process_element(child)
+
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            doc.save(output_path)
+            print(f"✅ DOCX generated directly: {os.path.basename(output_path)}")
+
+        except Exception as e:
+            print(f"⚠️ DOCX direct generation failed, using fallback: {e}")
+            # Fallback to simple text extraction
+            self.html_to_docx(complete_html, output_path, {}, None, None)
 # Keep backward compatibility
 class DOCXGenerator(HTMLPDFGenerator):
     """Backward compatibility wrapper - now generates PDFs with HTML templates"""
