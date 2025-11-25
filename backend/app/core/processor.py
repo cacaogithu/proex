@@ -219,21 +219,6 @@ class SubmissionProcessor:
                 "success_count": len(successful_letters)
             })
             
-            # Retrain ML models periodically (every 10 submissions) instead of every time
-            # This significantly improves performance
-            total_submissions = self.db.get_total_submissions_count()
-            if total_submissions % 10 == 0:
-                logger.info(f"Triggering ML model retraining at {total_submissions} submissions")
-                print("\n🧠 Re-training ML models with new data...")
-                try:
-                    self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
-                    logger.info("ML models retrained successfully")
-                except Exception as e:
-                    logger.warning(f"ML training failed: {e}")
-            pass  # ML training removed
-            else:
-                logger.debug(f"Skipping ML retraining (will retrain at next multiple of 10)")
-            
             print(f"\n{'='*60}")
             print(f"✓ COMPLETED! Generated {len(letters)} PDF + DOCX letters")
             print(f"{'='*60}\n")
