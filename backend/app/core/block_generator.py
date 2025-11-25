@@ -15,12 +15,44 @@ from .block_prompts import (
 )
 
 
+LENGTH_PROFILES = {
+    'concise': {
+        'block1': {'min': 150, 'max': 300, 'tokens': 1500},
+        'block2': {'min': 150, 'max': 300, 'tokens': 1500},
+        'block3': {'min': 400, 'max': 600, 'tokens': 2500},
+        'block4': {'min': 200, 'max': 350, 'tokens': 1500},
+        'block5': {'min': 150, 'max': 250, 'tokens': 1500},
+    },
+    'standard': {
+        'block1': {'min': 300, 'max': 500, 'tokens': 2500},
+        'block2': {'min': 300, 'max': 500, 'tokens': 2500},
+        'block3': {'min': 700, 'max': 900, 'tokens': 4000},
+        'block4': {'min': 350, 'max': 550, 'tokens': 2500},
+        'block5': {'min': 300, 'max': 450, 'tokens': 2500},
+    },
+    'comprehensive': {
+        'block1': {'min': 500, 'max': 800, 'tokens': 3500},
+        'block2': {'min': 500, 'max': 800, 'tokens': 3500},
+        'block3': {'min': 1200, 'max': 1600, 'tokens': 6000},
+        'block4': {'min': 600, 'max': 900, 'tokens': 3500},
+        'block5': {'min': 500, 'max': 700, 'tokens': 3500},
+    }
+}
+
+
 class BlockGenerator:
     def __init__(self, llm_processor: LLMProcessor, prompt_enhancer=None, rag_engine=None):
         self.llm = llm_processor
         self.prompt_enhancer = prompt_enhancer
         self.rag = rag_engine
         self.vector_search = OpenAIVectorSearch()
+
+    def _get_block_config(self, design: Dict, block_name: str) -> Dict:
+        """Get word count configuration for a block based on design's length_profile"""
+        length_profile = design.get('length_profile', 'standard').lower()
+        if length_profile not in LENGTH_PROFILES:
+            length_profile = 'standard'
+        return LENGTH_PROFILES[length_profile][block_name]
 
     def _count_words(self, text: str) -> int:
         """Count words in text"""
@@ -187,9 +219,10 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 1 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK1_PROMPT.format(**prompt_data)
+        config = self._get_block_config(design, 'block1')
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=config['tokens'], min_words=config['min'], max_words=config['max'])
             content = content.strip()
             if content.startswith('```markdown'):
                 content = content.split('```markdown', 1)[1]
@@ -210,9 +243,10 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 2 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK2_PROMPT.format(**prompt_data)
+        config = self._get_block_config(design, 'block2')
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=config['tokens'], min_words=config['min'], max_words=config['max'])
             content = content.strip()
             if content.startswith('```markdown'):
                 content = content.split('```markdown', 1)[1]
@@ -233,6 +267,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 3 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         base_prompt = BLOCK3_PROMPT.format(**prompt_data)
+        config = self._get_block_config(design, 'block3')
 
         prompt = base_prompt
 
@@ -241,20 +276,20 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             prompt = f"{base_prompt}\n\n{compliance_context}"
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=config['tokens'], min_words=config['min'], max_words=config['max'])
             try:
                 data = json.loads(content)
                 draft = data.get('markdown_draft', content)
                 word_count = self._count_words(draft)
-                if word_count < 800:
-                    draft = self._expand_content(draft, 800, "")
+                if word_count < config['min']:
+                    draft = self._expand_content(draft, config['min'], "")
                     word_count = self._count_words(draft)
                 print(f"    ✓ Block 3 generated: {word_count} words")
                 return draft
             except (json.JSONDecodeError, KeyError, TypeError):
                 word_count = self._count_words(content)
-                if word_count < 800:
-                    content = self._expand_content(content, 800, "")
+                if word_count < config['min']:
+                    content = self._expand_content(content, config['min'], "")
                     word_count = self._count_words(content)
                 print(f"    ✓ Block 3 generated: {word_count} words")
                 return content
@@ -266,9 +301,10 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 4 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK4_PROMPT.format(**prompt_data)
+        config = self._get_block_config(design, 'block4')
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=350, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=config['tokens'], min_words=config['min'], max_words=config['max'])
             content = content.strip()
             if content.startswith('```markdown'):
                 content = content.split('```markdown', 1)[1]
@@ -289,9 +325,10 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         """Generate Block 5 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         prompt = BLOCK5_PROMPT.format(**prompt_data)
+        config = self._get_block_config(design, 'block5')
 
         try:
-            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
+            content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=config['tokens'], min_words=config['min'], max_words=config['max'])
             content = content.strip()
             if content.startswith('```markdown'):
                 content = content.split('```markdown', 1)[1]
@@ -311,7 +348,10 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
     def generate_all_blocks(self, testimony: Dict, design: Dict, context: Dict) -> Dict[str, str]:
         """Generate all 5 blocks in parallel for maximum performance"""
         recommender_name = testimony.get('recommender_name', 'Unknown')
+        length_profile = design.get('length_profile', 'standard')
+        total_words_target = sum(LENGTH_PROFILES.get(length_profile, LENGTH_PROFILES['standard'])[f'block{i}']['min'] for i in range(1, 6))
         print(f"Generating 5 blocks in parallel for {recommender_name}...")
+        print(f"    📏 Length profile: {length_profile.upper()} (~{total_words_target} words target)")
 
         blocks = {}
 

@@ -75,7 +75,8 @@ Para CADA um dos {num_testimonios} testemunhos, gere um objeto com TODOS os 23 p
   "emphasis_pattern": "[Como enfatizar: 'Negrito para termos-chave + Itálico para ênfase' | 'Cabeçalhos em negrito + Métricas sublinhadas' | etc]",
   "semantic_elements": ["numbered lists", "bullet points", "bold headers", "block quotes"] (escolha 2-3),
   "structure_features": "[Estrutura visual: 'Coluna única tradicional' | 'Duas colunas' | 'Sidebar com destaques']",
-  "target_word_count": "[número entre 2000-2800]",
+  "length_profile": "concise" | "standard" | "comprehensive",
+  "target_word_count": "[número baseado no length_profile: concise=1200-1800, standard=2200-2800, comprehensive=3500-4500]",
   "bonus_trait": "[Característica única que diferencia ESTA carta de todas as outras]",
   
   # VISUAL PARAMETERS (13)
@@ -101,6 +102,12 @@ Para CADA um dos {num_testimonios} testemunhos, gere um objeto com TODOS os 23 p
 3. **tone_instructions**: DEVE ser SUPER ESPECÍFICO (mínimo 150 palavras cada)
 4. **Template IDs**: Distribuir T1-T5 sem repetir se possível
 5. **Guaranteed Differentiation**: Se tiver 3+ testemunhos, GARANTIR que nenhuma dupla de parâmetros visuais seja igual
+6. **LENGTH DIVERSITY (CRÍTICO)**: Distribuir length_profile entre "concise", "standard" e "comprehensive":
+   - "concise" = cartas mais curtas (2-3 páginas, ~1200-1800 palavras) - diretas e focadas
+   - "standard" = cartas médias (4-5 páginas, ~2200-2800 palavras) - equilíbrio
+   - "comprehensive" = cartas longas (6-8 páginas, ~3500-4500 palavras) - detalhadas
+   - GARANTIR que pelo menos 2 profiles diferentes sejam usados se houver 3+ cartas
+   - NÃO usar o mesmo length_profile em todas as cartas - VARIAR OBRIGATORIAMENTE
 
 # EXEMPLOS DE TONE_INSTRUCTIONS DETALHADAS
 
@@ -167,8 +174,8 @@ Return ONLY valid JSON with this structure:
                     'assigned_recommender', 'tone_variable', 'tone_instructions',
                     'narrative_framework', 'paragraph_density_rule', 'readability_target',
                     'emphasis_pattern', 'semantic_elements', 'structure_features',
-                    'target_word_count', 'bonus_trait', 'layout_pattern', 'font_primary',
-                    'font_secondary', 'color_primary_hsl_range', 'color_accent',
+                    'length_profile', 'target_word_count', 'bonus_trait', 'layout_pattern', 
+                    'font_primary', 'font_secondary', 'color_primary_hsl_range', 'color_accent',
                     'layout_density', 'line_height', 'header_alignment', 'footer_style',
                     'contrast_mode', 'whitespace_profile'
                 ]
