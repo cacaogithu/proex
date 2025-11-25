@@ -47,14 +47,19 @@ class LogoScraper:
 
         print(f"🔍 Searching logo for: {company_name}")
 
-        # If no website provided, try Logo.dev Brand Search first (most reliable)
+        # If no website provided, try Logo.dev Brand Search first (most reliable for finding domains)
         if not company_website:
             print(f"  No website provided, using Brand Search for: {company_name}")
             
             if self.logodev_secret_key:
                 searched_domain = self._search_logodev_domain(company_name, strategy="match")
                 if searched_domain:
-                    logo_path = self._try_logodev(searched_domain, company_name)
+                    print(f"  Brand Search found domain: {searched_domain}, fetching logo via Clearbit...")
+                    logo_path = self._try_clearbit(searched_domain)
+                    if logo_path:
+                        self._logo_cache[cache_key] = logo_path
+                        return logo_path
+                    logo_path = self._try_favicon(f"https://{searched_domain}")
                     if logo_path:
                         self._logo_cache[cache_key] = logo_path
                         return logo_path
@@ -184,7 +189,7 @@ class LogoScraper:
             The best matching domain, or None if not found
         """
         if not self.logodev_secret_key:
-            print("⚠️ LOGODEV_SECRET_KEY not set, skipping Brand Search")
+            print("⚠️ LOGO_DEV_API_KEY not set, skipping Brand Search")
             return None
             
         cache_key = f"domain_{company_name.lower()}"
