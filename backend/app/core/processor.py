@@ -9,7 +9,6 @@ from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
 from .rag_engine import RAGEngine
 from ..db.database import Database
-from ..ml.prompt_enhancer import PromptEnhancer
 import os
 import glob
 import logging
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants
 MAX_PARALLEL_WORKERS = 10  # Maximum concurrent letter generation tasks (increased from 5)
-MIN_ML_TRAINING_SAMPLES = 5  # Minimum samples needed to train ML models
 
 
 
@@ -30,26 +28,16 @@ class SubmissionProcessor:
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
         self.db = Database()
-        self.prompt_enhancer = PromptEnhancer()
         self.block_generator = BlockGenerator(self.llm)
         self.html_designer = HTMLDesigner(self.llm)
-
-        # Try to train ML models with existing data
-        try:
-            trained = self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
-            if trained:
-                logger.info("ML models trained successfully")
-        except Exception as e:
-            logger.warning(f"ML training failed: {e}")
 
         # Initialize RAG engine
         self.rag_engine = RAGEngine(self.llm)
         logger.info("RAG engine initialized")
 
-        # Initialize other components AFTER ML training
+        # Initialize other components
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.pdf_generator = HTMLPDFGenerator()
-        self.html_designer = HTMLDesigner(self.llm)  # NEW: AI-powered HTML designer
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
         logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers, RAG enabled, and AI HTML Designer")
@@ -105,19 +93,6 @@ class SubmissionProcessor:
         print(f"    ✓ DOCX generated for {recommender_name}")
 
 
-        # 6. Generate embedding for ML/clustering (optional - can be slow)
-        # PERFORMANCE: Disabled by default to save ~5-10 seconds per letter
-        # Enable via ENABLE_EMBEDDINGS=true environment variable
-        letter_embedding = None
-        if os.getenv("ENABLE_EMBEDDINGS", "false").lower() == "true":
-            print(f"    - Generating semantic embedding for {recommender_name}...")
-            try:
-                letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
-                if letter_embedding:
-                    self.db.save_letter_embedding(submission_id, index, letter_embedding)
-                    print(f"    ✓ Embedding saved for {recommender_name}")
-            except Exception as e:
-                print(f"    ⚠️  Embedding generation skipped: {e}")
 
         print(f"  [END] Letter {index+1}: {recommender_name}")
 
