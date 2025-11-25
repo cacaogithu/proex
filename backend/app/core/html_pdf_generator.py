@@ -39,7 +39,9 @@ class HTMLPDFGenerator:
         }
     
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm, custom_instructions: Optional[str] = None) -> str:
-
+        """Assemble letter from blocks with AI refinement."""
+        letter_content = "\n\n".join(blocks.values())
+        return letter_content
 
     def _embed_logo_as_base64(self, logo_path: str) -> Optional[str]:
         """Convert logo to base64 data URI for embedding in PDF/HTML

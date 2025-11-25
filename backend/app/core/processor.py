@@ -30,17 +30,9 @@ class SubmissionProcessor:
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
         self.db = Database()
-        
-        # ML components disabled
-        # self.prompt_enhancer = PromptEnhancer(self.db)
-        
-        # ML training disabled
-        # try:
-        #     logger.info(f"Attempting to train ML models with min {MIN_ML_TRAINING_SAMPLES} samples")
-        #     self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
-        #     logger.info("ML models trained successfully")
-        # except Exception as e:
-        #     logger.info(f"ML training skipped (likely first run): {e}")
+        self.prompt_enhancer = PromptEnhancer()
+        self.block_generator = BlockGenerator(self.llm)
+        self.html_designer = HTMLDesigner(self.llm)
 
         # Initialize RAG engine - DISABLED
         # self.rag_engine = RAGEngine(self.llm)
