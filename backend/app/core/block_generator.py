@@ -234,7 +234,7 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
             print(f"Error generating block 2: {str(e)}")
             return "Error generating block 2"
     
-    def generate_block3(self, testimony: Dict, design: Dict, context: Dict, letter_embedding: Optional[list] = None) -> str:
+    def generate_block3(self, testimony: Dict, design: Dict, context: Dict) -> str:
         """Generate Block 3 using original n8n prompt template"""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         base_prompt = BLOCK3_PROMPT.format(**prompt_data)
