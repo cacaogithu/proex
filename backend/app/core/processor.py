@@ -77,13 +77,9 @@ class SubmissionProcessor:
         docx_output_path = output_path.replace('.pdf', '.docx')
         print(f"    - Generating editable DOCX for {recommender_name}...")
         self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
-
-        # 6. Generate embedding for ML/clustering (unsupervised learning)
-        print(f"    - Generating semantic embedding for {recommender_name}...")
-        letter_embedding = self.prompt_enhancer.embedding_engine.generate_embedding(letter_html)
-        if letter_embedding:
-            self.db.save_letter_embedding(submission_id, index, letter_embedding)
-            print(f"    ✓ Embedding saved for {recommender_name}")
+        
+        # No ML embedding generation - removed
+        letter_embedding = None
 
         print(f"  [END] Letter {index+1}: {recommender_name}")
 
@@ -234,7 +230,7 @@ class SubmissionProcessor:
                     logger.info("ML models retrained successfully")
                 except Exception as e:
                     logger.warning(f"ML training failed: {e}")
-                    print(f"   ℹ️  ML training skipped: {e}")
+            pass  # ML training removed
             else:
                 logger.debug(f"Skipping ML retraining (will retrain at next multiple of 10)")
             
