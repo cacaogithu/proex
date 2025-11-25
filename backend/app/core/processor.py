@@ -76,7 +76,7 @@ class SubmissionProcessor:
 
         # 4. Generate PDF and DOCX
         output_path = f"storage/outputs/{submission_id}/letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf"
-        print(f"    - Generating styled PDF (Template {design.get('template_id', 'A')}) for {recommender_name}...")
+        print(f"    - Generating styled PDF with dynamic CSS for {recommender_name}...")
 
         recommender_info = {
             'name': recommender_name,
@@ -92,9 +92,6 @@ class SubmissionProcessor:
         print(f"    - Generating editable DOCX for {recommender_name}...")
         self.pdf_generator.html_to_docx(letter_html, docx_output_path, design, logo_path, recommender_info)
 
-        # 5. Track template usage
-        template_id = design.get('template_id', 'A')
-        self.db.increment_template_usage(template_id)
 
         # 6. Generate embedding for ML/clustering (optional - can be slow)
         # PERFORMANCE: Disabled by default to save ~5-10 seconds per letter
@@ -118,7 +115,6 @@ class SubmissionProcessor:
             "recommender": recommender_name,
             "pdf_path": output_path,
             "docx_path": docx_output_path,
-            "template_id": template_id,
             "has_logo": logo_path is not None,
             "blocks": blocks,
             "letter_html": letter_html,
@@ -410,7 +406,7 @@ class SubmissionProcessor:
                     llm=self.llm,
                     custom_instructions=custom_instructions
                 )
-                print(f"✅ Letter assembled with Claude 4.5 Sonnet (Template {design.get('template_id', 'A')})")
+                print(f"✅ Letter assembled with dynamic styling")
                 
                 # Get logo if available
                 logo_path = testimony.get('company_logo_path')
@@ -425,17 +421,13 @@ class SubmissionProcessor:
                     'location': testimony.get('recommender_location', '')
                 }
                 
-                self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
-                print(f"    ✓ Regenerated PDF with Template {design.get('template_id', 'A')}")
                 
-                # Track template usage
-                template_id = design.get('template_id', 'A')
-                self.db.increment_template_usage(template_id)
+                self.pdf_generator.html_to_pdf(letter_html, output_path, design, logo_path, recommender_info)
+                print(f"    ✓ Regenerated PDF withدynamic styling")
                 
                 # Update letter info
                 existing_letters[letter_idx].update({
                     "pdf_path": output_path,
-                    "template_id": template_id,
                     "regenerated": True
                 })
             

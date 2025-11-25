@@ -34,168 +34,47 @@ class HTMLPDFGenerator:
         }
     
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm, custom_instructions: Optional[str] = None) -> str:
-        """Use Claude 4.5 Sonnet for premium HTML assembly - returns HTML content"""
+        """Convert markdown blocks to HTML with proper formatting - preserves all content"""
+        
+        # Import markdown converter
+        try:
+            import markdown
+            md_converter = markdown.Markdown(extensions=['extra', 'nl2br', 'sane_lists'])
+        except ImportError:
+            print("⚠️  markdown library not found, using simple conversion")
+            md_converter = None
+        
+        # Combine ALL blocks (1-5) - previously only used 3-7
         combined_blocks = f"""
-# BLOCO 3
+# Block 1: Leadership & Credibility
+{blocks.get('block1', '')}
+
+# Block 2: Technical Innovation
+{blocks.get('block2', '')}
+
+# Block 3: Empirical Validation
 {blocks.get('block3', '')}
 
-# BLOCO 4
+# Block 4: Market & Strategic Relevance
 {blocks.get('block4', '')}
 
-# BLOCO 5
+# Block 5: Adaptability & Conclusion
 {blocks.get('block5', '')}
-
-# BLOCO 6
-{blocks.get('block6', '')}
-
-# BLOCO 7
-{blocks.get('block7', '')}
 """
         
-        template_id = design.get('template_id', 'A')
+        # Convert markdown to HTML
+        if md_converter:
+            html_content = md_converter.convert(combined_blocks)
+        else:
+            # Simple fallback conversion
+            html_content = combined_blocks.replace('\n\n', '</p><p>').replace('\n', '<br>')
+            html_content = f'<p>{html_content}</p>'
         
-        # Define estilo específico por template
-        style_guidance = {
-            'A': """
-ESTILO TÉCNICO PROFUNDO:
-- Use MUITAS siglas e termos técnicos (PLC, SCADA, ISO, NR10, OEE, MTBF, Six Sigma, Cpk)
-- Inclua tabelas com dados técnicos quando possível
-- Números extremamente precisos (ex: "97.3% de redução", "2.847 horas economizadas")
-- Formatação: Use tags HTML <table>, <strong> para siglas, <em> para métricas
-- Classe CSS especial: `<div class="technical-metrics">` para métricas importantes
-""",
-            'B': """
-ESTILO ACADÊMICO - CASE STUDY:
-- Estruture em SEÇÕES EXPLÍCITAS: INTRODUÇÃO, METODOLOGIA, RESULTADOS, CONCLUSÃO
-- Use framework Six Sigma DMAIC quando relevante (Define, Measure, Analyze, Improve, Control)
-- Inclua tabelas de correlação técnica
-- Formatação: Use <h2> para seções, `<div class="methodology">` para listas metodológicas
-- Classe CSS: `<div class="abstract">` para resumos executivos
-""",
-            'C': """
-ESTILO NARRATIVO - STORYTELLING:
-- Conte uma HISTÓRIA de transformação: problema → jornada → solução → legado
-- Use linguagem pessoal e emotiva (primeira pessoa)
-- Mencione prêmios e reconhecimentos quando aplicável
-- Formatação: Use `<blockquote>` para citações, `<div class="journey">` para momentos-chave
-- Classe CSS: `<span class="impact-highlight">` para highlights importantes
-""",
-            'D': """
-ESTILO BUSINESS PARTNERSHIP:
-- Foco em ROI, parceria estratégica, crescimento de receita
-- Use bullet points com checkmarks para entregas
-- Destaque métricas financeiras e de negócio
-- Formatação: Use `<ul>` para listas, `<div class="roi-highlight">` para ROI
-- Classe CSS: `<div class="key-metrics">` para métricas principais
-""",
-            'E': """
-ESTILO SUPPORT LETTER (USA):
-- Formato americano: cidade, estado (ex: "Boston, MA")
-- Contexto do mercado americano
-- Quadros de resultados visuais
-- Formatação: Use `<table class="results-table">` para resultados
-- Classe CSS: `<div class="us-market-context">` para contexto de mercado
-""",
-            'F': """
-ESTILO TECHNICAL TESTIMONY:
-- Referências a documentação anexa (ex: "conforme Anexo A", "ver documento REF-2024-001")
-- Foco em trabalho em equipe e colaboração
-- Tabelas e quadros explicativos
-- Formatação: Use `<div class="reference-box">` para referências
-- Classe CSS: `<div class="collaboration-details">` para detalhes de colaboração
-"""
-        }
         
-        style = style_guidance.get(template_id, style_guidance['A'])
-        
-        custom_instr_text = ""
-        if custom_instructions:
-            custom_instr_text = f"""
-# CUSTOM INSTRUCTIONS FROM USER
-The user has requested specific changes for this letter. You MUST follow these instructions while maintaining the "NO SUMMARIZATION" rule:
-{custom_instructions}
-"""
+        print(f"✅ Letter assembled from {len(blocks)} blocks with dynamic styling")
+        return html_content
 
-        prompt = f"""# ROLE
-Você é um FORMATADOR DE HTML EXPERT. Sua única função é formatar o texto fornecido para HTML, aplicando o estilo visual solicitado.
-
-🚨 **CRITICAL INSTRUCTION: DO NOT SUMMARIZE OR REWRITE** 🚨
-- Você DEVE MANTER 100% do conteúdo original dos blocos.
-- NÃO remova parágrafos.
-- NÃO encurte frases.
-- NÃO tente "melhorar" a fluidez se isso significar cortar conteúdo.
-- O objetivo é ter uma carta LONGA e DETALHADA (2000+ palavras). Se você resumir, FALHARÁ.
-
-**TEMPLATE ASSIGNED**: {template_id}
-**PERSONA**: {design.get('tone_instructions', '')}
-**ESTILO VISUAL**: 
-{style}
-
-{custom_instr_text}
-
-# INPUTS
-{combined_blocks}
-
-# INSTRUÇÕES DE FORMATAÇÃO HTML
-1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-2. Use as classes CSS específicas do template conforme indicado acima
-3. Estruture com tags semânticas: <p>, <h2>, <ul>, <li>, <table>, <blockquote>, <div>
-4. Use <strong> para ênfases, <em> para itálico
-5. Aplique as classes CSS especiais para destacar informações importantes
-
-# ESTRUTURA DO CONTEÚDO
-1. Saudação formal ("A quem possa interessar," ou similar)
-2. INSERIR TODO O CONTEÚDO DOS BLOCOS 3, 4, 5, 6, 7 NA ÍNTEGRA.
-3. Use as divisões <h2> se aplicável ao template
-4. Encerramento formal apropriado ao template
-
-# HETEROGENEIDADE
-- Garanta que este testemunho tenha voz única
-- Siga rigorosamente o estilo visual do template {template_id}
-- Mantenha tom profissional mas humano
-
-# TODO EM PORTUGUÊS BRASILEIRO
-
-Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-"""
-        
-        import time
-        for attempt in range(3):
-            try:
-                response = llm.client.chat.completions.create(
-                    model="anthropic/claude-3.5-sonnet",
-                    messages=[{
-                        "role": "user",
-                        "content": prompt
-                    }],
-                    temperature=0.3,
-                    max_tokens=6000
-                )
-                
-                html_content = response.choices[0].message.content.strip()
-                
-                # Remove markdown code blocks if present
-                if html_content.startswith('```html'):
-                    html_content = html_content.split('```html')[1]
-                if html_content.startswith('```'):
-                    html_content = html_content.split('```')[1]
-                if html_content.endswith('```'):
-                    html_content = html_content.rsplit('```', 1)[0]
-                
-                html_content = html_content.strip()
-                
-                print(f"✅ Letter assembled with Claude 4.5 Sonnet (Template {template_id})")
-                return html_content
-                
-            except Exception as e:
-                if "429" in str(e) or "rate" in str(e).lower():
-                    wait_time = 2 ** attempt
-                    print(f"⚠️ Rate limit hit, waiting {wait_time}s...")
-                    time.sleep(wait_time)
-                else:
-                    raise
-        
-        raise Exception("Failed to assemble letter after 3 attempts")
+    
     
     def html_to_pdf(
         self, 
@@ -205,38 +84,129 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
         logo_path: Optional[str] = None,
         recommender_info: Optional[Dict] = None
     ):
-        """Convert HTML to PDF using template with proper styling"""
+        """Generate PDF with 100% dynamic styling from heterogeneity design parameters - NO templates"""
         
-        template_id = design.get('template_id', 'A')
-        template_file = self.template_mapping.get(template_id, 'template_a_technical.html')
+        # Generate COMPLETE CSS from all 23 design parameters
+        dynamic_css = f"""
+        @page {{
+            size: A4;
+            margin: 2cm;
+        }}
         
-        template = self.env.get_template(template_file)
+        body {{
+            font-family: {design.get('font_primary', 'Georgia, serif')};
+            color: {design.get('color_primary_hsl_range', 'hsl(210, 50%, 30%)')};
+            line-height: {design.get('line_height', 1.6)};
+            font-size: {design.get('font_size_body', '11pt')};
+            background: #ffffff;
+        }}
         
-        # Generate document reference for template F
-        document_ref = f"DOC-{uuid.uuid4().hex[:8].upper()}"
+        .header {{
+            text-align: {design.get('header_alignment', 'left')};
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid {design.get('color_accent', '#2E8B57')};
+        }}
         
-        # Prepare template variables
-        template_vars = {
-            'content': html_content,
-            'logo_path': f'file://{os.path.abspath(logo_path)}' if logo_path and os.path.exists(logo_path) else None,
-            'recommender_name': recommender_info.get('name', 'Professional Recommender') if recommender_info else 'Professional Recommender',
-            'recommender_title': recommender_info.get('title', '') if recommender_info else '',
-            'recommender_company': recommender_info.get('company', '') if recommender_info else '',
-            'recommender_location': recommender_info.get('location', '') if recommender_info else '',
-            'date': datetime.now().strftime('%B %d, %Y'),
-            'document_ref': document_ref
-        }
+        .logo {{
+            max-width: 200px;
+            max-height: 100px;
+        }}
         
-        # Render template
-        full_html = template.render(**template_vars)
+        .recommender-info {{
+            font-size: 10pt;
+            font-family: {design.get('font_secondary', 'Arial, sans-serif')};
+            color: {design.get('color_primary_hsl_range', 'hsl(210, 50%, 30%)')};
+        }}
+        
+        .recommender-name {{
+            font-weight: bold;
+            font-size: 12pt;
+            color: {design.get('color_accent', '#2E8B57')};
+        }}
+        
+        .date {{
+            margin-top: 10px;
+            font-size: 9pt;
+        }}
+        
+        h1, h2, h3 {{
+            font-family: {design.get('font_secondary', 'Arial, sans-serif')};
+            color: {design.get('color_accent', '#2E8B57')};
+            line-height: 1.3;
+        }}
+        
+        h1 {{ font-size: {design.get('font_size_headers', '14pt,16pt,18pt').split(',')[2]}; }}
+        h2 {{ font-size: {design.get('font_size_headers', '14pt,16pt,18pt').split(',')[1]}; }}
+        h3 {{ font-size: {design.get('font_size_headers', '14pt,16pt,18pt').split(',')[0]}; }}
+        
+        p {{
+            text-align: justify;
+            margin-bottom: {'8px' if design.get('layout_density') == 'compact' else '12px' if design.get('layout_density') == 'balanced' else '16px'};
+        }}
+        
+        strong {{
+            color: {design.get('color_accent', '#2E8B57')};
+            font-weight: bold;
+        }}
+        
+        em {{
+            color: {design.get('color_primary_hsl_range', 'hsl(210, 50%, 30%)')};
+            font-style: italic;
+        }}
+        
+        .signature {{
+            margin-top: 40px;
+        }}
+        
+        .signature-line {{
+            border-top: 1px solid {design.get('color_accent', '#2E8B57')};
+            width: 300px;
+            margin-top: 50px;
+            padding-top: 5px;
+        }}
+        """
+        
+        # Build complete HTML document from scratch - NO template files
+        full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        {dynamic_css}
+    </style>
+</head>
+<body>
+    <div class="header">
+        {'<img src="file://' + os.path.abspath(logo_path) + '" class="logo">' if logo_path and os.path.exists(logo_path) else ''}
+        <div class="recommender-info">
+            <div class="recommender-name">{recommender_info.get('name', '') if recommender_info else ''}</div>
+            <div>{recommender_info.get('title', '') if recommender_info else ''}</div>
+            <div>{recommender_info.get('company', '') if recommender_info else ''}</div>
+            <div class="date">{datetime.now().strftime('%B %d, %Y')}</div>
+        </div>
+    </div>
+    
+    {html_content}
+    
+    <div class="signature">
+        <div class="signature-line">
+            {recommender_info.get('name', '') if recommender_info else ''}<br>
+            {recommender_info.get('title', '') if recommender_info else ''}<br>
+            {recommender_info.get('company', '') if recommender_info else ''}
+        </div>
+    </div>
+</body>
+</html>"""
         
         # Create output directory if needed
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         # Convert to PDF
-        HTML(string=full_html, base_url=os.path.dirname(template_file)).write_pdf(output_path)
+        HTML(string=full_html).write_pdf(output_path)
         
-        print(f"✅ PDF generated with template {template_id}: {os.path.basename(output_path)}")
+        print(f"✅ PDF generated with dynamic CSS from design parameters: {os.path.basename(output_path)}")
+
     
     def html_to_docx(
         self,
@@ -307,9 +277,8 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
         
         # Save DOCX
         doc.save(output_path)
-        
-        template_id = design.get('template_id', 'A')
-        print(f"✅ Editable DOCX generated with template {template_id}: {os.path.basename(output_path)}")
+                
+        print(f"✅ Editable DOCX generated with dynamic styling: {os.path.basename(output_path)}")
 
 # Keep backward compatibility
 class DOCXGenerator(HTMLPDFGenerator):

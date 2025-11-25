@@ -47,13 +47,8 @@ This prompt focuses on establishing the recommender's credibility and introducin
 ---
 
 # OUTPUT FORMAT
-Return JSON with two fields:
-```json
-{{
-  "block": 1,
-  "markdown_draft": "<raw markdown draft here>"
-}}
-```
+**Return ONLY the markdown content - no JSON, no code fences, no explanations.**
+Just the raw markdown text that will be used in the letter.
 
 ---
 
@@ -155,13 +150,8 @@ The style must be 100% in the first person (the recommender speaking), with a **
 ---
 
 # OUTPUT FORMAT
-Return JSON with two fields:
-```json
-{{
-  "block": 2,
-  "markdown_draft": "<raw markdown draft here>"
-}}
-```
+**Return ONLY the markdown content - no JSON, no code fences, no explanations.**
+Just the raw markdown text that will be used in the letter.
 
 ---
 
@@ -270,13 +260,8 @@ You are `Block3_PROMPT`
 ---
 
 # OUTPUT FORMAT
-Return JSON with two fields:
-```json
-{{
-  "block": 3,
-  "markdown_draft": "<raw markdown draft here>"
-}}
-```
+**Return ONLY the markdown content - no JSON, no code fences, no explanations.**
+Just the raw markdown text that will be used in the letter.
 
 ---
 
@@ -374,13 +359,8 @@ This block must be written entirely in the **first person** (the recommender spe
 ---
 
 # OUTPUT FORMAT
-Return JSON with two fields:
-```json
-{{
-  "block": 4,
-  "markdown_draft": "<raw markdown draft here>"
-}}
-```
+**Return ONLY the markdown content - no JSON, no code fences, no explanations.**
+Just the raw markdown text that will be used in the letter.
 
 ---
 
@@ -485,13 +465,8 @@ The style must be entirely in the **first person** (the recommender's voice), fo
 ---
 
 # OUTPUT FORMAT
-Return JSON with two fields:
-```json
-{{
-  "block": 5,
-  "markdown_draft": "<raw markdown draft here>"
-}}
-```
+**Return ONLY the markdown content - no JSON, no code fences, no explanations.**
+Just the raw markdown text that will be used in the letter.
 
 ---
 

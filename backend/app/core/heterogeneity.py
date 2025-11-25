@@ -55,10 +55,9 @@ Petitioner: {json.dumps(organized_data.get('petitioner', {}), ensure_ascii=False
 
 # SUA TAREFA
 
-Para CADA um dos {num_testimonies} testemunhos, gere um objeto com TODOS os 23 parâmetros:
+Para CADA um dos {num_testimonios} testemunhos, gere um objeto com TODOS os 23 parâmetros:
 
 {{
-  "template_id": "T1" | "T2" | "T3" | "T4" | "T5",
   "assigned_recommender": "[Nome completo do recomendador]",
   
   # CONTENT PARAMETERS (10)
@@ -153,7 +152,7 @@ Retorne APENAS JSON válido (sem markdown, sem ```json):
                 
                 # Validation: Check all required keys are present
                 required_keys = [
-                    'template_id', 'assigned_recommender', 'tone_variable', 'tone_instructions',
+                    'assigned_recommender', 'tone_variable', 'tone_instructions',
                     'narrative_framework', 'paragraph_density_rule', 'readability_target',
                     'emphasis_pattern', 'semantic_elements', 'structure_features',
                     'target_word_count', 'bonus_trait', 'layout_pattern', 'font_primary',
