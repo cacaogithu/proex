@@ -4,54 +4,13 @@ import time
 import random
 
 
-class DynamicPersonaGenerator:
+class HeterogeneityArchitect:
     """
-    Generates COMPLETELY UNIQUE personas for each letter.
-    NO templates. NO A-F. Every letter is dynamically generated.
+    Generates n8n-compatible design structures with full 23-parameter schema.
+    Ensures maximum heterogeneity across letters with visual + content differentiation.
     """
     def __init__(self, llm_processor):
         self.llm = llm_processor
-    
-    # Persona components - mix and match randomly
-    TONES = [
-        "Authoritative & Credentialed Expert",
-        "Collaborative Partnership-Focused Leader",
-        "Visionary Strategic Thinker",
-        "Analytical Data-Driven Professional",
-        "Mentorship & Development-Oriented",
-        "Pragmatic Results-Focused Operator",
-        "Innovation & Research-Oriented Academic"
-    ]
-    
-    STRUCTURES = [
-        "Chronological Journey (timeline-based narrative)",
-        "Problem-Solution Framework (challenge → resolution)",
-        "Impact-First (results upfront, then context)",
-        "Competency-Based (skill demonstration → evidence)",
-        "Narrative Storytelling (immersive, engaging flow)",
-        "Technical Documentation (precise, specification-heavy)",
-        "Strategic Analysis (business case format)"
-    ]
-    
-    VOCABULARIES = [
-        "Academic & Research-Oriented",
-        "Industry-Specific Technical Jargon",
-        "Executive & C-Suite Strategic",
-        "Operational & Tactical Field Language",
-        "Engineering & Specifications-Heavy",
-        "Business Development & Commercial",
-        "Innovation & Startup Ecosystem"
-    ]
-    
-    EMPHASIS_AREAS = [
-        "Technical Excellence & Innovation",
-        "Leadership & Team Building",
-        "Business Impact & ROI",
-        "Problem Solving & Critical Thinking",
-        "Research & Academic Contributions",
-        "Operational Efficiency & Process Optimization",
-        "Strategic Vision & Market Positioning"
-    ]
     
     def _format_testimonies(self, testimonies: List[Dict]) -> str:
         formatted = []
@@ -64,12 +23,12 @@ Testemunho {i+1}:
 - Período: {t.get('collaboration_period', 'N/A')}
 - Texto: {t.get('testimony_text', '')[:200]}...
 """)
-        return "\\n".join(formatted)
+        return "\n".join(formatted)
     
     def generate_design_structures(self, organized_data: Dict) -> Dict:
         """
-        Generate UNIQUE persona for each letter.
-        NO template references. Each design is generated from scratch.
+        Generate COMPLETE n8n-compatible design structures with all 23 parameters.
+        Returns schema exactly matching original n8n heterogeneity architect.
         """
         testimonies = organized_data.get('testimonies', [])
         num_testimonies = len(testimonies)
@@ -77,89 +36,74 @@ Testemunho {i+1}:
         if num_testimonies == 0:
             raise ValueError("Nenhum testemunho encontrado")
         
-        # Shuffle to ensure randomness across calls
+        # Shuffle to ensure randomness
         random.seed(time.time())
         
-        prompt = f"""# CRITICAL MISSION: MAXIMUM HETEROGENEITY - DYNAMIC PERSONA GENERATION
+        prompt = f"""# CRITICAL MISSION: MAXIMUM HETEROGENEITY - n8n Schema Generation
 
-Você é o `DynamicPersonaGenerator`. Sua missão é criar {num_testimonies} PERSONAS COMPLETAMENTE ÚNICAS, uma para cada carta.
+Você é o `Heterogeneity_Architect`. Sua missão é criar {num_testimonies} DESIGN STRUCTURES COMPLETAMENTE ÚNICOS.
 
-🚨 REGRA DE OURO: Cada carta deve ter uma IDENTIDADE ÚNICA gerada dinamicamente.
-    NÃO use templates fixos. 
-    CADA persona é uma NOVA COMBINAÇÃO de características.
+🚨 REGRA DE OURO: CADA carta deve ter parâmetros visuais E de conteúdo radicalmente distintos.
 
 # CONTEXTO DO PETICIONÁRIO
-OneNet: {json.dumps(organized_data.get('onet', {}), ensure_ascii=False)}
-Strategy: {json.dumps(organized_data.get('strategy', {}), ensure_ascii=False)}
-Petitioner: {json.dumps(organized_data.get('petitioner', {}), ensure_ascii=False)}
+OneNet: {json.dumps(organized_data.get('onet', {}), ensure_ascii=False)[:500]}...
+Strategy: {json.dumps(organized_data.get('strategy', {}), ensure_ascii=False)[:500]}...
+Petitioner: {json.dumps(organized_data.get('petitioner', {}), ensure_ascii=False)[:500]}...
 
 # TESTEMUNHOS DISPONÍVEIS
 {self._format_testimonies(testimonies)}
 
-# COMPONENTES DISPONÍVEIS PARA COMBINAÇÃO DINÂMICA
-
-## Tons Disponíveis
-{json.dumps(self.TONES, ensure_ascii=False, indent=2)}
-
-## Estruturas Disponíveis  
-{json.dumps(self.STRUCTURES, ensure_ascii=False, indent=2)}
-
-## Vocabulários Disponíveis
-{json.dumps(self.VOCABULARIES, ensure_ascii=False, indent=2)}
-
-## Áreas de Ênfase
-{json.dumps(self.EMPHASIS_AREAS, ensure_ascii=False, indent=2)}
-
 # SUA TAREFA
 
-Para CADA um dos {num_testimonies} testemunhos:
-1. ESCOLHA ALEATORIAMENTE (mas strategicamente) uma combinação ÚNICA de:
-   - 1 Tom
-   - 1 Estrutura
-   - 1 Vocabulário
-   - 1-2 Áreas de Ênfase
-2. CRIE instruções SUPER ESPECÍFICAS para essa combinação única
-3. GARANTA que nenhuma combinação se repita
-
-**REGRAS CRÍTICAS**:
-- Todas as {num_testimonies} personas devem ser DIFERENTES
-- Use combinações CRIATIVAS (não apenas pegar listas em ordem)
-- Instrução deve ser TÃO DETALHADA que force uma escrita única
-
-Para cada testemunho gere:
+Para CADA um dos {num_testimonies} testemunhos, gere um objeto com TODOS os 23 parâmetros:
 
 {{
-  "persona_id": "[Identificador único: ex. 'strategic-analyst-001']",
+  "template_id": "T1" | "T2" | "T3" | "T4" | "T5",
   "assigned_recommender": "[Nome completo do recomendador]",
-  "recommender_role": "[Cargo do recomendador]",
   
-  "tone": "[Tom escolhido da lista - cite qual]",
-  "structure": "[Estrutura escolhida da lista - cite qual]",
-  "vocabulary": "[Vocabulário escolhido da lista - cite qual]",
-  "emphasis": ["Ênfase 1", "Ênfase 2"],
+  # CONTENT PARAMETERS (10)
+  "tone_variable": "[Tom/registro de voz específico - autoridade, colaboração, visão, dados, mentoria, pragmático, acadêmico]",
+  "tone_instructions": "[INSTRUÇÕES SUPER DETALHADAS de escrita: como essa persona escreve, que linguagem usa, como estrutura, etc. MÍNIMO 150 palavras]",
+  "narrative_framework": "[Estrutura narrativa: Jornada Cronológica | Problema-Solução | Impacto-Primeiro | Análise de Competências]",
+  "paragraph_density_rule": "[Como construir parágrafos: 'Curtos e diretos (3-4 frases)' | 'Médios equilibrados (5-7 frases)' | 'Longos e fluidos (8+ frases)']",
+  "readability_target": "Executive" | "Technical" | "Academic",
+  "emphasis_pattern": "[Como enfatizar: 'Negrito para termos-chave + Itálico para ênfase' | 'Cabeçalhos em negrito + Métricas sublinhadas' | etc]",
+  "semantic_elements": ["numbered lists", "bullet points", "bold headers", "block quotes"] (escolha 2-3),
+  "structure_features": "[Estrutura visual: 'Coluna única tradicional' | 'Duas colunas' | 'Sidebar com destaques']",
+  "target_word_count": "[número entre 2000-2800]",
+  "bonus_trait": "[Característica única que diferencia ESTA carta de todas as outras]",
   
-  "persona_description": "[Descrição DETALHADA: quem é essa persona, seu background, sua motivação para escrever essa carta]",
-  
-  "writing_instructions": "[INSTRUÇÕES SUPER ESPECÍFICAS: como essa persona escreve, que tipo de linguagem usa, como estrutura parágrafos, que elementos visuais prefere]",
-  
-  "opening_strategy": "[Como essa persona específica começaria a carta - seja MUITO específico]",
-  
-  "paragraph_style": "[Descrição de como essa persona constrói parágrafos]",
-  
-  "technical_depth": "[ALTO / MÉDIO / BAIXO - baseado na persona]",
-  
-  "unique_characteristics": [
-    "[Característica única 1 dessa combinação específica]",
-    "[Característica única 2 dessa combinação específica]",
-    "[Característica única 3 dessa combinação específica]"
-  ],
-  
-  "forbidden_approaches": "[O que essa persona NÃO faria - para garantir diferença das outras]",
-  
-  "target_word_count": "[número entre 2000-3000]",
-  
-  "key_differentiator": "[O que torna ESTA carta radicalmente diferente das outras]"
+  # VISUAL PARAMETERS (13)
+  "layout_pattern": "[Padrão de layout visual: 'formal-traditional' | 'modern-clean' | 'executive-bold' | 'academic-detailed' | 'narrative-flowing']",
+  "font_primary": "[Fonte principal: 'Georgia, serif' | 'Times New Roman, serif' | 'Palatino, serif' | 'Garamond, serif' | 'Crimson Text, serif']",
+  "font_secondary": "[Fonte secundária: 'Arial, sans-serif' | 'Helvetica, sans-serif' | 'Verdana, sans-serif' | 'Open Sans, sans-serif']",
+  "color_primary_hsl_range": "[Cor primária HSL: 'hsl(210, 50%, 30%)' (azul escuro) | 'hsl(200, 40%, 35%)' (azul acinzentado) | 'hsl(0, 0%, 20%)' (cinza escuro) | etc]",
+  "color_accent": "[Cor de destaque: '#DAA520' (ouro) | '#CD7F32' (bronze) | '#2E8B57' (verde mar) | '#8B4513' (marrom) | '#4682B4' (azul aço)]",
+  "layout_density": "compact" | "balanced" | "airy",
+  "line_height": 1.5 | 1.7 | 1.9,
+  "header_alignment": "left" | "center" | "right",
+  "footer_style": "[Estilo do rodapé: 'minimalist' | 'formal with contact' | 'detailed signature']",
+  "contrast_mode": "high" | "medium" | "soft",
+  "whitespace_profile": "generous" | "compact" | "dynamic",
+  "font_size_body": "[Tamanho do corpo: '11pt' | '11.5pt' | '12pt']",
+  "font_size_headers": "[Tamanho dos cabeçalhos: '14pt,16pt,18pt' | '15pt,17pt,19pt' | '16pt,18pt,20pt']"
 }}
+
+# REGRAS CRÍTICAS
+
+1. **Tone + Narrative Framework**: Nenhuma combinação pode se repetir
+2. **Visual Parameters**: Variar TUDO - fontes, cores, layouts, espaçamento
+3. **tone_instructions**: DEVE ser SUPER ESPECÍFICO (mínimo 150 palavras cada)
+4. **Template IDs**: Distribuir T1-T5 sem repetir se possível
+5. **Guaranteed Differentiation**: Se tiver 3+ testemunhos, GARANTIR que nenhuma dupla de parâmetros visuais seja igual
+
+# EXEMPLOS DE TONE_INSTRUCTIONS DETALHADAS
+
+Exemplo 1 (Technical Authority):
+"Você escreve como um engenheiro sênior com 20+ anos de experiência. Seu estilo é preciso e técnico, mas acessível. Use terminologia específica da área (PLC, SCADA, automação industrial) naturalmente. Estruture argumentos em cadeias lógicas claras: premissa → evidência → conclusão. Prefira parágrafos médios (5-7 frases) com uma ideia central forte. Inicie seções com declarações diretas ('Em minha função como Diretor de Engenharia...'). Use listas numeradas para processos, bullet points para resultados. Enfatize métricas quantificáveis em negrito. Evite linguagem emocional - mantenha tom profissional e objetivo. Transições devem ser técnicas ('Consequentemente,', 'Em termos práticos,', 'Do ponto de vista operacional')."
+
+Exemplo 2 (Narrative Mentor):
+"Você escreve como um mentor experiente contando uma história profissional. Seu estilo é envolvente e pessoal, mas mantém autoridade. Prefira estruturas narrativas ('Quando conheci [Nome] em 2021...', 'Ao longo de nossa colaboração...'). Parágrafos mais longos (7-9 frases) que desenvolvem ideias completamente. Use anedotas específicas para ilustrar competências. Alterne entre descrição e análise. Enfatize desenvolvimento e crescimento observado. Transições suaves e conversacionais ('O que mais me impressionou foi...', 'Além disso, vale destacar...'). Misture evidências quantitativas com observações qualitativas. Tom caloroso mas profissional."
 
 # OUTPUT FINAL
 
@@ -168,19 +112,21 @@ Retorne APENAS JSON válido (sem markdown, sem ```json):
 {{
   "petitioner_name": "{organized_data.get('petitioner', {}).get('name', 'Unknown')}",
   "testimony_count": {num_testimonies},
-  "generation_approach": "Dynamic Persona Generation (NO fixed templates)",
-  "heterogeneity_validation": "[Confirme que todas as {num_testimonies} personas são únicas e como garantiu isso]",
+  "generation_approach": "Complete n8n Schema (23 parameters)",
+  "heterogeneity_validation": "[Explique brevemente como garantiu que TODAS as {num_testimonies} estruturas são únicas]",
   "design_structures": [
-    {{...}},
-    {{...}}
+    {{...23 parameters...}},
+    {{...23 parameters...}},
+    ...
   ]
 }}
 
 **CHECKPOINT FINAL**:
 ✓ Há exatamente {num_testimonies} design_structures?
-✓ Nenhuma combinação (tone + structure + vocabulary) se repete?
-✓ Cada persona tem instruções radicalmente distintas?
-✓ Você consegue EXPLICAR por que cada carta seria diferente?
+✓ Todos os 23 parâmetros estão presentes em cada estrutura?
+✓ Nenhuma combinação (tone_variable + narrative_framework) se repete?
+✓ tone_instructions tem mínimo 150 palavras cada?
+✓ Parâmetros visuais (fontes, cores, layouts) variam significativamente?
 """
         
         max_retries = 3
@@ -190,7 +136,7 @@ Retorne APENAS JSON válido (sem markdown, sem ```json):
                     model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"},
-                    temperature=0.9  # Higher randomness for diversity
+                    temperature=0.9
                 )
                 
                 content = response.choices[0].message.content
@@ -205,24 +151,47 @@ Retorne APENAS JSON válido (sem markdown, sem ```json):
                         continue
                     raise ValueError(f"Expected {num_testimonies} design_structures")
                 
+                # Validation: Check all required keys are present
+                required_keys = [
+                    'template_id', 'assigned_recommender', 'tone_variable', 'tone_instructions',
+                    'narrative_framework', 'paragraph_density_rule', 'readability_target',
+                    'emphasis_pattern', 'semantic_elements', 'structure_features',
+                    'target_word_count', 'bonus_trait', 'layout_pattern', 'font_primary',
+                    'font_secondary', 'color_primary_hsl_range', 'color_accent',
+                    'layout_density', 'line_height', 'header_alignment', 'footer_style',
+                    'contrast_mode', 'whitespace_profile'
+                ]
+                
+                missing_keys = []
+                for ds in design_structures:
+                    for key in required_keys:
+                        if key not in ds:
+                            missing_keys.append(f"{ds.get('assigned_recommender', '?')}: missing '{key}'")
+                
+                if missing_keys:
+                    print(f"⚠️  Missing required keys: {missing_keys[:3]}")
+                    if attempt < max_retries - 1:
+                        print(f"   Regenerating with complete schema... (attempt {attempt + 2}/{max_retries})")
+                        time.sleep(2)
+                        continue
+                
                 # Validation: Check for duplicate combinations
                 combinations = []
                 for ds in design_structures:
-                    combo = f"{ds.get('tone', '')}|{ds.get('structure', '')}|{ds.get('vocabulary', '')}"
+                    combo = f"{ds.get('tone_variable', '')}|{ds.get('narrative_framework', '')}"
                     combinations.append(combo)
                 
                 if len(set(combinations)) != len(combinations):
-                    print(f"⚠️  Duplicate persona combinations detected")
+                    print(f"⚠️  Duplicate tone+narrative combinations detected")
                     if attempt < max_retries - 1:
                         print(f"   Regenerating with unique combinations... (attempt {attempt + 2}/{max_retries})")
                         time.sleep(2)
                         continue
-                    # Allow it but warn
-                    print("⚠️  Warning: Some personas may be similar")
                 
                 # Success!
-                print(f"✅ Dynamic personas generated: {num_testimonies} unique combinations")
-                print(f"   Approach: Dynamic Persona Generation (NO templates)")
+                print(f"✅ Complete n8n design structures generated: {num_testimonies} unique designs")
+                print(f"   Schema: 23 parameters per design (content + visual)")
+                print(f"   Validation: All required keys present, no duplicates")
                 return result
                 
             except json.JSONDecodeError as e:
@@ -244,5 +213,5 @@ Retorne APENAS JSON válido (sem markdown, sem ```json):
         return {}
 
 
-# Backward compatibility alias
-HeterogeneityArchitect = DynamicPersonaGenerator
+# Backward compatibility
+DynamicPersonaGenerator = HeterogeneityArchitect
