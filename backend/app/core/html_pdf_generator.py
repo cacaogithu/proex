@@ -39,10 +39,8 @@ class HTMLPDFGenerator:
         }
     
     def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm, custom_instructions: Optional[str] = None) -> str:
-        """Use Claude 4.5 Sonnet for premium HTML assembly - returns HTML content"""
-        combined_blocks = f"""
-# BLOCO 3
-{blocks.get('block3', '')}
+        """DEPRECATED: Use HTMLDesigner.generate_html_design() instead"""
+        raise NotImplementedError("This method is deprecated. Use HTMLDesigner.generate_html_design() instead.")
 
     def _embed_logo_as_base64(self, logo_path: str) -> Optional[str]:
         """Convert logo to base64 data URI for embedding in PDF/HTML
@@ -152,70 +150,6 @@ class HTMLPDFGenerator:
             'word_count': word_count
         }
 
-    def assemble_letter(self, blocks: Dict[str, str], design: Dict, llm) -> str:
-        """Assemble letter by concatenating all 5 blocks with professional heterogeneous HTML"""
-        
-        import re
-        
-        custom_instr_text = ""
-        if custom_instructions:
-            custom_instr_text = f"""
-# CUSTOM INSTRUCTIONS FROM USER
-The user has requested specific changes for this letter. You MUST follow these instructions while maintaining the "NO SUMMARIZATION" rule:
-{custom_instructions}
-"""
-
-        prompt = f"""# ROLE
-Você é um FORMATADOR DE HTML EXPERT. Sua única função é formatar o texto fornecido para HTML, aplicando o estilo visual solicitado.
-
-🚨 **CRITICAL INSTRUCTION: DO NOT SUMMARIZE OR REWRITE** 🚨
-- Você DEVE MANTER 100% do conteúdo original dos blocos.
-- NÃO remova parágrafos.
-- NÃO encurte frases.
-- NÃO tente "melhorar" a fluidez se isso significar cortar conteúdo.
-- O objetivo é ter uma carta LONGA e DETALHADA (2000+ palavras). Se você resumir, FALHARÁ.
-
-<div style="margin-top: 2.5em; margin-bottom: 2em;">
-  <h2 style="font-size: 12pt; font-weight: bold; margin-bottom: 1.2em; border-bottom: 1px solid #999; padding-bottom: 0.5em;">Validação Empírica de Resultados</h2>
-  <div>
-{markdown_to_html(block3, 3)}
-  </div>
-</div>
-
-{custom_instr_text}
-
-# INPUTS
-{combined_blocks}
-
-# INSTRUÇÕES DE FORMATAÇÃO HTML
-1. Output: APENAS o conteúdo HTML (sem <!DOCTYPE>, <html>, <head>, <body> - só o conteúdo interno) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-2. Use as classes CSS específicas do template conforme indicado acima
-3. Estruture com tags semânticas: <p>, <h2>, <ul>, <li>, <table>, <blockquote>, <div>
-4. Use <strong> para ênfases, <em> para itálico
-5. Aplique as classes CSS especiais para destacar informações importantes
-
-# ESTRUTURA DO CONTEÚDO
-1. Saudação formal ("A quem possa interessar," ou similar)
-2. INSERIR TODO O CONTEÚDO DOS BLOCOS 3, 4, 5, 6, 7 NA ÍNTEGRA.
-3. Use as divisões <h2> se aplicável ao template
-4. Encerramento formal apropriado ao template
-
-# HETEROGENEIDADE
-- Garanta que este testemunho tenha voz única
-- Siga rigorosamente o estilo visual do template {template_id}
-- Mantenha tom profissional mas humano
-
-# TODO EM PORTUGUÊS BRASILEIRO
-
-Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do not include `<html>`, `<head>`, or `<body>` tags. Only the content inside the body.**
-"""
-        
-        # Count total words
-        text = html_content.replace('<div>', ' ').replace('</div>', ' ').replace('<h2>', ' ').replace('</h2>', ' ').replace('<p>', ' ').replace('</p>', ' ').replace('<span>', ' ').replace('</span>', ' ')
-        word_count = len(re.findall(r'\w+', text))
-        print(f"✅ Letter assembled: {word_count} words total (cleaned markdown)")
-        
-        return html_content
     
     def html_to_pdf(
         self, 
@@ -294,7 +228,31 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
         HTML(string=full_html).write_pdf(output_path)
         
         print(f"✅ PDF generated: {os.path.basename(output_path)}")
-    
+
+    def html_to_pdf_direct(self, complete_html: str, output_path: str):
+        """
+        Convert complete HTML document to PDF (no additional wrapping).
+        Used when HTML is already a full document from HTMLDesigner.
+
+        Args:
+            complete_html: Complete HTML document string (DOCTYPE to </html>)
+            output_path: Path for output PDF file
+        """
+        if HTML is None:
+            raise RuntimeError("WeasyPrint not available - cannot generate PDF")
+
+        # Create output directory
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Convert to PDF directly
+        try:
+            HTML(string=complete_html).write_pdf(output_path)
+            logger.info(f"PDF generated: {os.path.basename(output_path)}")
+            print(f"✅ PDF generated: {os.path.basename(output_path)}")
+        except Exception as e:
+            logger.error(f"PDF generation failed: {e}")
+            raise ValueError(f"Failed to generate PDF: {e}")
+
     def _process_html_element_to_docx(self, element, doc, paragraph=None):
         """Recursively process HTML element and add to DOCX document with formatting preservation"""
         from docx.oxml.ns import qn
@@ -474,6 +432,52 @@ Output: APENAS HTML content (sem tags <html>, <head>, <body>) - **CRITICAL: Do n
 
         style_id = design.get('unique_id', 'STYLE_DEFAULT')
         print(f"✅ Editable DOCX generated with style {style_id}: {os.path.basename(output_path)}")
+
+    def html_to_docx_direct(self, complete_html: str, output_path: str):
+        """
+        Convert complete HTML document to DOCX (extracts body content).
+        Used when HTML is already a full document from HTMLDesigner.
+
+        Args:
+            complete_html: Complete HTML document string (DOCTYPE to </html>)
+            output_path: Path for output DOCX file
+        """
+        try:
+            # Parse HTML to extract body content
+            soup = BeautifulSoup(complete_html, 'html.parser')
+            body = soup.find('body')
+
+            if not body:
+                raise ValueError("No <body> tag found in HTML")
+
+            # Create new DOCX document
+            doc = Document()
+
+            # Set margins
+            sections = doc.sections
+            for section in sections:
+                section.top_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+
+            # Process all elements in body
+            for element in body.children:
+                if hasattr(element, 'name') and element.name:
+                    self._process_html_element_to_docx(element, doc)
+
+            # Create output directory if needed
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+            # Save DOCX
+            doc.save(output_path)
+
+            logger.info(f"DOCX generated: {os.path.basename(output_path)}")
+            print(f"✅ Editable DOCX generated: {os.path.basename(output_path)}")
+
+        except Exception as e:
+            logger.error(f"DOCX generation failed: {e}")
+            raise ValueError(f"Failed to generate DOCX: {e}")
 
 # Keep backward compatibility
 class DOCXGenerator(HTMLPDFGenerator):
