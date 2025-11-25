@@ -7,6 +7,7 @@ from .html_designer import HTMLDesigner
 from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
+from .rag_engine import RAGEngine
 from ..db.database import Database
 import os
 import glob
@@ -30,12 +31,16 @@ class SubmissionProcessor:
         self.block_generator = BlockGenerator(self.llm)
         self.html_designer = HTMLDesigner(self.llm)
 
+        # Initialize RAG engine
+        self.rag_engine = RAGEngine(self.llm)
+        logger.info("RAG engine initialized")
+
         # Initialize other components
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.pdf_generator = HTMLPDFGenerator()
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
-        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers and AI HTML Designer")
+        logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers, RAG enabled, and AI HTML Designer")
     
     def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
