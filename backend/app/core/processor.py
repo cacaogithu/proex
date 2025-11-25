@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 logger = logging.getLogger(__name__)
 
 # Configuration constants
+STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
 MAX_PARALLEL_WORKERS = 10  # Maximum concurrent letter generation tasks (increased from 5)
 
 
