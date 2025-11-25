@@ -46,6 +46,7 @@ class SubmissionProcessor:
         # Initialize other components AFTER ML training
         self.heterogeneity = HeterogeneityArchitect(self.llm)
         self.pdf_generator = HTMLPDFGenerator()
+        self.html_designer = HTMLDesigner(self.llm)  # NEW: AI-powered HTML designer
         self.logo_scraper = LogoScraper()
         self.max_workers = MAX_PARALLEL_WORKERS
         logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers, RAG enabled, and AI HTML Designer")
@@ -100,9 +101,6 @@ class SubmissionProcessor:
         self.pdf_generator.html_to_docx_direct(letter_html, docx_output_path)
         print(f"    ✓ DOCX generated for {recommender_name}")
 
-        # 5. Track template usage
-        template_id = design.get('template_id', 'A')
-        self.db.increment_template_usage(template_id)
 
         # 6. Generate embedding for ML/clustering (optional - can be slow)
         # PERFORMANCE: Disabled by default to save ~5-10 seconds per letter
@@ -397,7 +395,9 @@ class SubmissionProcessor:
                 testimony = testimonials[letter_idx]
                 design = new_designs[i]
                 
-                print(f"\n  Letter {letter_idx + 1}/{len(testimonials)}: {testimony.get('recommender_name', 'Unknown')}")
+                recommender_name = testimony.get('recommender_name', 'Unknown')
+                
+                print(f"\n  Letter {letter_idx + 1}/{len(testimonials)}: {recommender_name}")
                 
                 # Generate blocks (with ML enhancement)
                 context = {
@@ -407,24 +407,11 @@ class SubmissionProcessor:
                 }
                 blocks = self.block_generator.generate_all_blocks(testimony, design, context)
                 
-                # Assemble letter with Claude
-                print("    - Assembling letter with Claude 4.5 Sonnet...")
-                letter_html = self.pdf_generator.assemble_letter(
-                    blocks=blocks,
-                    design=design,
-                    llm=self.llm,
-                    custom_instructions=custom_instructions
-                )
-                print(f"✅ Letter assembled with Claude 4.5 Sonnet (Template {design.get('template_id', 'A')})")
-                
-                # Get logo if available
-                logo_path = testimony.get('company_logo_path')
-                
-                # Generate PDF (use same naming as process_submission)
-                output_path = f"{output_dir}/letter_{letter_idx + 1}_{testimony.get('recommender_name', 'unknown').replace(' ', '_')}.pdf"
+                # 3. DESIGN custom HTML (AI-powered, Authentic Heterogeneity)
+                print(f"    - Designing custom HTML for {recommender_name}...")
                 
                 recommender_info = {
-                    'name': testimony.get('recommender_name', ''),
+                    'name': recommender_name,
                     'title': testimony.get('recommender_title', ''),
                     'company': testimony.get('recommender_company', ''),
                     'location': testimony.get('recommender_location', '')

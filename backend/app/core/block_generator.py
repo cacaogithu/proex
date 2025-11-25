@@ -193,16 +193,19 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
-            try:
-                data = json.loads(content)
-                draft = data.get('markdown_draft', content)
-                word_count = self._count_words(draft)
-                print(f"    ✓ Block 1 generated: {word_count} words")
-                return draft
-            except (json.JSONDecodeError, KeyError, TypeError):
-                word_count = self._count_words(content)
-                print(f"    ✓ Block 1 generated: {word_count} words")
-                return content
+            # Clean any accidental markdown fences
+            content = content.strip()
+            if content.startswith('```markdown'):
+                content = content.split('```markdown', 1)[1]
+            if content.startswith('```'):
+                content = content.split('```', 1)[1]
+            if content.endswith('```'):
+                content = content.rsplit('```', 1)[0]
+            content = content.strip()
+            
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 1 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 1: {str(e)}")
             return "Error generating block 1"
@@ -214,16 +217,19 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
-            try:
-                data = json.loads(content)
-                draft = data.get('markdown_draft', content)
-                word_count = self._count_words(draft)
-                print(f"    ✓ Block 2 generated: {word_count} words")
-                return draft
-            except (json.JSONDecodeError, KeyError, TypeError):
-                word_count = self._count_words(content)
-                print(f"    ✓ Block 2 generated: {word_count} words")
-                return content
+            # Clean any accidental markdown fences
+            content = content.strip()
+            if content.startswith('```markdown'):
+                content = content.split('```markdown', 1)[1]
+            if content.startswith('```'):
+                content = content.split('```', 1)[1]
+            if content.endswith('```'):
+                content = content.rsplit('```', 1)[0]
+            content = content.strip()
+            
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 2 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 2: {str(e)}")
             return "Error generating block 2"
@@ -295,16 +301,19 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=350, max_words=600)
-            try:
-                data = json.loads(content)
-                draft = data.get('markdown_draft', content)
-                word_count = self._count_words(draft)
-                print(f"    ✓ Block 4 generated: {word_count} words")
-                return draft
-            except (json.JSONDecodeError, KeyError, TypeError):
-                word_count = self._count_words(content)
-                print(f"    ✓ Block 4 generated: {word_count} words")
-                return content
+            # Clean any accidental markdown fences
+            content = content.strip()
+            if content.startswith('```markdown'):
+                content = content.split('```markdown', 1)[1]
+            if content.startswith('```'):
+                content = content.split('```', 1)[1]
+            if content.endswith('```'):
+                content = content.rsplit('```', 1)[0]
+            content = content.strip()
+            
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 4 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 4: {str(e)}")
             return "Error generating block 4"
@@ -316,16 +325,19 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=2500, min_words=300, max_words=600)
-            try:
-                data = json.loads(content)
-                draft = data.get('markdown_draft', content)
-                word_count = self._count_words(draft)
-                print(f"    ✓ Block 5 generated: {word_count} words")
-                return draft
-            except (json.JSONDecodeError, KeyError, TypeError):
-                word_count = self._count_words(content)
-                print(f"    ✓ Block 5 generated: {word_count} words")
-                return content
+            # Clean any accidental markdown fences
+            content = content.strip()
+            if content.startswith('```markdown'):
+                content = content.split('```markdown', 1)[1]
+            if content.startswith('```'):
+                content = content.split('```', 1)[1]
+            if content.endswith('```'):
+                content = content.rsplit('```', 1)[0]
+            content = content.strip()
+            
+            word_count = self._count_words(content)
+            print(f"    ✓ Block 5 generated: {word_count} words")
+            return content
         except Exception as e:
             print(f"Error generating block 5: {str(e)}")
             return "Error generating block 5"
