@@ -122,9 +122,9 @@ Return ONLY valid JSON with this structure:
 
 {{
   "petitioner_name": "{organized_data.get('petitioner', {}).get('name', 'Unknown')}",
-  "testimony_count": {num_testimonies},
+  "testimony_count": {num_testimonios},
   "generation_approach": "Complete n8n Schema (23 parameters)",
-  "heterogeneity_validation": "[Explique brevemente como garantiu que TODAS as {num_testimonies} estruturas são únicas]",
+  "heterogeneity_validation": "[Explique brevemente como garantiu que TODAS as {num_testimonios} estruturas são únicas]",
   "design_structures": [
     {{...23 parameters...}},
     {{...23 parameters...}},
@@ -133,7 +133,7 @@ Return ONLY valid JSON with this structure:
 }}
 
 **CHECKPOINT FINAL**:
-✓ Há exatamente {num_testimonies} design_structures?
+✓ Há exatamente {num_testimonios} design_structures?
 ✓ Todos os 23 parâmetros estão presentes em cada estrutura?
 ✓ Nenhuma combinação (tone_variable + narrative_framework) se repete?
 ✓ tone_instructions tem mínimo 150 palavras cada?
@@ -155,12 +155,12 @@ Return ONLY valid JSON with this structure:
                 
                 # Validation: count must match
                 design_structures = result.get('design_structures', [])
-                if len(design_structures) != num_testimonies:
-                    print(f"⚠️  Count mismatch: expected {num_testimonies}, got {len(design_structures)}")
+                if len(design_structures) != num_testimonios:
+                    print(f"⚠️  Count mismatch: expected {num_testimonios}, got {len(design_structures)}")
                     if attempt < max_retries - 1:
                         time.sleep(2)
                         continue
-                    raise ValueError(f"Expected {num_testimonies} design_structures")
+                    raise ValueError(f"Expected {num_testimonios} design_structures")
                 
                 # Validation: Check all required keys are present
                 required_keys = [
@@ -200,7 +200,7 @@ Return ONLY valid JSON with this structure:
                         continue
                 
                 # Success!
-                print(f"✅ Complete n8n design structures generated: {num_testimonies} unique designs")
+                print(f"✅ Complete n8n design structures generated: {num_testimonios} unique designs")
                 print(f"   Schema: 23 parameters per design (content + visual)")
                 print(f"   Validation: All required keys present, no duplicates")
                 return result
