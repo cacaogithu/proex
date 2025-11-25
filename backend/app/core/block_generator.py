@@ -70,6 +70,21 @@ Você é `Block3_PROMPT`
 **ESTRUTURA NARRATIVA**:
 {design.get('narrative_framework', '')}
 
+**ESTRUTURA DE PARÁGRAFOS**:
+{design.get('paragraph_structure', '')}
+
+**ESTILO DE FRASES**:
+{design.get('sentence_style', '')}
+
+**ESTILO DE ÊNFASE**:
+{design.get('emphasis_style', '')}
+
+**ELEMENTOS VISUAIS**:
+{design.get('visual_elements', '')}
+
+**CARACTERÍSTICA ÚNICA**:
+{design.get('unique_trait', '')}
+
 # INPUTS
 OneNet: {json.dumps(context.get('onet', {}), ensure_ascii=False)}
 Strategy: {json.dumps(context.get('strategy', {}), ensure_ascii=False)}
@@ -98,6 +113,7 @@ Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
 - ⚠️ NÃO use clichés: "a quem possa interessar", "com grande satisfação", "tenho o prazer", "sempre", "de maneira geral"
 - Seja específico e único em cada descrição - evite frases genéricas
 - Expanda com narrativa completa de cada resultado
+- SIGA RIGOROSAMENTE as instruções de estilo acima (PERSONA, ESTRUTURA, ÊNFASE, ELEMENTOS VISUAIS)
 """
         
         # ML-powered prompt enhancement
@@ -134,7 +150,14 @@ Primeira pessoa. Evidências quantitativas e qualitativas detalhadas.
         prompt = f"""# ROLE
 Você é `Block4_PROMPT`
 
-**PERSONA**: {design.get('tone_instructions', '')}
+**PERSONA DE ESCRITA**:
+{design.get('tone_instructions', '')}
+
+**ESTRUTURA NARRATIVA**: {design.get('narrative_framework', '')}
+**ESTRUTURA DE PARÁGRAFOS**: {design.get('paragraph_structure', '')}
+**ESTILO DE FRASES**: {design.get('sentence_style', '')}
+**ESTILO DE ÊNFASE**: {design.get('emphasis_style', '')}
+**ELEMENTOS VISUAIS**: {design.get('visual_elements', '')}
 
 # INPUTS
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
@@ -157,6 +180,7 @@ Destaque capacidades técnicas únicas com profundidade.
 - ⚠️ NÃO use clichés: "como mencionado", "é importante notar", "sem dúvida", "de acordo com"
 - Seja original - evite expressões repetidas
 - TODO EM PORTUGUÊS
+- SIGA RIGOROSAMENTE as instruções de estilo acima
 """
 
         try:
@@ -172,7 +196,14 @@ Destaque capacidades técnicas únicas com profundidade.
         prompt = f"""# ROLE
 Você é `Block5_PROMPT`
 
-**PERSONA**: {design.get('tone_instructions', '')}
+**PERSONA DE ESCRITA**:
+{design.get('tone_instructions', '')}
+
+**ESTRUTURA NARRATIVA**: {design.get('narrative_framework', '')}
+**ESTRUTURA DE PARÁGRAFOS**: {design.get('paragraph_structure', '')}
+**ESTILO DE FRASES**: {design.get('sentence_style', '')}
+**ESTILO DE ÊNFASE**: {design.get('emphasis_style', '')}
+**ELEMENTOS VISUAIS**: {design.get('visual_elements', '')}
 
 # INPUTS
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
@@ -194,6 +225,7 @@ Demonstre influência além do contexto imediato com exemplos detalhados.
 - ⚠️ NÃO use clichés: "trabalho exemplar", "acredito que", "de todos os tempos", "nunca visto antes"
 - Use fatos específicos em vez de adjetivos genéricos
 - TODO EM PORTUGUÊS
+- SIGA RIGOROSAMENTE as instruções de estilo acima
 """
 
         try:
@@ -209,7 +241,14 @@ Demonstre influência além do contexto imediato com exemplos detalhados.
         prompt = f"""# ROLE
 Você é `Block6_PROMPT`
 
-**PERSONA**: {design.get('tone_instructions', '')}
+**PERSONA DE ESCRITA**:
+{design.get('tone_instructions', '')}
+
+**ESTRUTURA NARRATIVA**: {design.get('narrative_framework', '')}
+**ESTRUTURA DE PARÁGRAFOS**: {design.get('paragraph_structure', '')}
+**ESTILO DE FRASES**: {design.get('sentence_style', '')}
+**ESTILO DE ÊNFASE**: {design.get('emphasis_style', '')}
+**ELEMENTOS VISUAIS**: {design.get('visual_elements', '')}
 
 # INPUTS
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
@@ -231,6 +270,7 @@ Estabeleça credibilidade de forma aprofundada.
 - ⚠️ NÃO use clichés: "honrado em", "privilégio de", "única oportunidade", "melhor pessoa que conheço"
 - Descreva fatos sobre sua posição e experiência
 - TODO EM PORTUGUÊS
+- SIGA RIGOROSAMENTE as instruções de estilo acima
 """
 
         try:
@@ -246,7 +286,15 @@ Estabeleça credibilidade de forma aprofundada.
         prompt = f"""# ROLE
 Você é `Block7_PROMPT`
 
-**PERSONA**: {design.get('tone_instructions', '')}
+**PERSONA DE ESCRITA**:
+{design.get('tone_instructions', '')}
+
+**ESTRUTURA NARRATIVA**: {design.get('narrative_framework', '')}
+**ESTRUTURA DE PARÁGRAFOS**: {design.get('paragraph_structure', '')}
+**ESTILO DE FRASES**: {design.get('sentence_style', '')}
+**ESTILO DE ÊNFASE**: {design.get('emphasis_style', '')}
+**ELEMENTOS VISUAIS**: {design.get('visual_elements', '')}
+**CARACTERÍSTICA ÚNICA**: {design.get('unique_trait', '')}
 
 # INPUTS
 Testemunho: {json.dumps(testimony, ensure_ascii=False)}
@@ -266,6 +314,7 @@ Encerramento forte com impacto.
 - Tom conclusivo e persuasivo
 - Reaffirm a excelência demonstrada
 - TODO EM PORTUGUÊS
+- SIGA RIGOROSAMENTE as instruções de estilo acima
 """
 
         try:
