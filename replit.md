@@ -18,7 +18,7 @@ The backend is built with FastAPI (Python 3.11) and uses SQLite for local data s
 - **PDF Processing**: Uploads multiple PDFs (Quadros, CVs, Strategy, OneNote) with text extraction.
 - **LLM-Powered Content Generation**: Utilizes a tiered LLM strategy (Gemini Flash for extraction, Gemini Pro for block generation, Claude Sonnet for final assembly) via OpenRouter for data organization and content generation across 5 distinct blocks per letter.
 - **Heterogeneity Architect**: Programmatically ensures radical visual and structural diversity across generated letters through 6 archetypal templates with strict validation rules.
-- **Logo Scraping**: Automatically fetches company logos using Clearbit API with fallback to web scraping, including caching.
+- **Logo Scraping**: Uses Logo.dev Brand Search API to accurately find company domains by name, then fetches logos via Clearbit API. Includes caching, favicon extraction, and web scraping fallbacks.
 - **Document Generation**: Produces visually unique PDFs and fully editable DOCX files.
 - **Feedback System**: ML-based 0-100 rating system per letter, template performance analytics, and selective regeneration capability with optional custom LLM instructions.
 - **Machine Learning System**: Combines supervised (feedback-driven) and unsupervised (clustering-driven) learning to continuously improve letter quality:
@@ -47,7 +47,8 @@ The backend is built with FastAPI (Python 3.11) and uses SQLite for local data s
 ## External Dependencies
 
 - **OpenRouter.ai**: Unified API for various LLMs (Gemini 2.5 Flash, Gemini 2.5 Pro, Claude 3.7 Sonnet) for data processing and content generation. Requires `OPENROUTER_API_KEY`.
-- **Clearbit API**: Used for logo scraping (primary source).
+- **Logo.dev API**: Brand Search API finds accurate company domains by name. Requires `LOGO_DEV_API_KEY` (secret key).
+- **Clearbit API**: Used for logo image fetching after domain discovery (free, no auth required).
 - **Google Drive API**: For automatic upload and sharing of generated DOCX files.
 - **Gmail API**: For sending email notifications with document links.
 - **pdfplumber**: Python library for PDF text extraction.
