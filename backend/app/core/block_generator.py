@@ -239,36 +239,16 @@ NÃO SEJA BREVE. SEJA EXTENSIVO."""
         prompt_data = self._prepare_prompt_data(testimony, design, context)
         base_prompt = BLOCK3_PROMPT.format(**prompt_data)
         
-        # RAG Enhancement: Retrieve relevant context
-        prompt = base_prompt
-        if self.rag and context.get('submission_id'):
-            try:
-                # Build search query from testimony context
-                query = f"Examples of professional accomplishments and technical expertise for {testimony.get('recommender_role', 'professional')} at {testimony.get('recommender_company', 'company')}"
-                
-                context_chunks = self.rag.retrieve_context(
-                    query=query,
-                    submission_id=context['submission_id'],
-                    top_k=3
-                )
-                
-                # Augment prompt with retrieved context
-                if context_chunks:
-                    prompt = self.rag.augment_prompt(base_prompt, context_chunks)
-            except Exception as e:
-                print(f"   ℹ️  RAG context retrieval skipped: {e}")
+        # RAG Enhancement - DISABLED
+        # prompt = base_prompt
+        # if self.rag and context.get('submission_id'):
+        #     ... (RAG logic removed)
         
-        # ML-powered prompt enhancement
-        if self.prompt_enhancer:
-            try:
-                prompt = self.prompt_enhancer.enhance_block_prompt(
-                    base_prompt, 
-                    block_number=3,
-                    letter_context=testimony,
-                    letter_embedding=letter_embedding
-                )
-            except Exception as e:
-                print(f"   ℹ️  ML prompt enhancement skipped: {e}")
+        # ML-powered prompt enhancement - DISABLED
+        # if self.prompt_enhancer:
+        #     ... (ML logic removed)
+        
+        prompt = base_prompt # Use base prompt only
         
         try:
             content = self._call_llm_with_retry(prompt, temperature=0.9, max_tokens=4000, min_words=500, max_words=700)
