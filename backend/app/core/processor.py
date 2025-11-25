@@ -30,6 +30,9 @@ class SubmissionProcessor:
         self.pdf_extractor = PDFExtractor()
         self.llm = LLMProcessor()
         self.db = Database()
+        self.prompt_enhancer = PromptEnhancer()
+        self.block_generator = BlockGenerator(self.llm)
+        self.html_designer = HTMLDesigner(self.llm)
 
         # Try to train ML models with existing data
         try:
