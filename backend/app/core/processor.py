@@ -30,11 +30,12 @@ class SubmissionProcessor:
         
         # Try to train ML models with existing data
         try:
-            logger.info(f"Attempting to train ML models with min {MIN_ML_TRAINING_SAMPLES} samples")
-            self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
-            logger.info("ML models trained successfully")
+            # Silently attempt training - will only log if there's enough data
+            trained = self.prompt_enhancer.train_models(min_samples=MIN_ML_TRAINING_SAMPLES)
+            if trained:
+                logger.info("ML models trained successfully")
         except Exception as e:
-            logger.info(f"ML training skipped (likely first run): {e}")
+            logger.warning(f"ML training failed: {e}")
 
         # Initialize RAG engine
         self.rag_engine = RAGEngine(self.llm)
