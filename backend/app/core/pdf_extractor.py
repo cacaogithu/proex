@@ -1,4 +1,5 @@
 import pdfplumber
+from docx import Document
 from typing import Dict, Any
 import os
 
@@ -7,7 +8,14 @@ STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
 
 
 class PDFExtractor:
-    def extract_text(self, pdf_path: str) -> str:
+    def extract_text(self, file_path: str) -> str:
+        """Extract text from PDF or DOCX files"""
+        if file_path.endswith('.docx'):
+            return self._extract_docx(file_path)
+        else:
+            return self._extract_pdf(file_path)
+    
+    def _extract_pdf(self, pdf_path: str) -> str:
         try:
             with pdfplumber.open(pdf_path) as pdf:
                 text = ""
@@ -18,6 +26,23 @@ class PDFExtractor:
                 return text.strip()
         except Exception as e:
             print(f"Error extracting PDF {pdf_path}: {str(e)}")
+            return ""
+    
+    def _extract_docx(self, docx_path: str) -> str:
+        try:
+            doc = Document(docx_path)
+            text = ""
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    text += para.text + "\n"
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            text += cell.text + "\n"
+            return text.strip()
+        except Exception as e:
+            print(f"Error extracting DOCX {docx_path}: {str(e)}")
             return ""
 
     def extract_all_files(self, submission_id: str) -> Dict[str, Any]:

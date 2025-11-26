@@ -67,10 +67,11 @@ async def create_submission(
             )
 
         # Validate file extension
-        if not file.filename.lower().endswith('.pdf'):
+        valid_extensions = ('.pdf', '.docx')
+        if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
             raise HTTPException(
                 status_code=400,
-                detail=f"Arquivo {file.filename} deve ser PDF"
+                detail=f"Arquivo {file.filename} deve ser PDF ou DOCX"
             )
     
     submission = db.create_submission(email, numberOfTestimonials)
@@ -79,29 +80,36 @@ async def create_submission(
     upload_dir = os.path.join(STORAGE_BASE_DIR, "uploads", submission_id)
     os.makedirs(upload_dir, exist_ok=True)
     
-    with open(f"{upload_dir}/quadro.pdf", "wb") as f:
+    def get_file_ext(filename):
+        """Get file extension (.pdf or .docx)"""
+        if filename.lower().endswith('.docx'):
+            return '.docx'
+        return '.pdf'
+    
+    with open(f"{upload_dir}/quadro{get_file_ext(quadro.filename)}", "wb") as f:
         shutil.copyfileobj(quadro.file, f)
     
-    with open(f"{upload_dir}/cv.pdf", "wb") as f:
+    with open(f"{upload_dir}/cv{get_file_ext(cv.filename)}", "wb") as f:
         shutil.copyfileobj(cv.file, f)
     
     if estrategia:
-        with open(f"{upload_dir}/estrategia.pdf", "wb") as f:
+        with open(f"{upload_dir}/estrategia{get_file_ext(estrategia.filename)}", "wb") as f:
             shutil.copyfileobj(estrategia.file, f)
     
     if onenote:
-        with open(f"{upload_dir}/onenote.pdf", "wb") as f:
+        with open(f"{upload_dir}/onenote{get_file_ext(onenote.filename)}", "wb") as f:
             shutil.copyfileobj(onenote.file, f)
 
     if other_documents:
         for i, doc in enumerate(other_documents):
-            # Sanitize filename or use a safe name
-            safe_filename = f"other_{i}_{doc.filename}"
+            file_ext = get_file_ext(doc.filename)
+            safe_filename = f"other_{i}{file_ext}"
             with open(f"{upload_dir}/{safe_filename}", "wb") as f:
                 shutil.copyfileobj(doc.file, f)
     
     for i, testimonial in enumerate(testimonials):
-        with open(f"{upload_dir}/testimonial_{i}.pdf", "wb") as f:
+        file_ext = get_file_ext(testimonial.filename)
+        with open(f"{upload_dir}/testimonial_{i}{file_ext}", "wb") as f:
             shutil.copyfileobj(testimonial.file, f)
     
     processor = SubmissionProcessor()
