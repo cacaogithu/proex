@@ -298,13 +298,6 @@ class SubmissionProcessor:
                     print(f"✅ Email sent to {recipient_email}")
                     print(f"✅ {email_result.get('files_uploaded', 0)} files uploaded to Google Drive")
                     progress_tracker.phase_complete(submission_id, "email", f"Email enviado para {recipient_email}")
-
-                    # Clean up RAG vectors to prevent memory leak
-                    try:
-                        self.rag_engine.vector_store.clear_submission(submission_id)
-                        logger.info(f"Cleared RAG vectors for submission {submission_id}")
-                    except Exception as e:
-                        logger.warning(f"Failed to clear RAG vectors: {e}")
                 else:
                     print(f"⚠️  Email sending failed: {email_result.get('error', 'Unknown error')}")
                     progress_tracker.phase_complete(submission_id, "email", "Falha ao enviar email")

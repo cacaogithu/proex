@@ -43,13 +43,6 @@ const phaseIcons: Record<string, string> = {
   email: '📧'
 }
 
-const stepIcons: Record<string, string> = {
-  logo_search: '🔍',
-  blocks: '📝',
-  html_design: '🎨',
-  pdf_generation: '📄',
-  docx_generation: '📝'
-}
 
 export default function ProgressTracker({ submissionId, onComplete }: ProgressTrackerProps) {
   const [events, setEvents] = useState<ProgressEvent[]>([])
@@ -59,11 +52,18 @@ export default function ProgressTracker({ submissionId, onComplete }: ProgressTr
   const [completedPhases, setCompletedPhases] = useState<Set<string>>(new Set())
   const [letters, setLetters] = useState<Record<number, { name: string; step: string; completed: boolean }>>({})
   const [logoSearches, setLogoSearches] = useState<Record<string, string>>({})
+  const [connectionError, setConnectionError] = useState(false)
   const eventSourceRef = useRef<EventSource | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const eventSource = new EventSource(`/api/progress/${submissionId}/stream`)
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setConnectionError(true)
+      return
+    }
+    
+    const eventSource = new EventSource(`/api/progress/${submissionId}/stream?token=${encodeURIComponent(token)}`)
     eventSourceRef.current = eventSource
 
     eventSource.onmessage = (event) => {
@@ -159,6 +159,7 @@ export default function ProgressTracker({ submissionId, onComplete }: ProgressTr
 
     eventSource.onerror = () => {
       console.log('SSE connection closed or error')
+      setConnectionError(true)
     }
 
     return () => {
@@ -172,6 +173,15 @@ export default function ProgressTracker({ submissionId, onComplete }: ProgressTr
     if (completedPhases.has(phase)) return 'completed'
     if (currentPhase === phase) return 'active'
     return 'pending'
+  }
+
+  if (connectionError && events.length === 0) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-yellow-800">Aguardando atualizações de progresso...</p>
+        <p className="text-sm text-yellow-600 mt-1">Recarregue a página para ver o status atualizado.</p>
+      </div>
+    )
   }
 
   return (

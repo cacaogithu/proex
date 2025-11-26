@@ -2,6 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import LetterFeedback from '../components/LetterFeedback'
 import OverallFeedback from '../components/OverallFeedback'
+import ProgressTracker from '../components/ProgressTracker'
 
 export default function StatusPage() {
   const [submissionId, setSubmissionId] = useState('')
@@ -182,6 +183,15 @@ export default function StatusPage() {
                 {loading ? 'Tentando novamente...' : 'Tentar Novamente'}
               </button>
             </div>
+          )}
+
+          {['extracting', 'organizing', 'designing', 'generating', 'received'].includes(submission.status) && (
+            <ProgressTracker 
+              submissionId={submission.id} 
+              onComplete={() => {
+                setTimeout(() => checkStatus(), 2000)
+              }}
+            />
           )}
 
           {submission.status === 'completed' && (

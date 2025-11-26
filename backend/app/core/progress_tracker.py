@@ -1,9 +1,10 @@
 import asyncio
 import json
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict
 import threading
+import queue
 
 class ProgressTracker:
     _instance = None
@@ -22,12 +23,14 @@ class ProgressTracker:
             return
         self._initialized = True
         self._events: Dict[str, List[Dict]] = defaultdict(list)
-        self._subscribers: Dict[str, List[asyncio.Queue]] = defaultdict(list)
+        self._subscribers: Dict[str, List[Tuple[asyncio.AbstractEventLoop, asyncio.Queue]]] = defaultdict(list)
         self._current_step: Dict[str, Dict] = {}
+        self._completed: Dict[str, bool] = {}
         self._lock = threading.Lock()
+        self._max_events_per_submission = 500
     
     def emit_event(self, submission_id: str, event_type: str, data: Dict[str, Any]):
-        """Emit a progress event for a submission"""
+        """Emit a progress event for a submission (thread-safe)"""
         event = {
             "type": event_type,
             "timestamp": datetime.utcnow().isoformat(),
@@ -35,14 +38,18 @@ class ProgressTracker:
         }
         
         with self._lock:
-            self._events[submission_id].append(event)
+            if len(self._events[submission_id]) < self._max_events_per_submission:
+                self._events[submission_id].append(event)
             self._current_step[submission_id] = event
             
+            if event_type == "completion":
+                self._completed[submission_id] = True
+            
             if submission_id in self._subscribers:
-                for queue in self._subscribers[submission_id]:
+                for loop, q in self._subscribers[submission_id]:
                     try:
-                        queue.put_nowait(event)
-                    except asyncio.QueueFull:
+                        loop.call_soon_threadsafe(q.put_nowait, event)
+                    except (asyncio.QueueFull, RuntimeError):
                         pass
         
         print(f"[Progress] {submission_id}: {event_type} - {data.get('message', '')}")
@@ -149,28 +156,44 @@ class ProgressTracker:
         with self._lock:
             return self._current_step.get(submission_id)
     
-    async def subscribe(self, submission_id: str) -> asyncio.Queue:
-        """Subscribe to events for a submission"""
-        queue = asyncio.Queue(maxsize=100)
+    def is_completed(self, submission_id: str) -> bool:
+        """Check if submission processing is completed"""
         with self._lock:
-            self._subscribers[submission_id].append(queue)
-        return queue
+            return self._completed.get(submission_id, False)
+    
+    async def subscribe(self, submission_id: str) -> asyncio.Queue:
+        """Subscribe to events for a submission (captures event loop for thread-safe dispatch)"""
+        loop = asyncio.get_running_loop()
+        q = asyncio.Queue(maxsize=100)
+        with self._lock:
+            self._subscribers[submission_id].append((loop, q))
+        return q
     
     def unsubscribe(self, submission_id: str, queue: asyncio.Queue):
-        """Unsubscribe from events"""
+        """Unsubscribe from events and cleanup if no subscribers remain"""
         with self._lock:
             if submission_id in self._subscribers:
-                try:
-                    self._subscribers[submission_id].remove(queue)
-                except ValueError:
-                    pass
+                self._subscribers[submission_id] = [
+                    (loop, q) for loop, q in self._subscribers[submission_id] 
+                    if q is not queue
+                ]
+                if not self._subscribers[submission_id] and self._completed.get(submission_id, False):
+                    self._cleanup_submission(submission_id)
+    
+    def _cleanup_submission(self, submission_id: str):
+        """Internal cleanup after submission is complete and all subscribers disconnected"""
+        if submission_id in self._events:
+            del self._events[submission_id]
+        if submission_id in self._current_step:
+            del self._current_step[submission_id]
+        if submission_id in self._completed:
+            del self._completed[submission_id]
+        if submission_id in self._subscribers:
+            del self._subscribers[submission_id]
     
     def clear_events(self, submission_id: str):
         """Clear all events for a submission (called after completion)"""
         with self._lock:
-            if submission_id in self._events:
-                del self._events[submission_id]
-            if submission_id in self._current_step:
-                del self._current_step[submission_id]
+            self._cleanup_submission(submission_id)
 
 progress_tracker = ProgressTracker()
