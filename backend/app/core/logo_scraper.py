@@ -81,8 +81,8 @@ class LogoScraper:
             return None
 
         methods = [
-            ('Clearbit', lambda: self._try_clearbit(company_website)),
             ('Logo.dev', lambda: self._try_logodev(company_website, company_name)),
+            ('Clearbit', lambda: self._try_clearbit(company_website)),
             ('Favicon', lambda: self._try_favicon(company_website)),
         ]
 
