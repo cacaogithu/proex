@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 from .api.submissions import router as submissions_router
 from .api.auth import router as auth_router
+from .api.progress import router as progress_router
 from .db.database import Database
 
 load_dotenv()
@@ -30,6 +31,7 @@ app.add_middleware(
 
 app.include_router(submissions_router, prefix="/api", tags=["submissions"])
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(progress_router, prefix="/api", tags=["progress"])
 
 db = Database()
 
