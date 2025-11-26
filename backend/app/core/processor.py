@@ -8,6 +8,7 @@ from .logo_scraper import LogoScraper
 from .email_sender import send_results_email, check_email_service_health
 from .validation import validate_batch, print_validation_report
 from .rag_engine import RAGEngine
+from .progress_tracker import progress_tracker
 from ..db.database import Database
 import os
 import glob
@@ -42,11 +43,13 @@ class SubmissionProcessor:
         self.max_workers = MAX_PARALLEL_WORKERS
         logger.info(f"SubmissionProcessor initialized with {self.max_workers} parallel workers (ML/RAG disabled)")
 
-    def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict) -> Dict:
+    def _generate_single_letter(self, submission_id: str, index: int, testimony: Dict, design: Dict, organized_data: Dict, total_letters: int = 1) -> Dict:
         """Helper function to generate a single letter, designed for parallel execution."""
 
         recommender_name = testimony.get('recommender_name', 'Unknown')
         print(f"\n  [START] Letter {index+1}: {recommender_name}")
+        
+        progress_tracker.letter_start(submission_id, index, recommender_name, total_letters)
 
         # 1. Fetch company logo (This is now done inside the parallel function)
         company_name = testimony.get('recommender_company', '')
@@ -54,15 +57,23 @@ class SubmissionProcessor:
         logo_path = None
 
         if company_name:
+            progress_tracker.letter_step(submission_id, index, recommender_name, "logo_search", f"Buscando logo de {company_name}...")
+            progress_tracker.logo_search(submission_id, company_name, "searching")
             logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
+            if logo_path:
+                progress_tracker.logo_search(submission_id, company_name, "found")
+            else:
+                progress_tracker.logo_search(submission_id, company_name, "not_found")
 
         # 2. Generate 5 blocks
         print(f"    - Generating 5 blocks for {recommender_name}...")
+        progress_tracker.letter_step(submission_id, index, recommender_name, "blocks", "Gerando 5 blocos de conteúdo...")
         blocks = self.block_generator.generate_all_blocks(testimony, design, organized_data)
         print(f"    ✓ Blocks generated for {recommender_name}")
 
         # 3. DESIGN custom HTML (AI-powered, no templates!)
         print(f"    - Designing custom HTML for {recommender_name}...")
+        progress_tracker.letter_step(submission_id, index, recommender_name, "html_design", "Criando design HTML personalizado...")
         recommender_info = {
             'name': recommender_name,
             'title': testimony.get('recommender_position', ''),
@@ -82,6 +93,7 @@ class SubmissionProcessor:
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, f"letter_{index+1}_{recommender_name.replace(' ', '_')}.pdf")
         print(f"    - Converting HTML to PDF for {recommender_name}...")
+        progress_tracker.letter_step(submission_id, index, recommender_name, "pdf_generation", "Convertendo para PDF...")
 
         # Since letter_html is now a complete document, convert directly to PDF
         self.pdf_generator.html_to_pdf_direct(letter_html, output_path)
@@ -89,8 +101,11 @@ class SubmissionProcessor:
 
         docx_output_path = output_path.replace('.pdf', '.docx')
         print(f"    - Generating editable DOCX for {recommender_name}...")
+        progress_tracker.letter_step(submission_id, index, recommender_name, "docx_generation", "Gerando DOCX editável...")
         self.pdf_generator.html_to_docx_direct(letter_html, docx_output_path)
         print(f"    ✓ DOCX generated for {recommender_name}")
+        
+        progress_tracker.letter_complete(submission_id, index, recommender_name, logo_path is not None)
 
 
 
@@ -118,29 +133,31 @@ class SubmissionProcessor:
             print(f"\n{'='*60}")
             print(f"Starting processing for submission: {submission_id}")
             print(f"{'='*60}\n")
+            
+            progress_tracker.phase_start(submission_id, "extracting", "Extraindo texto dos documentos...", 1)
 
             self.update_status(submission_id, "extracting")
             print("\nPHASE 1: Extracting text from PDFs...")
             extracted_texts = self.pdf_extractor.extract_all_files(submission_id)
-            print(f"✓ Extracted {len(extracted_texts.get('testimonials', []))} testimonials")
+            num_testimonials = len(extracted_texts.get('testimonials', []))
+            print(f"✓ Extracted {num_testimonials} testimonials")
+            progress_tracker.phase_complete(submission_id, "extracting", f"Extraído texto de {num_testimonials} testemunhos")
 
+            progress_tracker.phase_start(submission_id, "organizing", "Organizando e limpando dados com IA...", 1)
             self.update_status(submission_id, "organizing")
             print("\nPHASE 2: Cleaning and organizing data...")
             organized_data = self.llm.clean_and_organize(extracted_texts)
-            # Add submission_id to context for RAG retrieval
             organized_data['submission_id'] = submission_id
-            print(f"✓ Organized data for {organized_data.get('petitioner', {}).get('name', 'Unknown')}")
+            petitioner_name = organized_data.get('petitioner', {}).get('name', 'Unknown')
+            print(f"✓ Organized data for {petitioner_name}")
+            progress_tracker.phase_complete(submission_id, "organizing", f"Dados organizados para {petitioner_name}")
 
-            # PHASE 2.5: RAG Ingestion - DISABLED
-            # print("\nPHASE 2.5: Ingesting assets into RAG for context-aware generation...")
-            # ... (RAG logic removed)
-
-            # PHASE 2.5: Logo scraping is now integrated into the parallel letter generation function.
-            print("\nPHASE 2.5: Logo scraping will run in parallel with letter generation.")
-
+            progress_tracker.phase_start(submission_id, "designing", "Criando designs únicos para cada carta...", 1)
             self.update_status(submission_id, "designing")
             design_structures = self.heterogeneity.generate_design_structures(organized_data)
-            print(f"✓ Generated {len(design_structures.get('design_structures', []))} unique designs")
+            num_designs = len(design_structures.get('design_structures', []))
+            print(f"✓ Generated {num_designs} unique designs")
+            progress_tracker.phase_complete(submission_id, "designing", f"Criado {num_designs} designs únicos")
 
             self.update_status(submission_id, "generating")
             print("\nPHASE 4: Generating letters...")
@@ -148,6 +165,9 @@ class SubmissionProcessor:
 
             testimonies = organized_data.get('testimonies', [])
             designs = design_structures.get('design_structures', [])
+            total_letters = len(testimonies)
+            
+            progress_tracker.phase_start(submission_id, "generating", f"Gerando {total_letters} cartas de recomendação...", total_letters)
 
             # Validate: number of testimonies must match expected number
             submission = self.db.get_submission(submission_id)
@@ -161,7 +181,7 @@ class SubmissionProcessor:
             tasks = []
             for i, testimony in enumerate(testimonies):
                 design = designs[i] if i < len(designs) else designs[0]
-                tasks.append((submission_id, i, testimony, design, organized_data))
+                tasks.append((submission_id, i, testimony, design, organized_data, total_letters))
 
             # Execute letter generation in parallel
             print(f"\n🚀 Starting parallel generation of {len(tasks)} letters with {self.max_workers} workers...")
@@ -206,6 +226,9 @@ class SubmissionProcessor:
             # Report results
             successful_letters = [l for l in letters if not l.get('failed', False)]
             print(f"\n✅ {len(successful_letters)}/{len(letters)} letters generated successfully.")
+            
+            progress_tracker.phase_complete(submission_id, "generating", f"{len(successful_letters)} cartas geradas com sucesso")
+            
             if failed_letters:
                 print(f"⚠️  {len(failed_letters)} letter(s) failed:")
                 for failed in failed_letters:
@@ -261,6 +284,7 @@ class SubmissionProcessor:
             recipient_email = submission.get('user_email') if submission else None
 
             if recipient_email and check_email_service_health() and len(successful_letters) > 0:
+                progress_tracker.phase_start(submission_id, "email", "Enviando resultados por email e Google Drive...", 1)
                 print("\nPHASE 5: Sending results via email and Google Drive...")
                 # Send both PDFs and DOCXs (only for successfully generated letters)
                 file_paths = []
@@ -273,6 +297,7 @@ class SubmissionProcessor:
                 if email_result.get('success'):
                     print(f"✅ Email sent to {recipient_email}")
                     print(f"✅ {email_result.get('files_uploaded', 0)} files uploaded to Google Drive")
+                    progress_tracker.phase_complete(submission_id, "email", f"Email enviado para {recipient_email}")
 
                     # Clean up RAG vectors to prevent memory leak
                     try:
@@ -282,11 +307,21 @@ class SubmissionProcessor:
                         logger.warning(f"Failed to clear RAG vectors: {e}")
                 else:
                     print(f"⚠️  Email sending failed: {email_result.get('error', 'Unknown error')}")
+                    progress_tracker.phase_complete(submission_id, "email", "Falha ao enviar email")
             else:
                 if not recipient_email:
                     print("⚠️  No email address provided, skipping email notification")
                 else:
                     print("⚠️  Email service not available, skipping email notification")
+            
+            # Emit completion event
+            progress_tracker.completion(
+                submission_id, 
+                success=len(successful_letters) > 0,
+                total_letters=len(letters),
+                successful_letters=len(successful_letters),
+                message=f"Processamento concluído: {len(successful_letters)} cartas geradas com sucesso"
+            )
 
             return {"success": True, "letters": letters}
 
@@ -294,6 +329,8 @@ class SubmissionProcessor:
             error_msg = str(e)
             print(f"\n✗ ERROR: {error_msg}\n")
             self.update_status(submission_id, "error", error_msg)
+            progress_tracker.error(submission_id, "processing", f"Erro no processamento: {error_msg}")
+            progress_tracker.completion(submission_id, success=False, total_letters=0, successful_letters=0, message=f"Erro: {error_msg}")
             raise
 
     def regenerate_specific_letters(
