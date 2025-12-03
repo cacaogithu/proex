@@ -74,6 +74,7 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
       "recommender_company": "...",
       "recommender_company_website": "...",
       "recommender_role": "...",
+      "recommender_location": "...",
       "collaboration_period": "...",
       "applicant_role": "...",
       "testimony_text": "...",
@@ -84,9 +85,11 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
 
 # Regras
 - Extraia TODOS os testemunhos (quantidade variável)
-- Para cada testemunho, tente extrair o website da empresa do recomendador
+- Para cada testemunho, tente extrair:
+  * Website da empresa do recomendador (URL completa se disponível)
+  * Localização do recomendador (cidade, estado, país - formato: "São Paulo, Brazil" ou "New York, USA")
 - Se OneNote ou Estrategia faltando, use os dados disponíveis
-- Não invente fatos
+- Não invente fatos - se localização não estiver no texto, deixe vazio
 - Output em português
 - Retorne JSON puro sem markdown
 """
