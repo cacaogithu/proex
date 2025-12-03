@@ -54,12 +54,13 @@ class SubmissionProcessor:
         # 1. Fetch company logo (This is now done inside the parallel function)
         company_name = testimony.get('recommender_company', '')
         company_website = testimony.get('recommender_company_website')
+        company_location = testimony.get('recommender_location', '')
         logo_path = None
 
         if company_name:
             progress_tracker.letter_step(submission_id, index, recommender_name, "logo_search", f"Buscando logo de {company_name}...")
             progress_tracker.logo_search(submission_id, company_name, "searching")
-            logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
+            logo_path = self.logo_scraper.get_company_logo(company_name, company_website, company_location)
             if logo_path:
                 progress_tracker.logo_search(submission_id, company_name, "found")
             else:
@@ -76,7 +77,7 @@ class SubmissionProcessor:
         progress_tracker.letter_step(submission_id, index, recommender_name, "html_design", "Criando design HTML personalizado...")
         recommender_info = {
             'name': recommender_name,
-            'title': testimony.get('recommender_position', ''),
+            'title': testimony.get('recommender_role', ''),
             'company': testimony.get('recommender_company', ''),
             'location': testimony.get('recommender_location', '')
         }
@@ -410,16 +411,17 @@ class SubmissionProcessor:
 
                 recommender_info = {
                     'name': recommender_name,
-                    'title': testimony.get('recommender_title', ''),
+                    'title': testimony.get('recommender_role', ''),
                     'company': testimony.get('recommender_company', ''),
                     'location': testimony.get('recommender_location', '')
                 }
                 # Fetch logo path again for the current letter
                 company_name = testimony.get('recommender_company', '')
                 company_website = testimony.get('recommender_company_website')
+                company_location = testimony.get('recommender_location', '')
                 logo_path = None
                 if company_name:
-                    logo_path = self.logo_scraper.get_company_logo(company_name, company_website)
+                    logo_path = self.logo_scraper.get_company_logo(company_name, company_website, company_location)
 
                 letter_html = self.html_designer.generate_html_design(
                     blocks=blocks,

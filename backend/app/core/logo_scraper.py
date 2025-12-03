@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
 import io
+import json
 
 # Configuration constants
 STORAGE_BASE_DIR = os.getenv('STORAGE_BASE_DIR', 'backend/storage')
@@ -23,11 +24,25 @@ class LogoScraper:
         self._logo_cache = {}
         self._domain_cache = {}
         self.brandfetch_key = os.environ.get('BRANDFETCH_API_KEY', '')
-        self.logodev_secret_key = os.environ.get('LOGO_DEV_API_KEY', '')
-        self.logodev_public_key = os.environ.get('LOGO_DEV_API_KEY', '')
+        # Logo.dev uses different keys for different endpoints
+        # LOGO_DEV_SECRET_KEY: For Brand Search API (https://api.logo.dev/search)
+        # LOGO_DEV_TOKEN: For Image API (https://img.logo.dev/)
+        self.logodev_secret_key = os.environ.get('LOGO_DEV_SECRET_KEY', os.environ.get('LOGO_DEV_API_KEY', ''))
+        self.logodev_token = os.environ.get('LOGO_DEV_TOKEN', os.environ.get('LOGO_DEV_API_KEY', ''))
         self.max_parallel_methods = 4
+
+        # Initialize LLM for AI-powered company search
+        from openai import OpenAI
+        self.openrouter_key = os.environ.get('OPENROUTER_API_KEY', '')
+        if self.openrouter_key:
+            self.llm_client = OpenAI(
+                api_key=self.openrouter_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+        else:
+            self.llm_client = None
     
-    def get_company_logo(self, company_name: str, company_website: Optional[str] = None) -> Optional[str]:
+    def get_company_logo(self, company_name: str, company_website: Optional[str] = None, company_location: Optional[str] = None) -> Optional[str]:
         """
         Enhanced logo fetching with multiple methods and quality checks.
         
@@ -47,11 +62,20 @@ class LogoScraper:
 
         print(f"🔍 Searching logo for: {company_name}")
 
-        # If no website provided, try Logo.dev Brand Search first (most reliable for finding domains)
+        # If no website provided, use AI-powered search as primary method
         if not company_website:
-            print(f"  No website provided, using Brand Search for: {company_name}")
-            
-            if self.logodev_secret_key:
+            print(f"  No website provided, using AI-powered search for: {company_name}")
+
+            # Try AI-powered web search first (most accurate)
+            if self.llm_client:
+                company_website = self._ai_find_company_website(company_name, company_location)
+                if company_website:
+                    print(f"  ✓ AI found website: {company_website}")
+                    # Continue with normal logo fetching using the found website
+                    cache_key = company_website  # Update cache key
+
+            # Fallback to Logo.dev Brand Search if AI didn't find anything
+            if not company_website and self.logodev_secret_key:
                 searched_domain = self._search_logodev_domain(company_name, strategy="match")
                 if searched_domain:
                     print(f"  Brand Search found domain: {searched_domain}, fetching logo via Clearbit...")
@@ -115,8 +139,14 @@ class LogoScraper:
 
         if logo_path:
             self._logo_cache[cache_key] = logo_path
+            print(f"✅ Logo successfully fetched for {company_name}")
         else:
-            print(f"⚠️ Could not find logo for {company_name}")
+            # Provide detailed failure reason
+            if not company_website and not self.llm_client and not self.logodev_secret_key:
+                print(f"❌ Could not find logo for {company_name}: No website provided and no AI/Brand Search available")
+                print(f"   💡 Suggestion: Set OPENROUTER_API_KEY or LOGO_DEV_SECRET_KEY environment variables")
+            else:
+                print(f"⚠️ Could not find logo for {company_name}: All methods exhausted")
             self._logo_cache[cache_key] = None
 
         return logo_path
@@ -248,7 +278,7 @@ class LogoScraper:
             if not domain:
                 return None
 
-            logodev_url = f"https://img.logo.dev/{domain}?token={self.logodev_public_key}&size=256&format=png"
+            logodev_url = f"https://img.logo.dev/{domain}?token={self.logodev_token}&size=256&format=png"
 
             response = requests.get(logodev_url, headers=self.headers, timeout=DEFAULT_REQUEST_TIMEOUT)
             if response.status_code == 200 and len(response.content) > 1000:
@@ -428,8 +458,135 @@ class LogoScraper:
     
     
     
+    def _ai_find_company_website(self, company_name: str, location: Optional[str] = None) -> Optional[str]:
+        """
+        Use AI with web search capability to find the official company website.
+        This is more reliable than domain guessing or basic brand search.
+
+        Args:
+            company_name: The company name to search for
+            location: Optional location/country to disambiguate (e.g., "Brazil", "São Paulo, Brazil")
+
+        Returns:
+            The company's official website URL, or None if not found
+        """
+        if not self.llm_client:
+            print("⚠️ AI search not available (OPENROUTER_API_KEY not set)")
+            return None
+
+        cache_key = f"website_{company_name.lower()}_{location or ''}"
+        if cache_key in self._domain_cache:
+            return self._domain_cache[cache_key]
+
+        try:
+            # Build context-aware search prompt
+            location_context = f" in {location}" if location else ""
+
+            prompt = f"""Find the official company website for "{company_name}"{location_context}.
+
+Instructions:
+1. Search for the company's official website
+2. Return ONLY the website URL (e.g., https://www.company.com or https://company.com.br)
+3. If you find multiple results, prefer the official corporate website (not Wikipedia, LinkedIn, or directories)
+4. If the company has regional websites and location is provided, prefer the regional site
+5. If you cannot find the website with high confidence, return "NOT_FOUND"
+
+Output format: Just the URL or "NOT_FOUND"
+Example outputs:
+- https://www.weg.net
+- https://www.microsoft.com
+- https://www.vale.com
+- NOT_FOUND
+
+Company: {company_name}{location_context}
+Official website URL:"""
+
+            # Call LLM with reasoning capability (using a better model for accuracy)
+            response = self.llm_client.chat.completions.create(
+                model="google/gemini-2.5-flash",  # Good balance of speed and accuracy
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,  # Low temperature for factual accuracy
+                max_tokens=100
+            )
+
+            result = response.choices[0].message.content.strip()
+
+            # Validate and clean the result
+            if result and result != "NOT_FOUND" and ("http://" in result or "https://" in result):
+                # Extract URL if there's extra text
+                import re
+                url_match = re.search(r'https?://[^\s]+', result)
+                if url_match:
+                    website = url_match.group(0).rstrip('.,;)')
+                    print(f"  ✓ AI found website: {website}")
+                    self._domain_cache[cache_key] = website
+                    return website
+
+            print(f"  ⚠️ AI could not find website for {company_name}")
+            self._domain_cache[cache_key] = None
+            return None
+
+        except Exception as e:
+            print(f"  ⚠️ AI website search failed: {str(e)}")
+            self._domain_cache[cache_key] = None
+            return None
+
+    def _validate_logo_quality(self, image_data: bytes) -> bool:
+        """
+        Validate logo quality to ensure it's not a placeholder or low-quality image.
+
+        Checks:
+        - File size (not too small or suspiciously large)
+        - For PNG/JPG: Image dimensions (should be reasonable for a logo)
+        - Not a common placeholder pattern
+
+        Returns:
+            True if logo passes quality checks, False otherwise
+        """
+        try:
+            # Basic size check
+            size = len(image_data)
+            if size < MIN_LOGO_SIZE or size > MAX_LOGO_SIZE:
+                print(f"  ⚠️ Logo failed size check: {size} bytes (expected {MIN_LOGO_SIZE}-{MAX_LOGO_SIZE})")
+                return False
+
+            # For raster images, check dimensions
+            if image_data.startswith(b'\x89PNG') or image_data.startswith(b'\xff\xd8'):
+                try:
+                    img = Image.open(io.BytesIO(image_data))
+                    width, height = img.size
+
+                    # Logos should be at least 50x50 pixels
+                    if width < 50 or height < 50:
+                        print(f"  ⚠️ Logo too small: {width}x{height}px")
+                        return False
+
+                    # Aspect ratio check (logos usually between 0.2 and 5.0 ratio)
+                    aspect_ratio = width / height
+                    if aspect_ratio < 0.2 or aspect_ratio > 5.0:
+                        print(f"  ⚠️ Unusual aspect ratio: {aspect_ratio:.2f}")
+                        # Don't reject, just warn
+
+                    print(f"  ✓ Logo quality check passed: {width}x{height}px, {size} bytes")
+                except Exception as e:
+                    # If we can't validate, assume it's OK (might be SVG or other format)
+                    print(f"  ℹ️ Could not validate image dimensions: {e}")
+                    pass
+
+            return True
+
+        except Exception as e:
+            print(f"  ⚠️ Logo validation error: {e}")
+            # If validation fails, don't reject the logo
+            return True
+
     def _save_logo(self, company_identifier: str, image_data: bytes) -> str:
-        """Save logo to storage and return path"""
+        """Save logo to storage and return path after validation"""
+
+        # Validate logo quality
+        if not self._validate_logo_quality(image_data):
+            raise ValueError(f"Logo quality validation failed for {company_identifier}")
+
         # Create logos directory (use centralized configuration)
         logos_dir = os.path.join(STORAGE_BASE_DIR, "logos")
         os.makedirs(logos_dir, exist_ok=True)
