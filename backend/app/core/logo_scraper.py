@@ -503,7 +503,7 @@ Official website URL:"""
 
             # Call LLM with reasoning capability (using a better model for accuracy)
             response = self.llm_client.chat.completions.create(
-                model="google/gemini-2.5-flash",  # Good balance of speed and accuracy
+                model="openai/gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,  # Low temperature for factual accuracy
                 max_tokens=100

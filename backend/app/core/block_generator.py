@@ -94,7 +94,7 @@ class BlockGenerator:
         """Simple LLM call without word count validation"""
         for attempt in range(3):
             try:
-                response = self.llm.client.chat.completions.create(
+                response = self.llm._call_llm(
                     model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature,
@@ -168,7 +168,7 @@ Retorne APENAS o texto expandido completo, sem comentários ou explicações."""
 
         for attempt in range(max_retries):
             try:
-                response = self.llm.client.chat.completions.create(
+                response = self.llm._call_llm(
                     model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature + (attempt * 0.05),

@@ -104,10 +104,10 @@ class HTMLDesigner:
 
         # Generate HTML design using LLM
         try:
-            response = self.llm.client.chat.completions.create(
-                model=self.llm.models["quality"],  # Use best model for design
+            response = self.llm._call_llm(
+                model=self.llm.models["quality"],
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.8,  # Higher temperature for creativity
+                temperature=0.8,
                 max_tokens=16000
             )
 
