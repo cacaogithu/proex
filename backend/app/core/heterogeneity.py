@@ -150,7 +150,7 @@ Return ONLY valid JSON with this structure:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                response = self.llm.client.chat.completions.create(
+                response = self.llm._call_llm(
                     model=self.llm.models["quality"],
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"},

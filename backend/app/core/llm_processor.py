@@ -8,19 +8,45 @@ from typing import Dict, List
 class LLMProcessor:
     def __init__(self):
         # Using OpenRouter.ai - More cost-effective with multiple model options
-        # Gemini Flash: Fast and cheap for data organization
-        # Gemini 2.5 Pro: High quality for content generation
-        # Claude 4.5 Sonnet: Best for HTML/document assembly
+        # GPT-4o Mini: Fast and cheap for data extraction
+        # Gemini 2.5 Flash: High quality for content generation
+        # Claude 3.5 Sonnet: Best for HTML/document assembly
         self.client = OpenAI(
             api_key=os.getenv("OPENROUTER_API_KEY"),
             base_url="https://openrouter.ai/api/v1"
         )
-        
+
         self.models = {
-            "fast": "google/gemini-2.5-flash",
+            "fast": "openai/gpt-4o-mini",
             "quality": "google/gemini-2.5-flash",
             "premium": "anthropic/claude-3.5-sonnet"
         }
+
+        # Fallback models if primary fails (400/404 = invalid model ID)
+        self._fallback_models = {
+            "openai/gpt-4o-mini": ["google/gemini-2.5-flash", "anthropic/claude-3.5-sonnet"],
+            "google/gemini-2.5-flash": ["openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet"],
+            "anthropic/claude-3.5-sonnet": ["openai/gpt-4o-mini", "google/gemini-2.5-flash"],
+        }
+
+    def _call_llm(self, model: str, messages: list, **kwargs):
+        """Call LLM with automatic fallback on invalid model errors (400/404)."""
+        models_to_try = [model] + self._fallback_models.get(model, [])
+        last_error = None
+        for m in models_to_try:
+            try:
+                return self.client.chat.completions.create(
+                    model=m, messages=messages, **kwargs
+                )
+            except Exception as e:
+                err_str = str(e)
+                # Only fallback on model-not-found errors, not on rate limits or other issues
+                if "400" in err_str or "404" in err_str or "not a valid model" in err_str:
+                    print(f"Model {m} unavailable, trying fallback...")
+                    last_error = e
+                    continue
+                raise
+        raise last_error
     
     def clean_and_organize(self, extracted_texts: Dict) -> Dict:
         testimonials_text = "\n\n---\n\n".join([
@@ -97,8 +123,7 @@ Retorne APENAS JSON válido (sem markdown, sem code fences):
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                # Using Gemini Flash - fast and cheap for data extraction
-                response = self.client.chat.completions.create(
+                response = self._call_llm(
                     model=self.models["fast"],
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"}
@@ -151,7 +176,7 @@ Avoid generic queries - be precise and actionable.
 Return ONLY the search query text, nothing else."""
         
         try:
-            response = self.client.chat.completions.create(
+            response = self._call_llm(
                 model=self.models["fast"],
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
